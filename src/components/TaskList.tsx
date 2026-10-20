@@ -89,28 +89,33 @@ function TaskRow({
   return (
     <li
       ref={setNodeRef}
-      className={`flex items-start gap-3 px-4 py-4 ${draggable ? 'touch-manipulation select-none [-webkit-touch-callout:none]' : ''} ${isDragging ? 'opacity-40' : ''}`}
+      className={`flex items-center gap-3 px-4 py-4 ${draggable ? 'touch-manipulation select-none [-webkit-touch-callout:none]' : ''} ${isDragging ? 'opacity-40' : ''}`}
       {...(draggable ? { ...attributes, ...listeners } : {})}
     >
       {draggable && (
-        <span className="-ml-2 flex h-8 shrink-0 items-center text-fg-2" aria-hidden="true">
+        <span className="-ml-2 flex shrink-0 items-center text-fg-2" aria-hidden="true">
           <GripIcon />
         </span>
       )}
+      {/* A 44px tap area around a smaller box. */}
       <button
-        className={`grid h-8 w-8 shrink-0 place-items-center rounded-sm border-2 ${done ? 'border-accent bg-accent text-accent-fg' : 'border-fg-2 hover:border-accent'}`}
+        className="group -m-[9px] grid h-11 w-11 shrink-0 place-items-center"
         onClick={async () => {
           if (!done && !(await confirmComplete(task.title))) return;
           await setTaskCompleted(task, !done);
         }}
         aria-label={done ? 'Mark not done' : 'Mark done'}
       >
-        {done && <CheckIcon width={20} height={20} strokeWidth={3.5} />}
+        <span
+          className={`grid h-[26px] w-[26px] place-items-center rounded-sm border-2 ${done ? 'border-accent bg-accent text-accent-fg' : 'border-fg-2 group-hover:border-accent'}`}
+        >
+          {done && <CheckIcon width={17} height={17} strokeWidth={3.5} />}
+        </span>
       </button>
       {/* The whole area opens the task; the title is the keyboard-focusable control.
           Tag chips inside are their own buttons and stop the click. */}
       <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openTask(task.id)}>
-        <button type="button" className={`flex min-h-8 w-full items-center text-left text-base font-semibold break-words ${done ? 'text-muted line-through' : 'text-fg'}`}>
+        <button type="button" className={`flex w-full items-center text-left text-base font-semibold break-words ${done ? 'text-muted line-through' : 'text-fg'}`}>
           {task.title}
         </button>
         <TaskMeta task={task} steps={steps} labels={labels} done={done} />
