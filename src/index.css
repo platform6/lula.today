@@ -249,12 +249,12 @@ textarea {
   padding-top: env(safe-area-inset-top);
 }
 /*
- * Bottom tab bar: iOS reports a ~34px home-indicator inset in the installed app.
- * Padding the whole inset leaves an empty band under the tabs, so keep just
- * enough to clear the indicator (like a native tab bar), and at least 8px.
+ * Bottom tab bar: clear the iPhone home indicator, and keep at least 8px elsewhere.
+ * (index.html deliberately has no black-translucent status bar: in the installed
+ * app it shortens the viewport and leaves a band under fixed bottom bars.)
  */
 :root {
-  --tab-safe: max(8px, calc(env(safe-area-inset-bottom, 0px) - 14px));
+  --tab-safe: max(8px, env(safe-area-inset-bottom, 0px));
 }
 .pb-tabbar {
   padding-bottom: var(--tab-safe);

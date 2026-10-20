@@ -63,6 +63,8 @@ export function Layout() {
   useEffect(() => {
     if (!theme) return;
     document.documentElement.dataset.theme = theme;
+    // The installed app's status bar takes this color.
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f7f7f5' : '#111316');
     try {
       localStorage.setItem('lula.theme', theme); // read by index.html to avoid a flash on launch
     } catch {
