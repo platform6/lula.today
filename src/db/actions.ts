@@ -12,6 +12,7 @@ import type {
   Task,
 } from './types';
 import { byPosition, keyAtEnd, keyAtIndex, keyAtStart } from '../lib/position';
+import { emitTaskCompleted } from '../lib/celebrate';
 
 export const DEFAULT_COLUMNS: ColumnTemplate[] = [
   { name: 'Backlog', is_done: false },
@@ -249,19 +250,23 @@ export const updateTask = (id: string, changes: Partial<Task>) => patch('tasks',
 
 /** Move a task to `index` within a column (index counts tasks excluding the moving one). */
 export async function moveTask(taskId: string, columnId: string, index?: number): Promise<void> {
+  let justCompleted = null as string | null; // set inside the transaction callback
   await writeTx(async () => {
     const task = await db.tasks.get(taskId);
     const column = await db.board_columns.get(columnId);
     if (!task || !column) return;
     const siblings = await tasksInColumn(columnId, taskId);
     const position = keyAtIndex(siblings, index ?? siblings.length);
+    const completed_at = completedFor(task, column, now());
     await patch('tasks', taskId, {
       column_id: columnId,
       project_id: column.project_id,
       position,
-      completed_at: completedFor(task, column, now()),
+      completed_at,
     });
+    if (!task.completed_at && completed_at) justCompleted = taskId;
   });
+  if (justCompleted) emitTaskCompleted(justCompleted);
 }
 
 /** Move a task to another project, landing in that project's first open column. */
@@ -280,6 +285,7 @@ export async function setTaskCompleted(task: Task, completed: boolean): Promise<
   } else {
     // No suitable column (e.g. a project with no done column): just set the flag.
     await patch('tasks', task.id, { completed_at: completed ? now() : null });
+    if (completed && !task.completed_at) emitTaskCompleted(task.id);
   }
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAreas, useProjects, useSettings } from '../db/hooks';
 import { ArchiveIcon, FolderIcon, GearIcon, InboxIcon, ListIcon, PlusIcon, SearchIcon, SunIcon } from './icons';
+import { Celebration } from './Celebration';
 import { QuickAdd } from './QuickAdd';
 import { SyncBadge } from './SyncBadge';
 import { TaskSheet } from './TaskSheet';
@@ -68,14 +69,13 @@ export function Layout() {
           defaultProjectId={projectMatch?.params.id}
           onClose={() => setQuickAdd(false)}
           onCreated={(id, openDetails) => {
-            if (openDetails) {
-              setQuickAdd(false);
-              openTask(id);
-            }
+            setQuickAdd(false);
+            if (openDetails) openTask(id);
           }}
         />
       )}
       {taskId && <TaskSheet id={taskId} onClose={() => openTask(null)} />}
+      <Celebration />
     </div>
   );
 }

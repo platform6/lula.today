@@ -23,16 +23,18 @@ export function QuickAdd({
   const [title, setTitle] = useState('');
   const [due, setDue] = useState('');
   const [priority, setPriority] = useState<Priority>(0);
-  const [added, setAdded] = useState(0);
+  const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => inputRef.current?.focus(), []);
 
   const target = projectId || inbox?.id || '';
 
+  // Saving closes the sheet (the parent unmounts it); tap + again for the next task.
   async function submit(openDetails: boolean) {
     const text = title.trim();
-    if (!text || !target) return;
+    if (!text || !target || saving) return;
+    setSaving(true);
     const task = await createTask({
       title: text,
       project_id: target,
@@ -40,10 +42,7 @@ export function QuickAdd({
       due_at: toDueAt(due),
       atTop: true,
     });
-    setTitle('');
-    setAdded((n) => n + 1);
     onCreated(task.id, openDetails);
-    inputRef.current?.focus();
   }
 
   const areaName = (id: string | null) => areas.find((a) => a.id === id)?.name;
@@ -92,11 +91,11 @@ export function QuickAdd({
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-sm text-fg-2">{added > 0 && `Added ${added}. Keep typing to add more.`}</span>
-          <button type="button" className="btn-ghost" disabled={!title.trim()} onClick={() => void submit(true)}>
+          <span className="flex-1" />
+          <button type="button" className="btn-ghost" disabled={!title.trim() || saving} onClick={() => void submit(true)}>
             Add &amp; open
           </button>
-          <button type="submit" className="btn-primary" disabled={!title.trim()}>
+          <button type="submit" className="btn-primary" disabled={!title.trim() || saving}>
             Add
           </button>
         </div>

@@ -168,6 +168,37 @@ textarea {
   @apply inline-flex items-center gap-1 rounded-sm bg-surface-2 px-2 py-0.5 text-xs font-semibold text-fg-2;
 }
 
+/* Task-completed flourish (see components/Celebration.tsx) */
+.swish-bar {
+  position: absolute;
+  left: 0;
+  width: 75vw;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent 0%, var(--bar-color) 35%, var(--bar-color) 80%, #fff3 100%);
+  transform: translateX(-110%) skewX(-24deg);
+  opacity: 0;
+  animation-name: swish;
+  animation-timing-function: cubic-bezier(0.22, 0.8, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes swish {
+  0% {
+    transform: translateX(-110%) skewX(-24deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.95;
+  }
+  75% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(140vw) skewX(-24deg);
+    opacity: 0;
+  }
+}
+
 .pt-safe {
   padding-top: env(safe-area-inset-top);
 }

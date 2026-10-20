@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db, clearLocalData } from './db';
 import { setCurrentUser } from './mutate';
+import { onTaskCompleted } from '../lib/celebrate';
 import {
   columnsOf,
   createProject,
@@ -86,6 +87,33 @@ describe('tasks and columns', () => {
     const order = (await db.tasks.toArray()).sort((x, y) => (x.position < y.position ? -1 : 1)).map((t) => t.title);
     expect(order).toEqual(['C', 'A', 'B']);
     expect(b).toBeTruthy();
+  });
+});
+
+describe('completion event', () => {
+  it('fires once when a task first enters a done column, not on moves within or out of done', async () => {
+    const fired: string[] = [];
+    const off = onTaskCompleted((id) => fired.push(id));
+    try {
+      const p = await createProject({ name: 'P', area_id: null });
+      const [backlog, todo, , done] = await columnsOf(p.id);
+      const t = await createTask({ title: 'T', project_id: p.id });
+
+      await moveTask(t.id, todo.id);
+      expect(fired).toEqual([]);
+
+      await moveTask(t.id, done.id);
+      expect(fired).toEqual([t.id]);
+
+      await moveTask(t.id, done.id, 0); // reorder inside done
+      expect(fired).toEqual([t.id]);
+
+      await moveTask(t.id, backlog.id);
+      await setTaskCompleted((await db.tasks.get(t.id))!, true);
+      expect(fired).toEqual([t.id, t.id]);
+    } finally {
+      off();
+    }
   });
 });
 
