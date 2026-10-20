@@ -93,7 +93,7 @@ function TaskRow({
       {...(draggable ? { ...attributes, ...listeners } : {})}
     >
       {draggable && (
-        <span className="-ml-2 self-center text-fg-2" aria-hidden="true">
+        <span className="-ml-2 flex h-8 shrink-0 items-center text-fg-2" aria-hidden="true">
           <GripIcon />
         </span>
       )}
@@ -110,7 +110,7 @@ function TaskRow({
       {/* The whole area opens the task; the title is the keyboard-focusable control.
           Tag chips inside are their own buttons and stop the click. */}
       <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openTask(task.id)}>
-        <button type="button" className={`block w-full text-left text-base font-semibold break-words ${done ? 'text-muted line-through' : 'text-fg'}`}>
+        <button type="button" className={`flex min-h-8 w-full items-center text-left text-base font-semibold break-words ${done ? 'text-muted line-through' : 'text-fg'}`}>
           {task.title}
         </button>
         <TaskMeta task={task} steps={steps} labels={labels} done={done} />
@@ -121,7 +121,7 @@ function TaskRow({
         )}
       </div>
       {onMove && (
-        <button className="btn-outline shrink-0 px-3" onClick={onMove}>
+        <button className="btn-outline -my-1 min-h-10 shrink-0 px-3" onClick={onMove}>
           Move
         </button>
       )}

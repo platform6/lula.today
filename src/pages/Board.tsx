@@ -152,7 +152,11 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
               </Link>
             )}
             <span className="flex min-w-0 items-center gap-2">
-              {project.is_area_default && <TreeNode kind="realm" color={area?.color} />}
+              {project.is_area_default && (
+                <span className="flex shrink-0 p-1">
+                  <TreeNode kind="realm" color={area?.color} compact />
+                </span>
+              )}
               <span className="truncate">
                 {project.is_inbox ? 'Inbox board' : project.is_area_default ? (area?.name ?? project.name) : project.name}
               </span>

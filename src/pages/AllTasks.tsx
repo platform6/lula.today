@@ -75,7 +75,7 @@ export function AllTasks() {
           </button>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-5">
+      <div className="grid grid-cols-1 gap-2 p-4 min-[360px]:grid-cols-2 sm:grid-cols-5">
         <select className="input" value={status} onChange={(e) => setStatus(e.target.value as Status)} aria-label="Status">
           <option value="open">Open</option>
           <option value="done">Completed</option>

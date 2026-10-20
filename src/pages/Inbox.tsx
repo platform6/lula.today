@@ -50,8 +50,8 @@ export function InboxZero() {
       <span className="grid h-20 w-20 place-items-center rounded-full bg-accent text-accent-fg">
         <CheckIcon width={44} height={44} strokeWidth={3} />
       </span>
-      <h2 className="text-2xl font-bold">Inbox zero</h2>
-      <p className="max-w-xs text-base text-fg-2">Everything is sorted. Tap + to capture something new.</p>
+      <p className="text-xl font-bold">Everything is sorted.</p>
+      <p className="-mt-2 text-base text-fg-2">Tap + to capture something new.</p>
       <Link to="/" className="btn-outline mt-2">Go to Today</Link>
     </div>
   );

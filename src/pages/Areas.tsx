@@ -11,9 +11,9 @@ import { PageHeader } from '../components/PageHeader';
 import { ArchiveIcon, ListIcon } from '../components/icons';
 
 // Row heights (px) for the tree; connectors meet each row's vertical center.
-const ROOT_H = 56;
-const REALM_H = 68;
-const PROJECT_H = 52;
+const ROOT_H = 48;
+const REALM_H = 60;
+const PROJECT_H = 44;
 
 /** Top of the hierarchy, drawn as a node tree: Realms → realm → project. */
 export function Areas() {
@@ -69,40 +69,40 @@ export function Areas() {
         <div>
           {/* root */}
           <div className="relative flex items-center gap-3" style={{ height: ROOT_H }}>
-            <TreeNode kind="root" />
+            <TreeNode kind="root" compact />
             <span className="text-xl font-bold">Realms</span>
             <span className="chip">{areas.length}</span>
-            {areas.length > 0 && <Stem x={NODE_SIZE.root / 2} y={ROOT_H / 2} />}
+            {areas.length > 0 && <Stem x={NODE_SIZE.compactRoot / 2} y={ROOT_H / 2} />}
           </div>
 
-          <Children x={NODE_SIZE.root / 2}>
+          <Children x={NODE_SIZE.compactRoot / 2}>
             {areas.map((a, i) => {
               const mine = active.filter((p) => p.area_id === a.id);
               const open = openByArea.get(a.id) ?? 0;
               return (
-                <Branch key={a.id} last={i === areas.length - 1} y={REALM_H / 2} indent={28}>
+                <Branch key={a.id} last={i === areas.length - 1} y={REALM_H / 2} indent={20}>
                   <div className="relative flex items-center gap-3" style={{ height: REALM_H }}>
-                    <TreeNode kind="realm" color={a.color} />
+                    <TreeNode kind="realm" color={a.color} compact />
                     <Link to={`/realms/${a.id}`} className="-my-1 min-w-0 flex-1 rounded-sm px-2 py-1 hover:bg-surface-2">
                       <div className="truncate text-xl font-bold">{a.name}</div>
                       <div className="truncate text-sm text-fg-2">
                         {open} open task{open === 1 ? '' : 's'} · {mine.length} project{mine.length === 1 ? '' : 's'}
                       </div>
                     </Link>
-                    {mine.length > 0 && <Stem x={NODE_SIZE.realm / 2} y={REALM_H / 2} color={a.color} />}
+                    {mine.length > 0 && <Stem x={NODE_SIZE.compactRealm / 2} y={REALM_H / 2} color={a.color} />}
                   </div>
                   {mine.length > 0 && (
-                    <Children x={NODE_SIZE.realm / 2}>
+                    <Children x={NODE_SIZE.compactRealm / 2}>
                       {mine.map((p, j) => {
                         const [done, total] = progress?.get(p.id) ?? [0, 0];
                         return (
-                          <Branch key={p.id} last={j === mine.length - 1} y={PROJECT_H / 2} indent={24} color={a.color}>
+                          <Branch key={p.id} last={j === mine.length - 1} y={PROJECT_H / 2} indent={18} color={a.color}>
                             <Link
                               to={`/projects/${p.id}`}
                               className="flex items-center gap-3 rounded-sm pr-2 hover:bg-surface-2"
                               style={{ height: PROJECT_H }}
                             >
-                              <TreeNode kind="project" color={a.color} />
+                              <TreeNode kind="project" color={a.color} compact />
                               <span className="min-w-0 flex-1 truncate text-base font-semibold">{p.name}</span>
                               <span className="shrink-0 text-sm font-semibold text-fg-2">
                                 {done}/{total}

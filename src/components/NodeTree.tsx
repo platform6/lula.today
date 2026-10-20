@@ -40,7 +40,12 @@ export function TreeNode({ kind, color, compact = false }: { kind: NodeKind; col
       <span
         aria-hidden="true"
         className="shrink-0 rounded-full"
-        style={{ width: size, height: size, background: c, boxShadow: `0 0 0 3px var(--bg), 0 0 0 5px ${c}` }}
+        style={{
+          width: size,
+          height: size,
+          background: c,
+          boxShadow: compact ? `0 0 0 2px var(--bg), 0 0 0 3.5px ${c}` : `0 0 0 3px var(--bg), 0 0 0 5px ${c}`,
+        }}
       />
     );
   }

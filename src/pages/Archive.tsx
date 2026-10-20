@@ -30,7 +30,7 @@ export function Archive() {
   return (
     <div>
       <PageHeader title="Archive" />
-      <div className="grid grid-cols-2 gap-2 p-4">
+      <div className="grid grid-cols-1 gap-2 p-4 min-[360px]:grid-cols-2">
         <select className="input" value={areaId} onChange={(e) => { setAreaId(e.target.value); setProjectId(''); }} aria-label="Realm">
           <option value="">All realms</option>
           {areas.map((a) => (

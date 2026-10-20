@@ -48,7 +48,9 @@ export function AreaPage() {
       <PageHeader
         title={
           <span className="flex min-w-0 items-center gap-2">
-            <TreeNode kind="realm" color={area.color} />
+            <span className="flex shrink-0 p-1">
+              <TreeNode kind="realm" color={area.color} compact />
+            </span>
             <span className="truncate">{area.name} options</span>
           </span>
         }
