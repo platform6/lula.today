@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   DndContext,
@@ -54,6 +54,16 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   const labels = useLabels() ?? [];
   const labelMap = useTaskLabelMap();
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Phones show one full-width column at a time; tabs above track and jump between them.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [activeCol, setActiveCol] = useState(0);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  // Keep the current column's tab in view when the tab row is wider than the screen.
+  useEffect(() => {
+    const tab = tabsRef.current?.children[activeCol] as HTMLElement | undefined;
+    tab?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+  }, [activeCol]);
   const confirmComplete = useConfirmComplete();
   const [hideDone, setHideDone] = useState(() => {
     try {
@@ -115,6 +125,31 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       if (completing && !(await confirmComplete(task.title))) return;
       await moveTask(String(active.id), target, index);
     })();
+  }
+
+  // The column nearest the middle of the scroller is the one in view.
+  function onColumnsScroll() {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const mid = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    Array.from(el.children).forEach((child, i) => {
+      const c = child as HTMLElement;
+      const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    });
+    if (best !== activeCol) setActiveCol(best);
+  }
+
+  function goToColumn(i: number) {
+    const el = scrollerRef.current;
+    const child = el?.children[i] as HTMLElement | undefined;
+    if (!el || !child) return;
+    el.scrollTo({ left: child.offsetLeft - (el.clientWidth - child.offsetWidth) / 2, behavior: 'smooth' });
   }
 
   const toggleHideDone = () => {
@@ -181,6 +216,28 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
           </>
         }
       />
+      {columns.length > 1 && (
+        <div
+          ref={tabsRef}
+          className="flex overflow-x-auto border-b border-line px-2 [scrollbar-width:none] md:hidden"
+          role="tablist"
+          aria-label="Columns"
+        >
+          {columns.map((c, i) => (
+            <button
+              key={c.id}
+              type="button"
+              role="tab"
+              aria-selected={i === activeCol}
+              onClick={() => goToColumn(i)}
+              className={`flex min-h-12 shrink-0 items-center gap-1.5 px-3 text-sm font-semibold ${i === activeCol ? 'text-fg shadow-[inset_0_-3px_0_var(--accent)]' : 'text-fg-2'}`}
+            >
+              {c.name}
+              <span className="chip">{byColumn.get(c.id)?.length ?? 0}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -188,7 +245,11 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
         onDragCancel={() => setActiveId(null)}
         onDragEnd={onDragEnd}
       >
-        <div className="flex flex-1 snap-x snap-mandatory gap-3 overflow-x-auto p-4 md:snap-none">
+        <div
+          ref={scrollerRef}
+          onScroll={onColumnsScroll}
+          className="relative flex flex-1 snap-x snap-mandatory gap-3 overflow-x-auto p-4 max-md:[scrollbar-width:none] md:snap-none"
+        >
           {columns.map((c) => (
             <Column
               key={c.id}
@@ -241,7 +302,7 @@ function Column({
   const [title, setTitle] = useState('');
 
   return (
-    <section className="flex w-[88vw] max-w-sm shrink-0 snap-center flex-col md:w-80">
+    <section className="flex w-full shrink-0 snap-center flex-col md:w-80">
       <div className="mb-3 flex items-center gap-2 border-b-2 border-line-strong px-1 pb-2">
         <h2 className="text-lg font-bold">{column.name}</h2>
         <span className="chip">{tasks.length}</span>
