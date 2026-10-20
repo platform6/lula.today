@@ -1,41 +1,98 @@
 @import 'tailwindcss';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/400-italic.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-sans/700.css';
+
+/*
+ * Visual language after overworld.vg: IBM Plex Sans, near-black ground, one hot
+ * orange accent, flat surfaces with hairline rules and 3px left accent bars.
+ * Tuned for legibility on a phone: nothing renders below 15px, secondary text
+ * stays at 7:1+ contrast, and touch targets are at least 48px.
+ */
+
+@theme {
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Type scale shifted up: the smallest step is 15px. */
+  --text-xs: 0.9375rem;
+  --text-xs--line-height: 1.35;
+  --text-sm: 1.0625rem;
+  --text-sm--line-height: 1.4;
+  --text-base: 1.1875rem;
+  --text-base--line-height: 1.45;
+  --text-lg: 1.375rem;
+  --text-lg--line-height: 1.3;
+  --text-xl: 1.625rem;
+  --text-xl--line-height: 1.25;
+  --text-2xl: 2.25rem;
+  --text-2xl--line-height: 1.1;
+
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+}
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-prio-1: var(--prio-1);
+  --color-prio-2: var(--prio-2);
+  --color-prio-3: var(--prio-3);
 }
 
 :root,
 [data-theme='dark'] {
-  --bg: #0f1115;
-  --surface: #171a21;
-  --surface-2: #1f232c;
-  --line: #2a2f3a;
-  --fg: #e7e9ee;
-  --muted: #8b93a5;
-  --accent: #7c8cff;
-  --accent-fg: #0f1115;
-  --danger: #f2667a;
+  --bg: #111316;
+  --surface: #181b1f;
+  --surface-2: #252a2f;
+  --line: #2c3238;
+  --line-strong: #4a535d;
+  --fg: #f4f6f8; /* 17:1 on bg */
+  --fg-2: #d3d8dd; /* 12:1 */
+  --muted: #aeb6bf; /* 8.6:1 */
+  --accent: #ff6a2b; /* overworld orange, lifted for 6:1 as text */
+  --accent-fg: #111316;
+  --danger: #ff6b6b;
+  --ok: #5fdc8f;
+  --warn: #ffc247;
+  --prio-1: #7cc4ff;
+  --prio-2: #ffc247;
+  --prio-3: #ff6b6b;
   color-scheme: dark;
 }
 
 [data-theme='light'] {
-  --bg: #f6f7f9;
+  --bg: #f7f7f5;
   --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --line: #dde1e8;
-  --fg: #1b1e25;
-  --muted: #646c7d;
-  --accent: #4f5fe6;
+  --surface-2: #eceef0;
+  --line: #d3d8dd;
+  --line-strong: #8a939c;
+  --fg: #0d0f12;
+  --fg-2: #262b31;
+  --muted: #464e57; /* 8:1 on bg */
+  --accent: #c2410c;
   --accent-fg: #ffffff;
-  --danger: #d33a50;
+  --danger: #b4232f;
+  --ok: #11733b;
+  --warn: #8a5a00;
+  --prio-1: #0b62a8;
+  --prio-2: #8a5a00;
+  --prio-3: #b4232f;
   color-scheme: light;
 }
 
@@ -48,39 +105,67 @@ body,
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
 }
 
-/* iOS zooms into inputs below 16px */
+/* iOS zooms into inputs below 16px; keep them comfortably above it. */
 input,
 select,
 textarea {
-  font-size: 16px;
+  font-size: var(--text-base);
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
 }
 
 @utility input {
-  @apply w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-fg placeholder:text-muted focus:border-accent focus:outline-none;
+  @apply min-h-12 w-full rounded-md border-2 border-line-strong bg-surface px-3 py-2 text-fg placeholder:text-muted focus:border-accent focus:outline-none;
 }
 @utility btn {
-  @apply inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors disabled:opacity-50;
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-4 text-base font-semibold transition-colors disabled:opacity-40;
 }
 @utility btn-primary {
-  @apply btn bg-accent text-accent-fg hover:opacity-90;
+  @apply btn bg-accent text-accent-fg hover:brightness-110;
 }
 @utility btn-ghost {
-  @apply btn text-muted hover:bg-surface-2 hover:text-fg;
+  @apply btn text-fg-2 hover:bg-surface-2 hover:text-fg;
+}
+@utility btn-outline {
+  @apply btn border-2 border-line-strong text-fg hover:border-fg;
 }
 @utility btn-danger {
-  @apply btn text-danger hover:bg-danger/10;
+  @apply btn text-danger hover:bg-danger/15;
 }
 @utility card {
-  @apply rounded-xl border border-line bg-surface;
+  @apply rounded-md border border-line bg-surface;
 }
+/* Form field labels: readable, not shouty. */
 @utility field-label {
-  @apply mb-1 block text-xs font-medium tracking-wide text-muted uppercase;
+  @apply mb-1.5 block text-sm font-semibold text-fg-2;
+}
+/* Section headings with a hairline rule, as on overworld's "Developing now". */
+@utility section-title {
+  @apply flex items-baseline gap-2 border-b border-line pb-2 text-base font-bold text-fg;
+}
+/* Small orange lead-in words ("Overdue", "Also:") */
+@utility kicker {
+  @apply text-sm font-bold text-accent;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded-sm bg-surface-2 px-2 py-0.5 text-xs font-semibold text-fg-2;
 }
 
 .pt-safe {

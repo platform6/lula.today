@@ -49,18 +49,18 @@ export function Layout() {
     <div className="flex h-full">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="pt-safe min-h-0 flex-1 overflow-y-auto pb-24 md:pb-6">
+        <main className="pt-safe min-h-0 flex-1 overflow-y-auto pb-40 md:pb-8">
           <Outlet />
         </main>
         <BottomNav />
       </div>
 
       <button
-        className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 grid h-14 w-14 place-items-center rounded-full bg-accent text-accent-fg shadow-lg md:right-6 md:bottom-6"
+        className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
         onClick={() => setQuickAdd(true)}
         aria-label="Add task"
       >
-        <PlusIcon width={26} height={26} />
+        <PlusIcon width={32} height={32} strokeWidth={2.75} />
       </button>
 
       {quickAdd && (
@@ -81,7 +81,7 @@ export function Layout() {
 }
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-surface-2 text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg'}`;
+  `flex min-h-11 items-center gap-3 rounded-sm px-3 py-2 text-base font-semibold ${isActive ? 'bg-surface-2 text-fg shadow-[inset_3px_0_0_var(--accent)]' : 'text-fg-2 hover:bg-surface-2 hover:text-fg'}`;
 
 function Sidebar() {
   const areas = useAreas() ?? [];
@@ -89,9 +89,9 @@ function Sidebar() {
   const ungrouped = projects.filter((p) => !p.area_id || !areas.some((a) => a.id === p.area_id));
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-surface md:flex">
+    <aside className="hidden w-72 shrink-0 flex-col border-r border-line bg-surface md:flex">
       <div className="flex items-center justify-between px-4 py-4">
-        <span className="text-lg font-bold tracking-tight">lula</span>
+        <span className="text-2xl font-bold text-accent">lula</span>
         <SyncBadge />
       </div>
       <nav className="flex flex-col gap-0.5 px-2">
@@ -105,8 +105,8 @@ function Sidebar() {
         <NavLink to="/projects" end className={navClass}><FolderIcon /> Areas &amp; projects</NavLink>
         {areas.map((area) => (
           <div key={area.id} className="mt-3">
-            <div className="flex items-center gap-2 px-3 text-xs font-medium tracking-wide text-muted uppercase">
-              <span className="h-2 w-2 rounded-full" style={{ background: area.color ?? 'var(--muted)' }} />
+            <div className="flex items-center gap-2 px-3 pb-1 text-sm font-bold text-fg-2">
+              <span className="h-3 w-3 rounded-full" style={{ background: area.color ?? 'var(--muted)' }} />
               {area.name}
             </div>
             {projects
@@ -118,7 +118,7 @@ function Sidebar() {
         ))}
         {ungrouped.length > 0 && (
           <div className="mt-3">
-            <div className="px-3 text-xs font-medium tracking-wide text-muted uppercase">No area</div>
+            <div className="px-3 pb-1 text-sm font-bold text-fg-2">No area</div>
             {ungrouped.map((p) => (
               <ProjectLink key={p.id} id={p.id} name={p.name} color={p.color} />
             ))}
@@ -135,23 +135,25 @@ function Sidebar() {
 function ProjectLink({ id, name, color }: { id: string; name: string; color: string | null }) {
   return (
     <NavLink to={`/projects/${id}`} className={navClass}>
-      <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: color ?? 'var(--line)' }} />
+      <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: color ?? 'var(--line-strong)' }} />
       <span className="truncate">{name}</span>
     </NavLink>
   );
 }
 
 const tabClass = ({ isActive }: { isActive: boolean }) =>
-  `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${isActive ? 'text-accent' : 'text-muted'}`;
+  `flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold ${isActive ? 'text-accent shadow-[inset_0_3px_0_var(--accent)]' : 'text-fg-2'}`;
+
+const tabIcon = { width: 26, height: 26 };
 
 function BottomNav() {
   return (
-    <nav className="pb-safe fixed inset-x-0 bottom-0 z-20 flex border-t border-line bg-surface/95 backdrop-blur md:hidden">
-      <NavLink to="/" end className={tabClass}><SunIcon /> Today</NavLink>
-      <NavLink to="/inbox" className={tabClass}><InboxIcon /> Inbox</NavLink>
-      <NavLink to="/projects" className={tabClass}><FolderIcon /> Projects</NavLink>
-      <NavLink to="/search" className={tabClass}><SearchIcon /> Search</NavLink>
-      <NavLink to="/settings" className={tabClass}><GearIcon /> Settings</NavLink>
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
+      <NavLink to="/" end className={tabClass}><SunIcon {...tabIcon} /> Today</NavLink>
+      <NavLink to="/inbox" className={tabClass}><InboxIcon {...tabIcon} /> Inbox</NavLink>
+      <NavLink to="/projects" className={tabClass}><FolderIcon {...tabIcon} /> Projects</NavLink>
+      <NavLink to="/search" className={tabClass}><SearchIcon {...tabIcon} /> Search</NavLink>
+      <NavLink to="/settings" className={tabClass}><GearIcon {...tabIcon} /> Settings</NavLink>
     </nav>
   );
 }

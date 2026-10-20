@@ -15,8 +15,8 @@ export default defineConfig({
         name: 'lula.today',
         short_name: 'lula',
         description: 'Personal offline-first tasks and kanban boards',
-        theme_color: '#0f1115',
-        background_color: '#0f1115',
+        theme_color: '#111316',
+        background_color: '#111316',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
@@ -30,7 +30,8 @@ export default defineConfig({
       },
       workbox: {
         // App shell is precached; data lives in IndexedDB, so Supabase calls are never cached.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        // Only the latin subset of the font is precached; other subsets load on demand.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}', '**/*latin-[0-9]*.woff2'],
         navigateFallback: '/index.html',
       },
     }),

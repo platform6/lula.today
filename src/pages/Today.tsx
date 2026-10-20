@@ -25,7 +25,7 @@ export function Today() {
   return (
     <div>
       <PageHeader title="Today" />
-      <p className="px-4 pt-3 text-sm text-muted">{date}</p>
+      <p className="px-4 pt-4 text-base text-fg-2 italic">{date}</p>
       {overdue.length > 0 && <Section title="Overdue" tone="text-danger" tasks={overdue} />}
       <Section title="Today" tasks={dueToday} empty="Nothing due today." />
       <Section title="Next 7 days" tasks={upcoming} empty="Nothing due this week." />
@@ -35,9 +35,9 @@ export function Today() {
 
 function Section({ title, tasks, empty, tone = '' }: { title: string; tasks: Task[]; empty?: string; tone?: string }) {
   return (
-    <section className="mt-4">
-      <h2 className={`px-4 text-xs font-semibold tracking-wide uppercase ${tone || 'text-muted'}`}>
-        {title} {tasks.length > 0 && <span className="font-normal">· {tasks.length}</span>}
+    <section className="mt-6">
+      <h2 className={`section-title mx-4 ${tone}`}>
+        {title} {tasks.length > 0 && <span className="text-sm font-semibold text-fg-2">{tasks.length}</span>}
       </h2>
       <TaskList tasks={tasks} empty={empty} />
     </section>

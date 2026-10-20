@@ -104,8 +104,8 @@ export function Search() {
       {projectHits.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 pb-2">
           {projectHits.map((p) => (
-            <Link key={p.id} to={p.is_inbox ? '/inbox' : `/projects/${p.id}`} className="card flex items-center gap-2 px-3 py-1.5 text-sm">
-              <span className="h-2 w-2 rounded-sm" style={{ background: p.color ?? 'var(--line)' }} />
+            <Link key={p.id} to={p.is_inbox ? '/inbox' : `/projects/${p.id}`} className="card flex min-h-11 items-center gap-2 px-3 py-2 font-semibold">
+              <span className="h-3 w-3 rounded-sm" style={{ background: p.color ?? 'var(--line-strong)' }} />
               {p.name}
             </Link>
           ))}
@@ -113,8 +113,10 @@ export function Search() {
       )}
       {q && <TaskList tasks={live} empty={archived.length ? undefined : 'No matches.'} />}
       {archived.length > 0 && (
-        <section className="mt-4 opacity-70">
-          <h2 className="px-4 text-xs font-semibold tracking-wide text-muted uppercase">Archived · {archived.length}</h2>
+        <section className="mt-6">
+          <h2 className="section-title mx-4 text-fg-2">
+            Archived <span className="text-sm font-semibold">{archived.length}</span>
+          </h2>
           <TaskList tasks={archived} />
         </section>
       )}

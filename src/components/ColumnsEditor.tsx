@@ -38,7 +38,7 @@ export function ColumnsEditor({
         <div key={`${c.key}:${c.name}`} className="card p-2">
           <div className="flex items-center gap-1">
             <input
-              className="min-w-0 flex-1 bg-transparent px-2 py-1.5 focus:outline-none"
+              className="min-h-11 min-w-0 flex-1 bg-transparent px-2 py-2 font-semibold focus:outline-none"
               defaultValue={c.name}
               onBlur={(e) => {
                 const v = e.target.value.trim();
@@ -46,24 +46,24 @@ export function ColumnsEditor({
               }}
               aria-label="Column name"
             />
-            {c.taskCount !== undefined && <span className="px-1 text-xs text-muted">{c.taskCount}</span>}
-            <label className="flex items-center gap-1 px-1 text-xs text-muted">
+            {c.taskCount !== undefined && <span className="chip">{c.taskCount}</span>}
+            <label className="flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold text-fg-2">
               <input
                 type="checkbox"
-                className="accent-[var(--accent)]"
+                className="h-5 w-5 accent-[var(--accent)]"
                 checked={c.is_done}
                 onChange={(e) => onToggleDone(c.key, e.target.checked)}
               />
               Done
             </label>
-            <button className="p-1.5 text-muted disabled:opacity-20" disabled={i === 0} onClick={() => onMove(c.key, -1)} aria-label="Move up">
-              <UpIcon width={16} height={16} />
+            <button className="p-2 text-fg-2 disabled:opacity-30" disabled={i === 0} onClick={() => onMove(c.key, -1)} aria-label="Move up">
+              <UpIcon width={22} height={22} />
             </button>
-            <button className="p-1.5 text-muted disabled:opacity-20" disabled={i === columns.length - 1} onClick={() => onMove(c.key, 1)} aria-label="Move down">
-              <DownIcon width={16} height={16} />
+            <button className="p-2 text-fg-2 disabled:opacity-30" disabled={i === columns.length - 1} onClick={() => onMove(c.key, 1)} aria-label="Move down">
+              <DownIcon width={22} height={22} />
             </button>
             <button
-              className="p-1.5 text-muted hover:text-danger disabled:opacity-20"
+              className="p-2 text-fg-2 hover:text-danger disabled:opacity-30"
               disabled={columns.length === 1}
               onClick={() => {
                 if (c.taskCount) {
@@ -73,12 +73,12 @@ export function ColumnsEditor({
               }}
               aria-label="Delete column"
             >
-              <XIcon width={16} height={16} />
+              <XIcon width={22} height={22} />
             </button>
           </div>
           {deleting === c.key && (
             <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-line px-2 pt-2 text-sm">
-              <span className="text-muted">Move {c.taskCount} task{c.taskCount === 1 ? '' : 's'} to</span>
+              <span className="text-fg-2">Move {c.taskCount} task{c.taskCount === 1 ? '' : 's'} to</span>
               <select className="input w-auto py-1" value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
                 {columns
                   .filter((o) => o.key !== c.key)

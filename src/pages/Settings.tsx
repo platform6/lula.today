@@ -25,7 +25,7 @@ export function Settings() {
             {(['dark', 'light'] as const).map((theme) => (
               <button
                 key={theme}
-                className={`btn flex-1 border ${settings?.theme === theme ? 'border-accent text-fg' : 'border-line text-muted'}`}
+                className={`btn flex-1 border-2 ${settings?.theme === theme ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
                 onClick={() => void updateSettings({ theme })}
                 disabled={!settings}
               >
@@ -62,7 +62,7 @@ export function Settings() {
         </Section>
 
         <Section title="Install on iPhone">
-          <p className="text-sm text-muted">
+          <p className="text-base text-fg-2">
             In Safari, tap <b>Share</b> → <b>Add to Home Screen</b>, then open lula from the Home Screen and sign in
             there. The installed app keeps its own offline copy of your data.
           </p>
@@ -79,8 +79,8 @@ export function Settings() {
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="font-semibold">{title}</h2>
-      {hint && <p className="mt-0.5 text-sm text-muted">{hint}</p>}
+      <h2 className="section-title">{title}</h2>
+      {hint && <p className="mt-2 text-sm text-fg-2">{hint}</p>}
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -95,7 +95,7 @@ function LabelsEditor() {
       {labels.map((l) => (
         <div key={l.id} className="card flex items-center gap-2 p-2">
           <select
-            className="h-7 w-7 shrink-0 cursor-pointer appearance-none rounded-full text-transparent"
+            className="h-9 w-9 shrink-0 cursor-pointer appearance-none rounded-full text-transparent"
             style={{ background: l.color ?? 'var(--muted)' }}
             value={l.color ?? ''}
             onChange={(e) => void updateLabel(l.id, { color: e.target.value })}
@@ -107,15 +107,15 @@ function LabelsEditor() {
           </select>
           <input
             key={l.name}
-            className="min-w-0 flex-1 bg-transparent px-1 py-1.5 focus:outline-none"
+            className="min-h-11 min-w-0 flex-1 bg-transparent px-1 py-2 font-semibold focus:outline-none"
             defaultValue={l.name}
             onBlur={(e) => {
               const v = e.target.value.trim();
               if (v && v !== l.name) void updateLabel(l.id, { name: v });
             }}
           />
-          <button className="p-1.5 text-muted hover:text-danger" onClick={() => void deleteLabel(l.id)} aria-label="Delete label">
-            <XIcon width={16} height={16} />
+          <button className="p-2 text-fg-2 hover:text-danger" onClick={() => void deleteLabel(l.id)} aria-label="Delete label">
+            <XIcon width={22} height={22} />
           </button>
         </div>
       ))}
@@ -139,7 +139,7 @@ function SyncPanel() {
   const status = useSyncStatus();
   const pending = usePendingCount();
   return (
-    <div className="card flex flex-col gap-2 p-4 text-sm">
+    <div className="card flex flex-col gap-3 p-4 text-base">
       <div className="flex justify-between">
         <span className="text-muted">Status</span>
         <span className="capitalize">{status.state}</span>
@@ -176,7 +176,7 @@ function AccountPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted">Signed in as {user?.email}</p>
+      <p className="text-base text-fg-2">Signed in as <b className="text-fg">{user?.email}</b></p>
       <form className="flex gap-2" onSubmit={changePassword}>
         <input
           className="input"
@@ -189,9 +189,9 @@ function AccountPanel() {
         />
         <button className="btn-primary shrink-0" disabled={password.length < 8}>Change</button>
       </form>
-      {message && <p className="text-sm text-muted">{message}</p>}
+      {message && <p className="text-base font-semibold text-fg-2">{message}</p>}
       {confirmSignOut ? (
-        <div className="card flex flex-col gap-2 p-3 text-sm">
+        <div className="card flex flex-col gap-3 p-4 text-base">
           <p>
             Signing out removes the offline copy from this device.
             {pending > 0 && <b className="text-danger"> {pending} change(s) haven’t uploaded yet and will be lost.</b>}
@@ -202,7 +202,7 @@ function AccountPanel() {
           </div>
         </div>
       ) : (
-        <button className="btn-ghost self-start" onClick={() => setConfirmSignOut(true)}>Sign out</button>
+        <button className="btn-outline self-start" onClick={() => setConfirmSignOut(true)}>Sign out</button>
       )}
     </div>
   );

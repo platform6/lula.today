@@ -92,8 +92,8 @@ export function ProjectSettings() {
         )}
 
         <section>
-          <h2 className="mb-1 font-semibold">Board columns</h2>
-          <p className="mb-3 text-sm text-muted">
+          <h2 className="section-title">Board columns</h2>
+          <p className="mt-2 mb-3 text-sm text-fg-2">
             Tasks moved into a column marked <b>Done</b> count as completed and are archived 7 days later.
           </p>
           <ColumnsEditor
@@ -108,13 +108,13 @@ export function ProjectSettings() {
 
         {!project.is_inbox && (
           <section className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
-            <button className="btn-ghost" onClick={() => void archiveProject(project.id, !project.archived_at)}>
+            <button className="btn-outline" onClick={() => void archiveProject(project.id, !project.archived_at)}>
               {project.archived_at ? 'Unarchive project' : 'Archive project'}
             </button>
             <div className="flex-1" />
             {confirmDelete ? (
               <>
-                <span className="text-sm text-muted">Delete project and {liveCount} active task{liveCount === 1 ? '' : 's'}?</span>
+                <span className="text-base text-fg-2">Delete project and {liveCount} active task{liveCount === 1 ? '' : 's'}?</span>
                 <button className="btn-ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>
                 <button
                   className="btn-danger"

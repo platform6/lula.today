@@ -37,8 +37,8 @@ export function Login() {
     <div className="pt-safe grid min-h-full place-items-center p-4">
       <form onSubmit={submit} className="card flex w-full max-w-sm flex-col gap-4 p-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">lula</h1>
-          <p className="text-sm text-muted">Sign in to your lists.</p>
+          <h1 className="text-2xl font-bold text-accent">lula</h1>
+          <p className="mt-1 text-base text-fg-2 italic">Sign in to your lists.</p>
         </div>
         <div>
           <label className="field-label" htmlFor="email">Email</label>
@@ -48,9 +48,9 @@ export function Login() {
           <label className="field-label" htmlFor="password">Password</label>
           <input id="password" className="input" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
-        {message && <p className={`text-sm ${message.kind === 'error' ? 'text-danger' : 'text-emerald-400'}`}>{message.text}</p>}
+        {message && <p className={`text-base font-semibold ${message.kind === 'error' ? 'text-danger' : 'text-ok'}`}>{message.text}</p>}
         <button className="btn-primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-        <button type="button" className="btn-ghost text-xs" onClick={() => void forgot()}>Forgot password?</button>
+        <button type="button" className="btn-ghost" onClick={() => void forgot()}>Forgot password?</button>
       </form>
     </div>
   );

@@ -17,7 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { createTask, moveTask } from '../db/actions';
 import { useColumns, useLabels, useProject, useProjectTasks, useStepCounts, useTaskLabelMap } from '../db/hooks';
 import type { BoardColumn, Label, Task } from '../db/types';
-import { isLive } from '../lib/tasks';
+import { PRIORITY_BARS, isLive } from '../lib/tasks';
 import { PageHeader } from '../components/PageHeader';
 import { TaskMeta } from '../components/TaskMeta';
 import { GearIcon, PlusIcon } from '../components/icons';
@@ -112,13 +112,13 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       <PageHeader
         title={
           <span className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-sm" style={{ background: project.color ?? 'var(--line)' }} />
+            <span className="h-4 w-4 shrink-0 rounded-sm" style={{ background: project.color ?? 'var(--line-strong)' }} />
             {project.is_inbox ? 'Inbox' : project.name}
           </span>
         }
         actions={
           <>
-            <button className="btn-ghost text-xs" onClick={toggleHideDone}>
+            <button className="btn-ghost px-2 text-sm" onClick={toggleHideDone}>
               {hideDone ? 'Show done' : 'Hide done'}
             </button>
             <Link to={`/projects/${project.id}/settings`} className="btn-ghost px-2" aria-label="Project settings">
@@ -187,15 +187,15 @@ function Column({
   const [title, setTitle] = useState('');
 
   return (
-    <section className="flex w-[85vw] max-w-xs shrink-0 snap-center flex-col md:w-72">
-      <div className="mb-2 flex items-center gap-2 px-1">
-        <h2 className="font-medium">{column.name}</h2>
-        <span className="text-xs text-muted">{tasks.length}</span>
-        {column.is_done && <span className="text-xs text-emerald-400">✓ done</span>}
+    <section className="flex w-[88vw] max-w-sm shrink-0 snap-center flex-col md:w-80">
+      <div className="mb-3 flex items-center gap-2 border-b-2 border-line-strong px-1 pb-2">
+        <h2 className="text-lg font-bold">{column.name}</h2>
+        <span className="chip">{tasks.length}</span>
+        {column.is_done && <span className="text-sm font-bold text-ok">✓ Done</span>}
       </div>
       <div
         ref={setNodeRef}
-        className={`flex min-h-24 flex-1 flex-col gap-2 rounded-xl p-1.5 transition-colors ${isOver ? 'bg-accent/10' : 'bg-surface/50'}`}
+        className={`flex min-h-28 flex-1 flex-col gap-2.5 rounded-md p-1 transition-colors ${isOver ? 'bg-accent/15 outline-2 outline-accent outline-dashed' : ''}`}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((t) => (
@@ -223,8 +223,8 @@ function Column({
             />
           </form>
         ) : (
-          <button className="btn-ghost justify-start text-sm" onClick={() => setAdding(true)}>
-            <PlusIcon width={16} height={16} /> Add task
+          <button className="btn-ghost justify-start" onClick={() => setAdding(true)}>
+            <PlusIcon width={22} height={22} /> Add task
           </button>
         )}
       </div>
@@ -276,8 +276,10 @@ function CardBody({
   className?: string;
 }) {
   return (
-    <div className={`card cursor-pointer px-3 py-2.5 select-none hover:border-muted ${className}`}>
-      <div className={`text-sm break-words ${done ? 'text-muted line-through' : ''}`}>{task.title}</div>
+    <div
+      className={`card cursor-pointer border-l-4 px-3.5 py-3 select-none hover:bg-surface-2 ${PRIORITY_BARS[task.priority]} ${className}`}
+    >
+      <div className={`text-base font-semibold break-words ${done ? 'text-muted line-through' : 'text-fg'}`}>{task.title}</div>
       <TaskMeta task={task} steps={steps} labels={labels} done={done} />
     </div>
   );

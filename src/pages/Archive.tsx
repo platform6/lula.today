@@ -44,22 +44,22 @@ export function Archive() {
             ))}
         </select>
       </div>
-      <p className="px-4 text-xs text-muted">
+      <p className="px-4 text-sm text-fg-2">
         Completed tasks move here 7 days after completion and are kept indefinitely.
       </p>
       {list.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-muted">Nothing archived yet.</p>
+        <p className="px-4 py-4 text-base text-muted">Nothing archived yet.</p>
       ) : (
         <ul className="divide-y divide-line">
           {list.map((t) => (
-            <li key={t.id} className="flex items-center gap-3 px-4 py-3">
+            <li key={t.id} className="flex items-center gap-3 px-4 py-4">
               <button className="min-w-0 flex-1 text-left" onClick={() => openTask(t.id)}>
-                <div className={`break-words ${t.completed_at ? 'text-muted line-through' : ''}`}>{t.title}</div>
-                <div className="mt-0.5 text-xs text-muted">
+                <div className={`text-base font-semibold break-words ${t.completed_at ? 'text-fg-2 line-through' : 'text-fg'}`}>{t.title}</div>
+                <div className="mt-1 text-sm text-fg-2">
                   {projectById.get(t.project_id)?.name} · {new Date(archivedAt(t)).toLocaleDateString()}
                 </div>
               </button>
-              <button className="btn-ghost shrink-0" onClick={() => void restoreTask(t)}>Restore</button>
+              <button className="btn-outline shrink-0" onClick={() => void restoreTask(t)}>Restore</button>
             </li>
           ))}
         </ul>

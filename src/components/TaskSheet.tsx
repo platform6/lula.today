@@ -45,7 +45,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
     <Sheet title={archived ? 'Archived task' : 'Task'} onClose={onClose}>
       <div className="flex flex-col gap-4 p-4">
         <textarea
-          className="input resize-none text-lg font-medium"
+          className="input resize-none text-xl font-bold"
           rows={2}
           defaultValue={task.title}
           onBlur={(e) => {
@@ -106,8 +106,8 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
               }}
             />
             {task.url && (
-              <a className="btn-ghost shrink-0" href={task.url} target="_blank" rel="noopener noreferrer" aria-label="Open link">
-                <LinkIcon />
+              <a className="btn-outline shrink-0" href={task.url} target="_blank" rel="noopener noreferrer" aria-label="Open link">
+                <LinkIcon /> Open
               </a>
             )}
           </div>
@@ -145,7 +145,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
             <button className="btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
           )}
         </div>
-        <p className="text-xs text-muted">
+        <p className="text-sm text-muted">
           Created {new Date(task.created_at).toLocaleString()}
           {task.completed_at && ` · Completed ${new Date(task.completed_at).toLocaleDateString()}`}
         </p>
@@ -222,29 +222,29 @@ function Steps({ taskId }: { taskId: string }) {
 
 function StepRow({ step, first, last }: { step: Step; first: boolean; last: boolean }) {
   return (
-    <li className="group flex items-center gap-2 rounded-lg px-1 hover:bg-surface-2">
+    <li className="group flex items-center gap-2 rounded-sm border-b border-line px-1 hover:bg-surface-2">
       <input
         type="checkbox"
-        className="h-4 w-4 shrink-0 accent-[var(--accent)]"
+        className="h-6 w-6 shrink-0 accent-[var(--accent)]"
         checked={step.is_done}
         onChange={(e) => void updateStep(step.id, { is_done: e.target.checked })}
       />
       <input
-        className={`min-w-0 flex-1 bg-transparent py-1.5 focus:outline-none ${step.is_done ? 'text-muted line-through' : ''}`}
+        className={`min-h-11 min-w-0 flex-1 bg-transparent py-2 font-medium focus:outline-none ${step.is_done ? 'text-muted line-through' : 'text-fg'}`}
         defaultValue={step.text}
         onBlur={(e) => {
           const v = e.target.value.trim();
           if (v && v !== step.text) void updateStep(step.id, { text: v });
         }}
       />
-      <button className="p-1 text-muted disabled:opacity-20" disabled={first} onClick={() => void moveStep(step.task_id, step.id, -1)} aria-label="Move up">
-        <UpIcon width={16} height={16} />
+      <button className="p-2 text-fg-2 disabled:opacity-30" disabled={first} onClick={() => void moveStep(step.task_id, step.id, -1)} aria-label="Move up">
+        <UpIcon width={22} height={22} />
       </button>
-      <button className="p-1 text-muted disabled:opacity-20" disabled={last} onClick={() => void moveStep(step.task_id, step.id, 1)} aria-label="Move down">
-        <DownIcon width={16} height={16} />
+      <button className="p-2 text-fg-2 disabled:opacity-30" disabled={last} onClick={() => void moveStep(step.task_id, step.id, 1)} aria-label="Move down">
+        <DownIcon width={22} height={22} />
       </button>
-      <button className="p-1 text-muted hover:text-danger" onClick={() => void deleteStep(step.id)} aria-label="Delete step">
-        <XIcon width={16} height={16} />
+      <button className="p-2 text-fg-2 hover:text-danger" onClick={() => void deleteStep(step.id)} aria-label="Delete step">
+        <XIcon width={22} height={22} />
       </button>
     </li>
   );
@@ -254,7 +254,7 @@ function Labels({ taskId }: { taskId: string }) {
   const labels = useLabels() ?? [];
   const active = new Set(useTaskLabelMap()?.get(taskId) ?? []);
   if (labels.length === 0) {
-    return <p className="text-xs text-muted">Create labels in Settings to tag tasks.</p>;
+    return <p className="text-sm text-muted">Create labels in Settings to tag tasks.</p>;
   }
   return (
     <div>
@@ -265,11 +265,13 @@ function Labels({ taskId }: { taskId: string }) {
           return (
             <button
               key={l.id}
-              className={`rounded-full border px-2.5 py-1 text-sm ${on ? 'border-transparent' : 'border-line text-muted'}`}
-              style={on ? { background: `color-mix(in srgb, ${l.color ?? 'var(--muted)'} 25%, transparent)`, color: l.color ?? undefined } : undefined}
+              className={`flex min-h-11 items-center gap-2 rounded-sm border-2 px-3 text-sm font-semibold ${on ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
               onClick={() => void setTaskLabel(taskId, l.id, !on)}
+              aria-pressed={on}
             >
+              <span className="h-3 w-3 rounded-full" style={{ background: l.color ?? 'var(--muted)' }} />
               {l.name}
+              {on && <span aria-hidden="true">✓</span>}
             </button>
           );
         })}

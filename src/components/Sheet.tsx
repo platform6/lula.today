@@ -26,12 +26,12 @@ export function Sheet({
 
   return (
     <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`absolute flex flex-col border-line bg-surface shadow-2xl ${panel}`}>
-        <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-          <div className="min-w-0 flex-1 font-semibold">{title}</div>
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div className={`absolute flex flex-col border-2 border-line-strong bg-surface shadow-2xl ${panel}`}>
+        <div className="flex min-h-16 items-center gap-2 border-b border-line px-4 py-2">
+          <div className="min-w-0 flex-1 text-lg font-bold">{title}</div>
           <button className="btn-ghost -mr-2 px-2" onClick={onClose} aria-label="Close">
-            <XIcon />
+            <XIcon width={28} height={28} />
           </button>
         </div>
         <div className="pb-safe flex-1 overflow-y-auto">{children}</div>

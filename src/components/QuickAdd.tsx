@@ -59,7 +59,7 @@ export function QuickAdd({
       >
         <input
           ref={inputRef}
-          className="input text-base"
+          className="input text-lg font-semibold"
           placeholder="What do you need to do?"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -92,7 +92,7 @@ export function QuickAdd({
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-xs text-muted">{added > 0 && `Added ${added}. Keep typing to add more.`}</span>
+          <span className="flex-1 text-sm text-fg-2">{added > 0 && `Added ${added}. Keep typing to add more.`}</span>
           <button type="button" className="btn-ghost" disabled={!title.trim()} onClick={() => void submit(true)}>
             Add &amp; open
           </button>

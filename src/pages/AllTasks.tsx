@@ -83,7 +83,7 @@ export function AllTasks() {
           ))}
         </select>
       </div>
-      <p className="px-4 text-xs text-muted">{filtered.length} task{filtered.length === 1 ? '' : 's'}</p>
+      <p className="section-title mx-4 text-sm">{filtered.length} task{filtered.length === 1 ? '' : 's'}</p>
       <TaskList tasks={filtered} empty="No tasks match these filters." />
     </div>
   );

@@ -18,7 +18,10 @@ export function isLive(task: Task, now = Date.now()): boolean {
 
 export const PRIORITY_LABELS = ['None', 'Low', 'Medium', 'High'] as const;
 
-export const PRIORITY_COLORS = ['', 'text-sky-400', 'text-amber-400', 'text-rose-400'] as const;
+export const PRIORITY_COLORS = ['', 'text-prio-1', 'text-prio-2', 'text-prio-3'] as const;
+
+/** Left accent bar on cards, keyed by priority. */
+export const PRIORITY_BARS = ['border-l-line-strong', 'border-l-prio-1', 'border-l-prio-2', 'border-l-prio-3'] as const;
 
 /** Normalize a typed URL so bare domains open correctly. */
 export function normalizeUrl(input: string): string | null {

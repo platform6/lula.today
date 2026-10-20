@@ -103,11 +103,11 @@ function AreaSection({
   return (
     <section className="card">
       <div className="flex items-center gap-2 px-4 py-3">
-        <span className="h-3 w-3 rounded-full" style={{ background: area?.color ?? 'var(--line)' }} />
-        <h2 className="flex-1 font-semibold">{area?.name ?? 'No area'}</h2>
+        <span className="h-4 w-4 rounded-full" style={{ background: area?.color ?? 'var(--line-strong)' }} />
+        <h2 className="flex-1 text-lg font-bold">{area?.name ?? 'No area'}</h2>
         {area && (
           <>
-            <button className="btn-ghost px-2 text-xs" onClick={() => setEditing((v) => !v)}>{editing ? 'Done' : 'Edit'}</button>
+            <button className="btn-ghost px-3 text-sm" onClick={() => setEditing((v) => !v)}>{editing ? 'Done' : 'Edit'}</button>
             <button className="btn-ghost px-2" onClick={() => setAdding(true)} aria-label="Add project"><PlusIcon /></button>
           </>
         )}
@@ -137,7 +137,7 @@ function AreaSection({
               <button className="btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
             )}
           </div>
-          {confirmDelete && <p className="text-xs text-muted">Projects in this area are kept and moved to “No area”.</p>}
+          {confirmDelete && <p className="text-sm text-fg-2">Projects in this area are kept and moved to “No area”.</p>}
         </div>
       )}
 
@@ -146,7 +146,7 @@ function AreaSection({
           <ProjectRow key={p.id} project={p} count={openCount.get(p.id) ?? 0} />
         ))}
         {area && projects.length === 0 && !adding && (
-          <li className="px-4 py-3 text-sm text-muted">No projects yet.</li>
+          <li className="px-4 py-3 text-base text-muted">No projects yet.</li>
         )}
         {adding && area && (
           <li className="px-4 py-2">
@@ -178,10 +178,10 @@ function AreaSection({
 function ProjectRow({ project, count }: { project: Project; count: number }) {
   return (
     <li>
-      <Link to={`/projects/${project.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
-        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: project.color ?? 'var(--line)' }} />
-        <span className="flex-1 truncate">{project.name}</span>
-        <span className="text-sm text-muted">{count}</span>
+      <Link to={`/projects/${project.id}`} className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-surface-2">
+        <span className="h-4 w-4 rounded-sm" style={{ background: project.color ?? 'var(--line-strong)' }} />
+        <span className="flex-1 truncate font-semibold">{project.name}</span>
+        <span className="chip">{count}</span>
       </Link>
     </li>
   );
