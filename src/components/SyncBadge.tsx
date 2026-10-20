@@ -9,7 +9,7 @@ export function SyncBadge() {
     status.state === 'offline'
       ? ['bg-warn', pending ? `Offline · ${pending}` : 'Offline']
       : status.state === 'error'
-        ? ['bg-danger', 'Sync error']
+        ? ['bg-danger', pending ? `Not synced · ${pending}` : 'Not synced']
         : status.state === 'syncing'
           ? ['bg-accent animate-pulse', 'Syncing']
           : pending

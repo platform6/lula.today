@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "icons": "pwa-assets-generator"
+    "icons": "pwa-assets-generator && node scripts/generate-favicon.mjs && node scripts/generate-brand-assets.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

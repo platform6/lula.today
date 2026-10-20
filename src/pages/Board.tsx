@@ -160,18 +160,18 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
             </span>
           </span>
         }
-        actions={
+        toolbar={
           <>
-            <button className="btn-ghost px-2 text-sm" onClick={toggleHideDone}>
+            <button className="btn-outline min-h-10 px-3 text-sm" onClick={toggleHideDone} aria-pressed={hideDone}>
               {hideDone ? 'Show done' : 'Hide done'}
             </button>
             {project.is_area_default && area ? (
-              <Link to={`/realms/${area.id}/options`} className="btn-outline px-3 text-sm">
+              <Link to={`/realms/${area.id}/options`} className="btn-outline min-h-10 px-3 text-sm">
                 <GearIcon width={18} height={18} /> Options
               </Link>
             ) : (
-              <Link to={`/projects/${project.id}/settings`} className="btn-ghost px-2" aria-label="Project settings">
-                <GearIcon />
+              <Link to={`/projects/${project.id}/settings`} className="btn-outline min-h-10 px-3 text-sm">
+                <GearIcon width={18} height={18} /> Settings
               </Link>
             )}
           </>

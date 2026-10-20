@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '../lib/supabase';
+import { BrandLockup } from '../components/Brand';
 
 export function Login() {
   const { signIn } = useAuth();
@@ -37,8 +38,10 @@ export function Login() {
     <div className="pt-safe grid min-h-full place-items-center p-4">
       <form onSubmit={submit} className="card flex w-full max-w-sm flex-col gap-4 p-6">
         <div>
-          <h1 className="text-2xl font-bold text-accent">lula</h1>
-          <p className="mt-1 text-base text-fg-2 italic">Sign in to your lists.</p>
+          <h1>
+            <BrandLockup size={56} />
+          </h1>
+          <p className="mt-3 text-base text-fg-2 italic">Sign in to your lists.</p>
         </div>
         <div>
           <label className="field-label" htmlFor="email">Email</label>

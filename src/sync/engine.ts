@@ -85,7 +85,12 @@ async function runOnce() {
     await push(); // anything the hooks created
     setStatus({ state: 'idle', lastSyncedAt: new Date().toISOString() });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
+    const raw = e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
+    // Timeouts and failed connections read as plain language; changes stay queued locally.
+    const unreachable = /abort|timeout|timed out|failed to fetch|networkerror|load failed/i.test(raw);
+    const message = unreachable
+      ? "Can't reach the sync server. Your changes are saved on this device and will upload when it's reachable."
+      : raw;
     setStatus({ state: navigator.onLine ? 'error' : 'offline', error: message });
   }
 }

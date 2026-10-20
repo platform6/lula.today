@@ -20,6 +20,7 @@ import type { Area } from '../db/types';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { ArchiveIcon, GearIcon, InboxIcon, ListIcon, NodesIcon, PlusIcon, SearchIcon, SunIcon } from './icons';
+import { BrandLockup } from './Brand';
 import { Celebration } from './Celebration';
 import { ConfirmCompleteProvider } from './ConfirmComplete';
 import { Branch, Children, NODE_SIZE, Stem, TreeNode } from './NodeTree';
@@ -220,7 +221,9 @@ function Sidebar() {
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-r border-line bg-surface md:flex">
       <div className="flex items-center justify-between px-4 py-4">
-        <span className="text-2xl font-bold text-accent">lula</span>
+        <NavLink to="/" aria-label="lula, go to Today">
+          <BrandLockup size={36} />
+        </NavLink>
         <SyncBadge />
       </div>
       <nav className="flex flex-col gap-0.5 px-2">

@@ -57,8 +57,8 @@ export function AreaPage() {
             <BackIcon />
           </Link>
         }
-        actions={
-          <Link to={`/realms/${area.id}`} className="btn-outline px-3 text-sm">
+        toolbar={
+          <Link to={`/realms/${area.id}`} className="btn-outline min-h-10 px-3 text-sm">
             Board
           </Link>
         }

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAllTasks, useInboxCount } from '../db/hooks';
 import { InboxIcon } from '../components/icons';
+import { BrandLockup } from '../components/Brand';
 import type { Task } from '../db/types';
 import { addDays, dayKey, isOverdue, todayKey } from '../lib/dates';
 import { isLive } from '../lib/tasks';
@@ -27,7 +28,17 @@ export function Today() {
 
   return (
     <div>
-      <PageHeader title="Today" />
+      <PageHeader
+        title={
+          <>
+            {/* the main page carries the brand on phones; desktop shows it in the sidebar */}
+            <span className="md:hidden">
+              <BrandLockup size={32} />
+            </span>
+            <span className="hidden md:inline">Today</span>
+          </>
+        }
+      />
       <p className="px-4 pt-4 text-base text-fg-2 italic">{date}</p>
       {inboxCount > 0 && (
         <Link to="/inbox" className="card mx-4 mt-4 flex min-h-14 items-center gap-3 border-2 border-accent px-4 py-3 hover:bg-surface-2">
