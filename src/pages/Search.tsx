@@ -91,7 +91,7 @@ export function Search() {
     ? [
         ...(data?.areaList ?? [])
           .filter((a) => a.name.toLowerCase().includes(needle))
-          .map((a) => ({ key: a.id, href: `/areas/${a.id}`, label: a.name, color: a.color })),
+          .map((a) => ({ key: a.id, href: `/realms/${a.id}`, label: a.name, color: a.color })),
         ...(data?.projects ?? [])
           .filter((p) => isRealProject(p) && p.name.toLowerCase().includes(needle))
           .map((p) => ({
