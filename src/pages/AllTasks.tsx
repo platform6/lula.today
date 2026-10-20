@@ -72,8 +72,8 @@ export function AllTasks() {
             <option key={p.id} value={p.id}>{areaId ? p.name : `${areaName.get(p.area_id ?? '') ?? '?'} › ${p.name}`}</option>
           ))}
         </select>
-        <select className="input" value={labelId} onChange={(e) => setLabelId(e.target.value)} aria-label="Label">
-          <option value="">Any label</option>
+        <select className="input" value={labelId} onChange={(e) => setLabelId(e.target.value)} aria-label="Tag">
+          <option value="">Any tag</option>
           {labels.map((l) => (
             <option key={l.id} value={l.id}>{l.name}</option>
           ))}

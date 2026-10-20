@@ -63,7 +63,7 @@ export function Settings() {
           />
         </Section>
 
-        <Section title="Labels">
+        <Section title="Tags">
           <LabelsEditor />
         </Section>
 
@@ -151,7 +151,7 @@ function LabelsEditor() {
             style={{ background: l.color ?? 'var(--muted)' }}
             value={l.color ?? ''}
             onChange={(e) => void updateLabel(l.id, { color: e.target.value })}
-            aria-label="Label color"
+            aria-label="Tag color"
           >
             {COLORS.map((c) => (
               <option key={c} value={c} style={{ color: c }}>●</option>
@@ -166,7 +166,7 @@ function LabelsEditor() {
               if (v && v !== l.name) void updateLabel(l.id, { name: v });
             }}
           />
-          <button className="p-2 text-fg-2 hover:text-danger" onClick={() => void deleteLabel(l.id)} aria-label="Delete label">
+          <button className="p-2 text-fg-2 hover:text-danger" onClick={() => void deleteLabel(l.id)} aria-label="Delete tag">
             <XIcon width={22} height={22} />
           </button>
         </div>
@@ -180,7 +180,7 @@ function LabelsEditor() {
           setName('');
         }}
       >
-        <input className="input" placeholder="New label" value={name} onChange={(e) => setName(e.target.value)} />
+        <input className="input" placeholder="New tag" value={name} onChange={(e) => setName(e.target.value)} />
         <button className="btn-primary shrink-0" disabled={!name.trim()}>Add</button>
       </form>
     </div>

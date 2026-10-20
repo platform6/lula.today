@@ -255,11 +255,11 @@ function Labels({ taskId }: { taskId: string }) {
   const labels = useLabels() ?? [];
   const active = new Set(useTaskLabelMap()?.get(taskId) ?? []);
   if (labels.length === 0) {
-    return <p className="text-sm text-muted">Create labels in Settings to tag tasks.</p>;
+    return <p className="text-sm text-muted">Create tags in Settings to tag tasks.</p>;
   }
   return (
     <div>
-      <label className="field-label">Labels</label>
+      <label className="field-label">Tags</label>
       <div className="flex flex-wrap gap-1.5">
         {labels.map((l) => {
           const on = active.has(l.id);

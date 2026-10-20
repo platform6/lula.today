@@ -80,14 +80,14 @@ Area: Home                 ongoing; never "done"
 ### 3.3 Tasks
 | Field | Required | Notes |
 |---|---|---|
-| Title | ✓ | |
+| Title | ✓ | Title-cased on save (also steps); words you capitalized, links, emails and numbers are left alone |
 | Notes | | Plain text / light markdown |
 | URL | | Optional link, opens in a new tab |
 | Project | ✓ | Inbox on capture; an area's built-in task list for area-only tasks |
 | Column | ✓ | Defaults to the project's first column |
 | Priority | | None / Low / Medium / High |
 | Due date | | Date, optional time |
-| Labels | | Many-to-many |
+| Tags | | Many-to-many (stored as `labels`) |
 | Steps | | Ordered subtasks: text, done state |
 | Completed at | | Set automatically when moved into a "done" column |
 

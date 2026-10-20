@@ -13,6 +13,7 @@ import type {
 } from './types';
 import { byPosition, keyAtEnd, keyAtIndex, keyAtStart, keyBetween } from '../lib/position';
 import { stableUuid } from '../lib/ids';
+import { titleCase } from '../lib/titleCase';
 import { emitTaskCompleted } from '../lib/celebrate';
 
 export const DEFAULT_COLUMNS: ColumnTemplate[] = [
@@ -337,7 +338,7 @@ export async function createTask(input: {
     ...newRow(),
     project_id: input.project_id,
     column_id: column.id,
-    title: input.title,
+    title: titleCase(input.title),
     notes: null,
     url: null,
     priority: input.priority ?? 0,
@@ -351,7 +352,8 @@ export async function createTask(input: {
   return task;
 }
 
-export const updateTask = (id: string, changes: Partial<Task>) => patch('tasks', id, changes);
+export const updateTask = (id: string, changes: Partial<Task>) =>
+  patch('tasks', id, changes.title === undefined ? changes : { ...changes, title: titleCase(changes.title) });
 
 /** Move a task to `index` within a column (index counts tasks excluding the moving one). */
 export async function moveTask(taskId: string, columnId: string, index?: number): Promise<void> {
@@ -436,10 +438,11 @@ export async function stepsOf(taskId: string): Promise<Step[]> {
 
 export async function addStep(taskId: string, text: string): Promise<void> {
   const steps = await stepsOf(taskId);
-  await put('steps', { ...newRow(), task_id: taskId, text, is_done: false, position: keyAtEnd(steps) });
+  await put('steps', { ...newRow(), task_id: taskId, text: titleCase(text), is_done: false, position: keyAtEnd(steps) });
 }
 
-export const updateStep = (id: string, changes: Partial<Step>) => patch('steps', id, changes);
+export const updateStep = (id: string, changes: Partial<Step>) =>
+  patch('steps', id, changes.text === undefined ? changes : { ...changes, text: titleCase(changes.text) });
 
 export const deleteStep = (id: string) => patch('steps', id, { deleted_at: now() });
 

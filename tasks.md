@@ -6,6 +6,6 @@
 [x] allow changing the accent colors of realms in settings. Provide a 4 X 3 grid of color options. Focusing on complementary colors to the overall theme. Include purple as well.
 [x] create a confirm pop up when moving to complete
 [x] when clicking on realm start in board view with an upper right link to the realm options board.
-[] auto title case task entries.
-[] rename 'Labels' as 'Tags'
+[x] auto title case task entries.
+[x] rename 'Labels' as 'Tags'
 [] allow filter by tags

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { byPosition, keyAtEnd, keyAtIndex, keyAtStart, keyBetween } from './position';
 import { isArchived, normalizeUrl } from './tasks';
 import { addDays, isOverdue, toDueAt } from './dates';
+import { titleCase } from './titleCase';
 import type { Task } from '../db/types';
 
 describe('position', () => {
@@ -47,6 +48,23 @@ describe('auto-archive', () => {
     expect(isArchived(task({ completed_at: '2026-10-14T12:00:00Z' }), now)).toBe(false);
     expect(isArchived(task({}), now)).toBe(false);
     expect(isArchived(task({ archived_at: '2026-10-20T00:00:00Z' }), now)).toBe(true);
+  });
+});
+
+describe('title case', () => {
+  it.each([
+    ['book dentist appointment for friday', 'Book Dentist Appointment for Friday'],
+    ['what to look for', 'What to Look For'],
+    ['the end of the road', 'The End of the Road'],
+    ['call mom: a quick check-in', 'Call Mom: A Quick Check-In'],
+    ['fix iPhone sync for the PR', 'Fix iPhone Sync for the PR'],
+    ['email bob@example.com about q4 at 3pm', 'Email bob@example.com About q4 at 3pm'],
+    ['read https://example.com/a-b and example.org', 'Read https://example.com/a-b and example.org'],
+    ['follow-up with (vendor) "today"', 'Follow-Up With (Vendor) "Today"'],
+    ['  keep   spacing  ', '  Keep   Spacing  '],
+    ['', ''],
+  ])('%s → %s', (input, expected) => {
+    expect(titleCase(input)).toBe(expected);
   });
 });
 

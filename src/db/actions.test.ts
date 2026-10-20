@@ -8,6 +8,9 @@ import {
   createArea,
   getAreaDefault,
   moveTaskToRealm,
+  addStep,
+  updateStep,
+  updateTask,
   reopenProject,
   updateArea,
   columnsOf,
@@ -149,6 +152,23 @@ describe('areas and their built-in task lists', () => {
     const own = (await getAreaDefault(area.id))!;
     await createTask({ title: 'Call plumber', project_id: own.id });
     expect(await areaDeleteBlocker(area.id)).toMatch(/open task/);
+  });
+});
+
+describe('title case on entry', () => {
+  it('applies to new and edited task titles and steps', async () => {
+    const p = await createProject({ name: 'P', area_id: null });
+    const t = await createTask({ title: 'call the iPhone store about a refund', project_id: p.id });
+    expect(t.title).toBe('Call the iPhone Store About a Refund');
+
+    await updateTask(t.id, { title: 'renew passport' });
+    expect((await db.tasks.get(t.id))!.title).toBe('Renew Passport');
+
+    await addStep(t.id, 'find old passport');
+    const step = (await db.steps.where('task_id').equals(t.id).first())!;
+    expect(step.text).toBe('Find Old Passport');
+    await updateStep(step.id, { text: 'take a photo' });
+    expect((await db.steps.get(step.id))!.text).toBe('Take a Photo');
   });
 });
 

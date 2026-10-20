@@ -111,7 +111,7 @@ export function Search() {
           autoFocus
           type="search"
           className="input"
-          placeholder="Search tasks, notes, steps, links, labels…"
+          placeholder="Search tasks, notes, steps, links, tags…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           enterKeyHint="search"
