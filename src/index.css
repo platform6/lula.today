@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+}
+
+:root,
+[data-theme='dark'] {
+  --bg: #0f1115;
+  --surface: #171a21;
+  --surface-2: #1f232c;
+  --line: #2a2f3a;
+  --fg: #e7e9ee;
+  --muted: #8b93a5;
+  --accent: #7c8cff;
+  --accent-fg: #0f1115;
+  --danger: #f2667a;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --line: #dde1e8;
+  --fg: #1b1e25;
+  --muted: #646c7d;
+  --accent: #4f5fe6;
+  --accent-fg: #ffffff;
+  --danger: #d33a50;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* iOS zooms into inputs below 16px */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@utility input {
+  @apply w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-fg placeholder:text-muted focus:border-accent focus:outline-none;
+}
+@utility btn {
+  @apply inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-accent text-accent-fg hover:opacity-90;
+}
+@utility btn-ghost {
+  @apply btn text-muted hover:bg-surface-2 hover:text-fg;
+}
+@utility btn-danger {
+  @apply btn text-danger hover:bg-danger/10;
+}
+@utility card {
+  @apply rounded-xl border border-line bg-surface;
+}
+@utility field-label {
+  @apply mb-1 block text-xs font-medium tracking-wide text-muted uppercase;
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}

@@ -1,0 +1,45 @@
+import { useAllTasks } from '../db/hooks';
+import type { Task } from '../db/types';
+import { addDays, dayKey, isOverdue, todayKey } from '../lib/dates';
+import { isLive } from '../lib/tasks';
+import { PageHeader } from '../components/PageHeader';
+import { TaskList } from '../components/TaskList';
+
+const byDue = (a: Task, b: Task) => (a.due_at! < b.due_at! ? -1 : a.due_at! > b.due_at! ? 1 : b.priority - a.priority);
+
+export function Today() {
+  const tasks = useAllTasks();
+  if (!tasks) return null;
+
+  const today = todayKey();
+  const weekEnd = addDays(today, 7);
+  const dated = tasks.filter((t) => isLive(t) && t.due_at).sort(byDue);
+  const day = (t: Task) => dayKey(new Date(t.due_at!));
+
+  const overdue = dated.filter((t) => !t.completed_at && isOverdue(t.due_at, t.due_has_time) && day(t) < today);
+  const dueToday = dated.filter((t) => day(t) === today);
+  const upcoming = dated.filter((t) => !t.completed_at && day(t) > today && day(t) <= weekEnd);
+
+  const date = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  return (
+    <div>
+      <PageHeader title="Today" />
+      <p className="px-4 pt-3 text-sm text-muted">{date}</p>
+      {overdue.length > 0 && <Section title="Overdue" tone="text-danger" tasks={overdue} />}
+      <Section title="Today" tasks={dueToday} empty="Nothing due today." />
+      <Section title="Next 7 days" tasks={upcoming} empty="Nothing due this week." />
+    </div>
+  );
+}
+
+function Section({ title, tasks, empty, tone = '' }: { title: string; tasks: Task[]; empty?: string; tone?: string }) {
+  return (
+    <section className="mt-4">
+      <h2 className={`px-4 text-xs font-semibold tracking-wide uppercase ${tone || 'text-muted'}`}>
+        {title} {tasks.length > 0 && <span className="font-normal">· {tasks.length}</span>}
+      </h2>
+      <TaskList tasks={tasks} empty={empty} />
+    </section>
+  );
+}

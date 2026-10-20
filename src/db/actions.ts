@@ -1,0 +1,388 @@
+import { db } from './db';
+import { currentUserId, newRow, now, patch, put, putMany, writeTx } from './mutate';
+import type {
+  Area,
+  BoardColumn,
+  ColumnTemplate,
+  Label,
+  Priority,
+  Project,
+  Settings,
+  Step,
+  Task,
+} from './types';
+import { byPosition, keyAtEnd, keyAtIndex, keyAtStart } from '../lib/position';
+
+export const DEFAULT_COLUMNS: ColumnTemplate[] = [
+  { name: 'Backlog', is_done: false },
+  { name: 'To Do', is_done: false },
+  { name: 'Doing', is_done: false },
+  { name: 'Done', is_done: true },
+];
+
+const alive = <T extends { deleted_at: string | null }>(r: T) => !r.deleted_at;
+
+// ---------------------------------------------------------------------------
+// Reads used by actions
+// ---------------------------------------------------------------------------
+
+export async function getSettings(): Promise<Settings | undefined> {
+  return db.settings.get(currentUserId());
+}
+
+export async function columnsOf(projectId: string): Promise<BoardColumn[]> {
+  return (await db.board_columns.where('project_id').equals(projectId).toArray()).filter(alive).sort(byPosition);
+}
+
+async function tasksInColumn(columnId: string, exceptId?: string): Promise<Task[]> {
+  return (await db.tasks.where('column_id').equals(columnId).toArray())
+    .filter((t) => alive(t) && t.id !== exceptId)
+    .sort(byPosition);
+}
+
+export async function getInbox(): Promise<Project | undefined> {
+  return (await db.projects.toArray()).find((p) => p.is_inbox && alive(p));
+}
+
+// ---------------------------------------------------------------------------
+// Bootstrap (runs after a successful sync, so an existing Inbox is pulled first)
+// ---------------------------------------------------------------------------
+
+export async function ensureDefaults(): Promise<void> {
+  const userId = currentUserId();
+  let settings = await db.settings.get(userId);
+  if (!settings) {
+    const t = now();
+    settings = { user_id: userId, default_columns: DEFAULT_COLUMNS, theme: 'dark', created_at: t, updated_at: t };
+    await put('settings', settings);
+  }
+  if (!(await getInbox())) {
+    const projects = (await db.projects.toArray()).filter(alive).sort(byPosition);
+    await createProject({ name: 'Inbox', area_id: null, is_inbox: true, position: keyAtStart(projects) });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Areas
+// ---------------------------------------------------------------------------
+
+export async function createArea(name: string, color: string | null = null): Promise<Area> {
+  const areas = (await db.areas.toArray()).filter(alive).sort(byPosition);
+  const area: Area = { ...newRow(), name, color, icon: null, position: keyAtEnd(areas), archived_at: null };
+  await put('areas', area);
+  return area;
+}
+
+export const updateArea = (id: string, changes: Partial<Area>) => patch('areas', id, changes);
+
+/** Soft-delete an area; its projects move to "No area". */
+export async function deleteArea(id: string): Promise<void> {
+  await writeTx(async () => {
+    const projects = await db.projects.where('area_id').equals(id).toArray();
+    await putMany('projects', projects.map((p) => ({ ...p, area_id: null })));
+    await patch('areas', id, { deleted_at: now() });
+  });
+}
+
+export async function moveArea(id: string, dir: -1 | 1): Promise<void> {
+  const areas = (await db.areas.toArray()).filter(alive).sort(byPosition);
+  await moveInList('areas', areas, id, dir);
+}
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+export async function createProject(input: {
+  name: string;
+  area_id: string | null;
+  color?: string | null;
+  is_inbox?: boolean;
+  position?: string;
+}): Promise<Project> {
+  const settings = await getSettings();
+  const templates = settings?.default_columns?.length ? settings.default_columns : DEFAULT_COLUMNS;
+  const siblings = (await db.projects.toArray()).filter((p) => alive(p) && p.area_id === input.area_id).sort(byPosition);
+  const project: Project = {
+    ...newRow(),
+    area_id: input.area_id,
+    name: input.name,
+    color: input.color ?? null,
+    description: null,
+    due_date: null,
+    is_inbox: input.is_inbox ?? false,
+    position: input.position ?? keyAtEnd(siblings),
+    archived_at: null,
+  };
+  let prev: string | null = null;
+  const columns: BoardColumn[] = templates.map((tpl) => {
+    const position = keyAtIndex(prev ? [{ position: prev }] : [], 1);
+    prev = position;
+    return { ...newRow(), project_id: project.id, name: tpl.name, is_done: tpl.is_done, position };
+  });
+  await writeTx(async () => {
+    await put('projects', project);
+    await putMany('board_columns', columns);
+  });
+  return project;
+}
+
+export const updateProject = (id: string, changes: Partial<Project>) => patch('projects', id, changes);
+
+export async function archiveProject(id: string, archived: boolean): Promise<void> {
+  await patch('projects', id, { archived_at: archived ? now() : null });
+}
+
+/** Soft-delete a project and everything in it. */
+export async function deleteProject(id: string): Promise<void> {
+  const t = now();
+  await writeTx(async () => {
+    const tasks = await db.tasks.where('project_id').equals(id).toArray();
+    for (const task of tasks) await deleteTaskTree(task, t);
+    const columns = await db.board_columns.where('project_id').equals(id).toArray();
+    await putMany('board_columns', columns.map((c) => ({ ...c, deleted_at: t })));
+    await patch('projects', id, { deleted_at: t });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Columns
+// ---------------------------------------------------------------------------
+
+export async function addColumn(projectId: string, name: string, isDone = false): Promise<void> {
+  const columns = await columnsOf(projectId);
+  // New non-done columns go before the first done column so "Done" stays last.
+  const firstDone = columns.findIndex((c) => c.is_done);
+  const index = isDone || firstDone === -1 ? columns.length : firstDone;
+  await put('board_columns', {
+    ...newRow(),
+    project_id: projectId,
+    name,
+    is_done: isDone,
+    position: keyAtIndex(columns, index),
+  });
+}
+
+export const renameColumn = (id: string, name: string) => patch('board_columns', id, { name });
+
+export async function setColumnDone(id: string, isDone: boolean): Promise<void> {
+  const t = now();
+  await writeTx(async () => {
+    await patch('board_columns', id, { is_done: isDone });
+    const tasks = await tasksInColumn(id);
+    await putMany(
+      'tasks',
+      tasks.map((task) => ({ ...task, completed_at: isDone ? (task.completed_at ?? t) : null })),
+    );
+  });
+}
+
+export async function moveColumn(projectId: string, id: string, dir: -1 | 1): Promise<void> {
+  await moveInList('board_columns', await columnsOf(projectId), id, dir);
+}
+
+/** Delete a column, moving its tasks to the end of `moveTo`. */
+export async function deleteColumn(id: string, moveTo: string | null): Promise<void> {
+  await writeTx(async () => {
+    const tasks = await tasksInColumn(id);
+    if (tasks.length > 0) {
+      if (!moveTo) throw new Error('Choose a column for the remaining tasks');
+      const target = await db.board_columns.get(moveTo);
+      if (!target) throw new Error('Target column not found');
+      const existing = await tasksInColumn(moveTo);
+      const t = now();
+      let tail: { position: string }[] = existing;
+      const moved = tasks.map((task) => {
+        const position = keyAtEnd(tail);
+        tail = [{ position }];
+        return { ...task, column_id: moveTo, position, completed_at: completedFor(task, target, t) };
+      });
+      await putMany('tasks', moved);
+    }
+    await patch('board_columns', id, { deleted_at: now() });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Tasks
+// ---------------------------------------------------------------------------
+
+function completedFor(task: Task, column: BoardColumn, t: string): string | null {
+  if (!column.is_done) return null;
+  return task.completed_at ?? t;
+}
+
+export async function createTask(input: {
+  title: string;
+  project_id: string;
+  column_id?: string;
+  priority?: Priority;
+  due_at?: string | null;
+  due_has_time?: boolean;
+  atTop?: boolean;
+}): Promise<Task> {
+  const columns = await columnsOf(input.project_id);
+  const column =
+    columns.find((c) => c.id === input.column_id) ?? columns.find((c) => !c.is_done) ?? columns[0];
+  if (!column) throw new Error('Project has no columns');
+  const siblings = await tasksInColumn(column.id);
+  const t = now();
+  const task: Task = {
+    ...newRow(),
+    project_id: input.project_id,
+    column_id: column.id,
+    title: input.title,
+    notes: null,
+    url: null,
+    priority: input.priority ?? 0,
+    due_at: input.due_at ?? null,
+    due_has_time: input.due_has_time ?? false,
+    completed_at: column.is_done ? t : null,
+    archived_at: null,
+    position: input.atTop ? keyAtStart(siblings) : keyAtEnd(siblings),
+  };
+  await put('tasks', task);
+  return task;
+}
+
+export const updateTask = (id: string, changes: Partial<Task>) => patch('tasks', id, changes);
+
+/** Move a task to `index` within a column (index counts tasks excluding the moving one). */
+export async function moveTask(taskId: string, columnId: string, index?: number): Promise<void> {
+  await writeTx(async () => {
+    const task = await db.tasks.get(taskId);
+    const column = await db.board_columns.get(columnId);
+    if (!task || !column) return;
+    const siblings = await tasksInColumn(columnId, taskId);
+    const position = keyAtIndex(siblings, index ?? siblings.length);
+    await patch('tasks', taskId, {
+      column_id: columnId,
+      project_id: column.project_id,
+      position,
+      completed_at: completedFor(task, column, now()),
+    });
+  });
+}
+
+/** Move a task to another project, landing in that project's first open column. */
+export async function moveTaskToProject(taskId: string, projectId: string): Promise<void> {
+  const columns = await columnsOf(projectId);
+  const column = columns.find((c) => !c.is_done) ?? columns[0];
+  if (column) await moveTask(taskId, column.id);
+}
+
+/** Toggle completion from list views by moving between open and done columns. */
+export async function setTaskCompleted(task: Task, completed: boolean): Promise<void> {
+  const columns = await columnsOf(task.project_id);
+  const target = completed ? columns.find((c) => c.is_done) : columns.find((c) => !c.is_done);
+  if (target) {
+    await moveTask(task.id, target.id);
+  } else {
+    // No suitable column (e.g. a project with no done column): just set the flag.
+    await patch('tasks', task.id, { completed_at: completed ? now() : null });
+  }
+}
+
+export async function archiveTask(id: string): Promise<void> {
+  await patch('tasks', id, { archived_at: now() });
+}
+
+/** Restore from the archive. Completed tasks get a fresh 7-day window. */
+export async function restoreTask(task: Task): Promise<void> {
+  await patch('tasks', task.id, { archived_at: null, completed_at: task.completed_at ? now() : null });
+}
+
+async function deleteTaskTree(task: Task, t: string) {
+  const steps = await db.steps.where('task_id').equals(task.id).toArray();
+  await putMany('steps', steps.filter(alive).map((s) => ({ ...s, deleted_at: t })));
+  const links = await db.task_labels.where('task_id').equals(task.id).toArray();
+  await putMany('task_labels', links.filter(alive).map((l) => ({ ...l, deleted_at: t })));
+  await patch('tasks', task.id, { deleted_at: t });
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await writeTx(async () => {
+    const task = await db.tasks.get(id);
+    if (task) await deleteTaskTree(task, now());
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Steps
+// ---------------------------------------------------------------------------
+
+export async function stepsOf(taskId: string): Promise<Step[]> {
+  return (await db.steps.where('task_id').equals(taskId).toArray()).filter(alive).sort(byPosition);
+}
+
+export async function addStep(taskId: string, text: string): Promise<void> {
+  const steps = await stepsOf(taskId);
+  await put('steps', { ...newRow(), task_id: taskId, text, is_done: false, position: keyAtEnd(steps) });
+}
+
+export const updateStep = (id: string, changes: Partial<Step>) => patch('steps', id, changes);
+
+export const deleteStep = (id: string) => patch('steps', id, { deleted_at: now() });
+
+export async function moveStep(taskId: string, id: string, dir: -1 | 1): Promise<void> {
+  await moveInList('steps', await stepsOf(taskId), id, dir);
+}
+
+// ---------------------------------------------------------------------------
+// Labels
+// ---------------------------------------------------------------------------
+
+export async function createLabel(name: string, color: string | null = null): Promise<Label> {
+  const label: Label = { ...newRow(), name, color };
+  await put('labels', label);
+  return label;
+}
+
+export const updateLabel = (id: string, changes: Partial<Label>) => patch('labels', id, changes);
+
+export async function deleteLabel(id: string): Promise<void> {
+  const t = now();
+  await writeTx(async () => {
+    const links = await db.task_labels.where('label_id').equals(id).toArray();
+    await putMany('task_labels', links.filter(alive).map((l) => ({ ...l, deleted_at: t })));
+    await patch('labels', id, { deleted_at: t });
+  });
+}
+
+export async function setTaskLabel(taskId: string, labelId: string, on: boolean): Promise<void> {
+  const existing = await db.task_labels.get([taskId, labelId]);
+  const t = now();
+  await put('task_labels', {
+    task_id: taskId,
+    label_id: labelId,
+    user_id: currentUserId(),
+    created_at: existing?.created_at ?? t,
+    updated_at: t,
+    deleted_at: on ? null : t,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+export async function updateSettings(changes: Partial<Settings>): Promise<void> {
+  await patch('settings', currentUserId(), changes);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function moveInList(
+  table: 'areas' | 'board_columns' | 'steps',
+  sorted: { id: string; position: string }[],
+  id: string,
+  dir: -1 | 1,
+) {
+  const from = sorted.findIndex((r) => r.id === id);
+  const to = from + dir;
+  if (from === -1 || to < 0 || to >= sorted.length) return;
+  const rest = sorted.filter((r) => r.id !== id);
+  await patch(table, id, { position: keyAtIndex(rest, to) });
+}
