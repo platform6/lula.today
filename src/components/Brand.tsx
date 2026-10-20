@@ -26,11 +26,15 @@ export function Wordmark({ height, className = '' }: { height: number; className
   );
 }
 
-/** App icon tile beside the wordmark: gap is half the tile, per the brand lockup. */
+/**
+ * App icon tile beside the wordmark: gap is half the tile, per the brand lockup.
+ * Block-level so it never sits on a text baseline (which would push it above
+ * whatever it's centered beside, like the header's sync badge).
+ */
 export function BrandLockup({ size }: { size: number }) {
   const wordHeight = Math.round(size * 0.78);
   return (
-    <span className="inline-flex items-center" style={{ gap: size / 2 }}>
+    <span className="flex w-fit items-center" style={{ gap: size / 2 }}>
       <img src="/favicon.svg" alt="" width={size} height={size} className="shrink-0 rounded-[22%]" />
       <span style={{ transform: `translateY(${X_HEIGHT_SHIFT})` }} className="inline-flex">
         <Wordmark height={wordHeight} />

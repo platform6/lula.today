@@ -21,7 +21,7 @@ import type { BoardColumn, Label, Task } from '../db/types';
 import { PRIORITY_BARS, isLive } from '../lib/tasks';
 import { PageHeader } from '../components/PageHeader';
 import { TaskMeta } from '../components/TaskMeta';
-import { BackIcon, GearIcon, PlusIcon } from '../components/icons';
+import { BackIcon, PlusIcon, SlidersIcon } from '../components/icons';
 import { useOpenTask } from '../components/useOpenTask';
 import { useConfirmComplete } from '../components/ConfirmComplete';
 
@@ -206,11 +206,11 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
             </button>
             {project.is_area_default && area ? (
               <Link to={`/realms/${area.id}/options`} className="btn-outline min-h-10 px-3 text-sm">
-                <GearIcon width={18} height={18} /> Options
+                <SlidersIcon width={18} height={18} /> Options
               </Link>
             ) : (
               <Link to={`/projects/${project.id}/settings`} className="btn-outline min-h-10 px-3 text-sm">
-                <GearIcon width={18} height={18} /> Settings
+                <SlidersIcon width={18} height={18} /> Settings
               </Link>
             )}
           </>

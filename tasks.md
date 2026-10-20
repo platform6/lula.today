@@ -13,4 +13,7 @@
 - [x] On the phone, the date picker doesn't show placeholder text.
 - [x] When opening a task from the Inbox, provide a small centered Save button at the bottom.
 - [x] Date and time pickers on mobile don't display clearly.
-- [ ]
+- [x] When a task is completed from the Today section, it leaves the list instead of staying there checked off.
+- [x] The header icon and headline are not aligned perfectly and are not aligned with the sync indicator.
+- [x] Add a UI size setting (small, medium, large) to try scaling the UI down as a whole.
+- [x] Try an icon other than a gear for Settings.

@@ -19,7 +19,7 @@ import { useAreas, useInboxCount, useProjects, useSettings } from '../db/hooks';
 import type { Area } from '../db/types';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
-import { ArchiveIcon, GearIcon, InboxIcon, ListIcon, NodesIcon, PlusIcon, SearchIcon, SunIcon } from './icons';
+import { ArchiveIcon, InboxIcon, ListIcon, NodesIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
 import { BrandLockup } from './Brand';
 import { Celebration } from './Celebration';
 import { ConfirmCompleteProvider } from './ConfirmComplete';
@@ -286,7 +286,7 @@ function Sidebar() {
         )}
       </div>
       <nav className="border-t border-line p-2">
-        <NavLink to="/settings" className={navClass}><GearIcon /> Settings</NavLink>
+        <NavLink to="/settings" className={navClass}><SlidersIcon /> Settings</NavLink>
       </nav>
     </aside>
   );
@@ -347,7 +347,7 @@ function BottomNav() {
       </NavLink>
       <NavLink to="/realms" className={() => tabClass(inRealms)}><NodesIcon {...tabIcon} /> Realms</NavLink>
       <NavLink to="/search" className={({ isActive }) => tabClass(isActive)}><SearchIcon {...tabIcon} /> Search</NavLink>
-      <NavLink to="/settings" className={({ isActive }) => tabClass(isActive)}><GearIcon {...tabIcon} /> Settings</NavLink>
+      <NavLink to="/settings" className={({ isActive }) => tabClass(isActive)}><SlidersIcon {...tabIcon} /> Settings</NavLink>
     </nav>
   );
 }

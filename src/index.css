@@ -102,6 +102,14 @@ body,
   height: 100%;
 }
 
+/* UI size (Settings › Appearance): everything in rem scales from here. */
+html[data-ui-size='small'] {
+  font-size: 87.5%;
+}
+html[data-ui-size='large'] {
+  font-size: 112.5%;
+}
+
 body {
   background: var(--bg);
   color: var(--fg);

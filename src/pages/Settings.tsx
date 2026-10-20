@@ -11,6 +11,7 @@ import { TreeNode } from '../components/NodeTree';
 import { ColumnsEditor } from '../components/ColumnsEditor';
 import { PageHeader } from '../components/PageHeader';
 import { DownIcon, UpIcon, XIcon } from '../components/icons';
+import { UI_SIZES, useUiSize } from '../lib/uiSize';
 
 export function Settings() {
   const settings = useSettings();
@@ -35,6 +36,7 @@ export function Settings() {
               </button>
             ))}
           </div>
+          <UiSizePicker />
         </Section>
 
         <Section title="Realm colors" hint="Each realm's color is shared by its projects and the lines in the realm tree.">
@@ -122,6 +124,27 @@ function RealmColors() {
         </li>
       ))}
     </ul>
+  );
+}
+
+function UiSizePicker() {
+  const [size, setSize] = useUiSize();
+  return (
+    <div className="mt-4">
+      <span className="field-label">Size</span>
+      <div className="flex gap-2">
+        {UI_SIZES.map((s) => (
+          <button
+            key={s}
+            className={`btn flex-1 border-2 capitalize ${size === s ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
+            onClick={() => setSize(s)}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-sm text-fg-2">Scales text and controls. Applies to this device.</p>
+    </div>
   );
 }
 

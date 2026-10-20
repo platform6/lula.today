@@ -21,7 +21,7 @@ export function Today() {
   const day = (t: Task) => dayKey(new Date(t.due_at!));
 
   const overdue = dated.filter((t) => !t.completed_at && isOverdue(t.due_at, t.due_has_time) && day(t) < today);
-  const dueToday = dated.filter((t) => day(t) === today);
+  const dueToday = dated.filter((t) => !t.completed_at && day(t) === today);
   const upcoming = dated.filter((t) => !t.completed_at && day(t) > today && day(t) <= weekEnd);
 
   const date = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
@@ -32,7 +32,7 @@ export function Today() {
         title={
           <>
             {/* the main page carries the brand on phones; desktop shows it in the sidebar */}
-            <span className="md:hidden">
+            <span className="flex md:hidden">
               <BrandLockup size={32} />
             </span>
             <span className="hidden md:inline">Today</span>
