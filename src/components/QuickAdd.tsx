@@ -6,6 +6,7 @@ import { toDueAt } from '../lib/dates';
 import { PRIORITY_LABELS } from '../lib/tasks';
 import { InboxIcon } from './icons';
 import { Sheet } from './Sheet';
+import { DateField } from './DateField';
 
 /**
  * One-step capture: type a title, press Enter. Everything goes to the Inbox,
@@ -68,7 +69,7 @@ export function QuickAdd({
           enterKeyHint="done"
         />
         <div className="grid grid-cols-2 gap-2">
-          <input type="date" className="input" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due date" />
+          <DateField value={due} onChange={setDue} placeholder="Due date" label="Due date" />
           <select
             className="input"
             value={priority}

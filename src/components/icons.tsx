@@ -38,4 +38,6 @@ export const BackIcon = (p: P) => <Icon {...p}><path d="m15 18-6-6 6-6" /></Icon
 /** Realms: a root node branching to child nodes. */
 export const NodesIcon = (p: P) => <Icon {...p}><circle cx="6" cy="5" r="2.5" /><circle cx="18" cy="12" r="2.5" /><circle cx="18" cy="20" r="2" /><path d="M6 7.5V18a2 2 0 0 0 2 2h8M6 12h9.5" /></Icon>;
 export const GripIcon = (p: P) => <Icon {...p}><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></Icon>;
-export const FlagIcon =(p: P) => <Icon {...p}><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 5 2 5H5" /></Icon>;
+export const CalendarIcon = (p: P) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></Icon>;
+export const ClockIcon = (p: P) => <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Icon>;
+export const FlagIcon = (p: P) => <Icon {...p}><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 5 2 5H5" /></Icon>;

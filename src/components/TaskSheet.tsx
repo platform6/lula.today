@@ -15,6 +15,7 @@ import {
 } from '../db/actions';
 import { useColumns, useLabels, useProject, useSteps, useTask, useTaskLabelMap } from '../db/hooks';
 import { ProjectSelect } from './ProjectSelect';
+import { DateField } from './DateField';
 import { COLORS } from './ColorPicker';
 import { useConfirmComplete } from './ConfirmComplete';
 import type { Priority, Step, Task } from '../db/types';
@@ -52,8 +53,22 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
     await moveTask(task.id, columnId);
   }
 
+  // Fields save as you leave them; blurring the focused one commits it before closing.
+  const saveAndClose = () => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    onClose();
+  };
+
   return (
-    <Sheet title={archived ? 'Archived task' : 'Task'} onClose={onClose}>
+    <Sheet
+      title={archived ? 'Archived task' : 'Task'}
+      onClose={onClose}
+      footer={
+        <button type="button" className="btn-primary mb-2 min-h-10 px-8 text-sm" onClick={saveAndClose}>
+          Save
+        </button>
+      }
+    >
       <div className="flex flex-col gap-4 p-4">
         <textarea
           className="input resize-none text-xl font-bold"
@@ -168,17 +183,24 @@ function DueFields({ task }: { task: Task }) {
     });
 
   return (
-    <div>
-      <label className="field-label">Due</label>
-      <div className="flex gap-1">
-        <input type="date" className="input min-w-0 px-2" value={date} onChange={(e) => set(e.target.value, time)} />
+    <div className="col-span-2">
+      <span className="field-label">Due</span>
+      <div className="flex flex-wrap gap-2">
+        <DateField
+          className="min-w-44 flex-1"
+          value={date}
+          onChange={(d) => set(d, d ? time : '')}
+          placeholder="Add due date"
+          label="Due date"
+        />
         {date && (
-          <input
-            type="time"
-            className="input w-24 shrink-0 px-2"
+          <DateField
+            kind="time"
+            className="min-w-36 flex-1"
             value={time}
-            onChange={(e) => set(date, e.target.value)}
-            aria-label="Due time"
+            onChange={(t) => set(date, t)}
+            placeholder="Add time"
+            label="Due time"
           />
         )}
       </div>

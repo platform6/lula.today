@@ -1,22 +1,24 @@
 import { CheckIcon } from './icons';
 
 /**
- * Realm palette: 12 hues chosen to sit beside the orange accent on the
- * near-black ground (and stay legible as lines and fills in light mode).
+ * Realm palette, hand-picked from balanced OKLCH sets: mostly "Jewel" tones
+ * (L 0.64, C ≈ 0.135), one deeper blue (Indigo) and two quiet neutrals (Stone,
+ * Slate). None sits near the brand orange, so no realm reads as the accent.
+ * Ordered warm to cool, neutrals last, to fill the 4 × 3 grid.
  */
 export const PALETTE = [
-  { name: 'Ember', value: '#ff6a2b' },
-  { name: 'Amber', value: '#f5b83d' },
-  { name: 'Lemon', value: '#e6d450' },
-  { name: 'Lime', value: '#9ed85a' },
-  { name: 'Jade', value: '#3fcf8e' },
-  { name: 'Teal', value: '#2ec4b6' },
-  { name: 'Sky', value: '#4cc2ff' },
-  { name: 'Cobalt', value: '#6b8cff' },
-  { name: 'Purple', value: '#9d7bff' },
-  { name: 'Orchid', value: '#d07cf0' },
-  { name: 'Rose', value: '#ff6fa8' },
-  { name: 'Coral', value: '#f2667a' },
+  { name: 'Honey', value: '#be7c09' },
+  { name: 'Citron', value: '#a28c06' },
+  { name: 'Olive', value: '#8f9318' },
+  { name: 'Moss', value: '#799a32' },
+  { name: 'Jade', value: '#42a360' },
+  { name: 'Mint', value: '#05a38c' },
+  { name: 'Indigo', value: '#6d69b8' },
+  { name: 'Orchid', value: '#a573c9' },
+  { name: 'Rose', value: '#bf69aa' },
+  { name: 'Ruby', value: '#ce6583' },
+  { name: 'Stone', value: '#968b78' },
+  { name: 'Slate', value: '#7f8e9e' },
 ] as const;
 
 export const COLORS: string[] = PALETTE.map((c) => c.value);

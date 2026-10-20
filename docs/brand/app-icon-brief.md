@@ -72,12 +72,12 @@ The app's task-completed animation sweeps slanted bars in exactly these shades, 
 
 ### Realm palette (secondary; optional accents only)
 
-Users color their realms with these 12 hues. A mark that shows a few child nodes may use 2–3 of them, but **orange must stay dominant**.
+Users color their realms with these 12 hues, hand-picked from balanced OKLCH sets: mostly "Jewel" tones (L 0.64 / C ≈ 0.135), one deeper blue and two quiet neutrals, none near the brand orange. A mark that shows a few child nodes may use 2–3 of them, but **orange must stay dominant**.
 
-| Ember `#ff6a2b` | Amber `#f5b83d` | Lemon `#e6d450` | Lime `#9ed85a` |
+| Honey `#be7c09` | Citron `#a28c06` | Olive `#8f9318` | Moss `#799a32` |
 |---|---|---|---|
-| **Jade `#3fcf8e`** | **Teal `#2ec4b6`** | **Sky `#4cc2ff`** | **Cobalt `#6b8cff`** |
-| **Purple `#9d7bff`** | **Orchid `#d07cf0`** | **Rose `#ff6fa8`** | **Coral `#f2667a`** |
+| **Jade `#42a360`** | **Mint `#05a38c`** | **Indigo `#6d69b8`** | **Orchid `#a573c9`** |
+| **Rose `#bf69aa`** | **Ruby `#ce6583`** | **Stone `#968b78`** | **Slate `#7f8e9e`** |
 
 ## 4. Typography (wordmark)
 

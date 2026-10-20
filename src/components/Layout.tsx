@@ -125,7 +125,7 @@ export function Layout() {
 
           {!dragging && (
             <button
-              className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
+              className="fixed right-4 bottom-[calc(4.625rem+var(--tab-safe))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
               onClick={() => setQuickAdd(true)}
               aria-label="Add task"
             >
@@ -322,7 +322,7 @@ function CountBadge({ count }: { count: number }) {
 }
 
 const tabClass = (isActive: boolean) =>
-  `relative flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold ${isActive ? 'text-accent shadow-[inset_0_3px_0_var(--accent)]' : 'text-fg-2'}`;
+  `relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${isActive ? 'text-accent shadow-[inset_0_3px_0_var(--accent)]' : 'text-fg-2'}`;
 
 const tabIcon = { width: 26, height: 26 };
 
@@ -332,7 +332,7 @@ function BottomNav() {
   // Realm pages and the boards inside them all belong to the Realms tab.
   const inRealms = pathname.startsWith('/realms') || pathname.startsWith('/projects');
   return (
-    <nav className="pb-safe fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
+    <nav className="pb-tabbar fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
       <NavLink to="/" end className={({ isActive }) => tabClass(isActive)}><SunIcon {...tabIcon} /> Today</NavLink>
       <NavLink to="/inbox" className={({ isActive }) => tabClass(isActive)}>
         <span className="relative">

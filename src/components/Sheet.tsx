@@ -6,11 +6,14 @@ export function Sheet({
   title,
   onClose,
   children,
+  footer,
   side = 'auto',
 }: {
   title?: ReactNode;
   onClose: () => void;
   children: ReactNode;
+  /** Pinned below the scrolling content (e.g. a Save button). */
+  footer?: ReactNode;
   side?: 'auto' | 'center';
 }) {
   useEffect(() => {
@@ -34,7 +37,8 @@ export function Sheet({
             <XIcon width={28} height={28} />
           </button>
         </div>
-        <div className="pb-safe flex-1 overflow-y-auto">{children}</div>
+        <div className={`flex-1 overflow-y-auto ${footer ? '' : 'pb-safe'}`}>{children}</div>
+        {footer && <div className="pb-safe flex justify-center border-t border-line px-4 pt-2">{footer}</div>}
       </div>
     </div>
   );
