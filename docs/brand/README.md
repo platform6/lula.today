@@ -25,8 +25,8 @@ Brand-only assets:
 - `logo-wordmark.svg`: lowercase IBM Plex Sans Bold 700, outlined paths,
   zero tracking, orange for dark backgrounds.
 - `logo-lockup.svg`: the full-color wave tile and outlined wordmark, with a
-  half-tile gap and at least half-tile outer clear space. The tile's center
-  aligns with the wordmark's x-height center.
+  half-tile gap and at least half-tile outer clear space. The wordmark
+  (ascender top to baseline) is centered on the tile.
 - `icon-mono.svg`: the central wave band isolated as a single orange silhouette
   on a transparent 512-unit canvas. A one-ink adaptation of the final design.
 - `icon-preview.png`: large icon, actual 16/40/64px samples, three device masks,
