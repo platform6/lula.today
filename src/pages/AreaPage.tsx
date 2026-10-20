@@ -15,11 +15,16 @@ import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { isLive } from '../lib/tasks';
 import { ColorPicker } from '../components/ColorPicker';
+import { Branch, Children, NODE_SIZE, Stem, TreeNode } from '../components/NodeTree';
 import { PageHeader } from '../components/PageHeader';
 import { TaskList } from '../components/TaskList';
 import { BackIcon, DownIcon, PlusIcon, UpIcon } from '../components/icons';
 
-/** An area: its own tasks first, then its projects. */
+// Tree row heights (px); connectors meet each row's vertical center.
+const REALM_ROW_H = 52;
+const PROJECT_ROW_H = 76;
+
+/** A realm: its own tasks first, then its projects. */
 export function AreaPage() {
   const { id } = useParams();
   const areas = useAreas();
@@ -31,7 +36,7 @@ export function AreaPage() {
   const [editing, setEditing] = useState(false);
 
   if (!areas || !projects) return null;
-  if (!area) return <p className="p-4 text-base text-muted">Area not found.</p>;
+  if (!area) return <p className="p-4 text-base text-muted">Realm not found.</p>;
 
   const index = areas.findIndex((a) => a.id === area.id);
   const mine = projects.filter((p) => p.area_id === area.id && isRealProject(p)).sort(byPosition);
@@ -49,7 +54,7 @@ export function AreaPage() {
           </span>
         }
         back={
-          <Link to="/areas" className="btn-ghost -ml-2 px-2" aria-label="All areas">
+          <Link to="/realms" className="btn-ghost -ml-2 px-2" aria-label="All realms">
             <BackIcon />
           </Link>
         }
@@ -80,12 +85,22 @@ export function AreaPage() {
           <h2 className="section-title mx-4">
             Projects <span className="text-sm font-semibold text-fg-2">{active.length}</span>
           </h2>
-          <ul className="divide-y divide-line">
-            {active.map((p) => (
-              <ProjectRow key={p.id} project={p} progress={progress?.get(p.id)} />
-            ))}
-          </ul>
-          {active.length === 0 && <p className="px-4 py-4 text-base text-muted">No active projects.</p>}
+          {/* the realm as a node with its projects branching off it */}
+          <div className="mx-4 mt-2">
+            <div className="relative flex items-center gap-3" style={{ height: REALM_ROW_H }}>
+              <TreeNode kind="realm" color={area.color} />
+              <span className="text-lg font-bold">{area.name}</span>
+              {active.length > 0 && <Stem x={NODE_SIZE.realm / 2} y={REALM_ROW_H / 2} color={area.color} />}
+            </div>
+            <Children x={NODE_SIZE.realm / 2}>
+              {active.map((p, i) => (
+                <Branch key={p.id} last={i === active.length - 1} y={PROJECT_ROW_H / 2} indent={24} color={area.color}>
+                  <ProjectRow project={p} progress={progress?.get(p.id)} />
+                </Branch>
+              ))}
+            </Children>
+          </div>
+          {active.length === 0 && <p className="px-4 py-2 text-base text-muted">No active projects.</p>}
           <AddProject area={area} />
         </section>
 
@@ -119,19 +134,24 @@ function ProjectRow({ project, progress }: { project: Project; progress?: [numbe
   const [done, total] = progress ?? [0, 0];
   const pct = total ? Math.round((done / total) * 100) : 0;
   return (
-    <li>
-      <Link to={`/projects/${project.id}`} className="flex min-h-20 flex-col justify-center gap-2 px-4 py-3 hover:bg-surface-2">
-        <div className="flex items-center gap-3">
+    <Link
+      to={`/projects/${project.id}`}
+      className="flex items-center gap-3 rounded-sm pr-2 hover:bg-surface-2"
+      style={{ height: PROJECT_ROW_H }}
+    >
+      <TreeNode kind="project" color={project.color} />
+      <span className="flex min-w-0 flex-1 flex-col gap-2">
+        <span className="flex items-center gap-3">
           <span className="min-w-0 flex-1 truncate text-lg font-bold">{project.name}</span>
-          <span className="text-sm font-semibold text-fg-2">
+          <span className="shrink-0 text-sm font-semibold text-fg-2">
             {done} of {total} done
           </span>
-        </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: project.color ?? 'var(--accent)' }} />
-        </div>
-      </Link>
-    </li>
+        </span>
+        <span className="block h-2.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+          <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: project.color ?? 'var(--accent)' }} />
+        </span>
+      </span>
+    </Link>
   );
 }
 
@@ -219,7 +239,7 @@ function AreaEditor({ area, first, last }: { area: Area; first: boolean; last: b
         <button className="btn-outline" disabled={first} onClick={() => void moveArea(area.id, -1)}><UpIcon /> Up</button>
         <button className="btn-outline" disabled={last} onClick={() => void moveArea(area.id, 1)}><DownIcon /> Down</button>
         <div className="flex-1" />
-        {!confirm && <button className="btn-danger" onClick={() => setConfirm(true)}>Delete area</button>}
+        {!confirm && <button className="btn-danger" onClick={() => setConfirm(true)}>Delete realm</button>}
       </div>
       {confirm && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
@@ -230,7 +250,7 @@ function AreaEditor({ area, first, last }: { area: Area; first: boolean; last: b
           )}
           <button className="btn-ghost" onClick={() => setConfirm(false)}>Cancel</button>
           {blocker === null && (
-            <button className="btn-danger border-2 border-danger" onClick={() => void deleteArea(area.id).then(() => navigate('/areas'))}>
+            <button className="btn-danger border-2 border-danger" onClick={() => void deleteArea(area.id).then(() => navigate('/realms'))}>
               Delete
             </button>
           )}

@@ -59,9 +59,9 @@ export function AllTasks() {
             setAreaId(e.target.value);
             setProjectId('');
           }}
-          aria-label="Area"
+          aria-label="Realm"
         >
-          <option value="">All areas</option>
+          <option value="">All realms</option>
           {areas.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}

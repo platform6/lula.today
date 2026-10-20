@@ -114,7 +114,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       <PageHeader
         back={
           area && (
-            <Link to={`/areas/${area.id}`} className="btn-ghost -ml-2 px-2" aria-label={`Back to ${area.name}`}>
+            <Link to={`/realms/${area.id}`} className="btn-ghost -ml-2 px-2" aria-label={`Back to ${area.name}`}>
               <BackIcon />
             </Link>
           )
@@ -122,7 +122,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
         title={
           <span className="flex min-w-0 flex-col leading-tight">
             {area && !project.is_area_default && (
-              <Link to={`/areas/${area.id}`} className="flex items-center gap-1.5 text-sm font-semibold text-fg-2">
+              <Link to={`/realms/${area.id}`} className="flex items-center gap-1.5 text-sm font-semibold text-fg-2">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: area.color ?? 'var(--line-strong)' }} />
                 {area.name} ›
               </Link>

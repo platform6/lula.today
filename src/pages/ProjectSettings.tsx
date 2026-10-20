@@ -90,7 +90,7 @@ function Details({ project, areas }: { project: Project; areas: Area[] }) {
         />
       </div>
       <div>
-        <label className="field-label" htmlFor="project-area">Area</label>
+        <label className="field-label" htmlFor="project-area">Realm</label>
         <select
           id="project-area"
           className="input"
@@ -98,13 +98,13 @@ function Details({ project, areas }: { project: Project; areas: Area[] }) {
           onChange={(e) => e.target.value && void setProjectArea(project.id, e.target.value)}
         >
           <option value="" disabled>
-            Choose an area…
+            Choose a realm…
           </option>
           {areas.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
         </select>
-        <p className="mt-1.5 text-sm text-fg-2">The project takes its color from its area.</p>
+        <p className="mt-1.5 text-sm text-fg-2">The project takes its color from its realm.</p>
       </div>
       <div>
         <label className="field-label" htmlFor="project-desc">Description</label>
@@ -128,7 +128,7 @@ function Lifecycle({ project, area, liveCount }: { project: Project; area: Area 
   const [completing, setCompleting] = useState(false);
   const [openCount, setOpenCount] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const back = area ? `/areas/${area.id}` : '/areas';
+  const back = area ? `/realms/${area.id}` : '/realms';
 
   useEffect(() => {
     if (completing) void openTasksOf(project.id).then((t) => setOpenCount(t.length));
@@ -157,7 +157,7 @@ function Lifecycle({ project, area, liveCount }: { project: Project; area: Area 
                 <b>{openCount}</b> task{openCount === 1 ? ' is' : 's are'} still open. What should happen to {openCount === 1 ? 'it' : 'them'}?
               </p>
               <button className="btn-primary" onClick={() => void finish('move')}>
-                Move to {area?.name ?? 'area'} tasks and complete
+                Move to {area?.name ?? 'realm'} tasks and complete
               </button>
               <button className="btn-outline" onClick={() => void finish('archive')}>Archive them too and complete</button>
             </>

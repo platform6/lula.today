@@ -9,7 +9,7 @@ import { Sheet } from './Sheet';
 
 /**
  * One-step capture: type a title, press Enter. Everything goes to the Inbox,
- * whatever page you're on; sorting into areas and projects happens there.
+ * whatever page you're on; sorting into realms and projects happens there.
  */
 export function QuickAdd({
   onClose,

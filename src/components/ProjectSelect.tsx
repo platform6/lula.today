@@ -2,7 +2,7 @@ import { useAreas, useProjects } from '../db/hooks';
 import { byPosition } from '../lib/position';
 
 /**
- * A select grouped by area: Inbox, then for each area its own task list
+ * A select grouped by realm: Inbox, then for each realm its own task list
  * followed by its active projects.
  */
 export function ProjectSelect({
@@ -35,7 +35,7 @@ export function ProjectSelect({
         const list = projects.filter((p) => p.area_id === area.id && !p.is_area_default).sort(byPosition);
         return (
           <optgroup key={area.id} label={area.name}>
-            {own && <option value={own.id}>{area.name} (area tasks)</option>}
+            {own && <option value={own.id}>{area.name} (realm tasks)</option>}
             {list.map((p) => (
               <option key={p.id} value={p.id}>
                 {area.name} › {p.name}
@@ -45,7 +45,7 @@ export function ProjectSelect({
         );
       })}
       {orphans.length > 0 && (
-        <optgroup label="Needs an area">
+        <optgroup label="Needs a realm">
           {orphans.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}

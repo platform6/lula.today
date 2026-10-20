@@ -381,6 +381,14 @@ export async function moveTaskToProject(taskId: string, projectId: string): Prom
   if (column) await moveTask(taskId, column.id);
 }
 
+/** Make a task a realm task: it lands in the realm's built-in task list. */
+export async function moveTaskToRealm(taskId: string, areaId: string): Promise<void> {
+  const area = await db.areas.get(areaId);
+  if (!area || area.deleted_at) return;
+  const own = (await getAreaDefault(areaId)) ?? (await createAreaDefault(area));
+  await moveTaskToProject(taskId, own.id);
+}
+
 /** Toggle completion from list views by moving between open and done columns. */
 export async function setTaskCompleted(task: Task, completed: boolean): Promise<void> {
   const columns = await columnsOf(task.project_id);

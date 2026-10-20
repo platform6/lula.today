@@ -35,4 +35,7 @@ export const LinkIcon = (p: P) => <Icon {...p}><path d="M10 13a5 5 0 0 0 7.5.5l3
 export const UpIcon = (p: P) => <Icon {...p}><path d="m18 15-6-6-6 6" /></Icon>;
 export const DownIcon = (p: P) => <Icon {...p}><path d="m6 9 6 6 6-6" /></Icon>;
 export const BackIcon = (p: P) => <Icon {...p}><path d="m15 18-6-6 6-6" /></Icon>;
-export const FlagIcon = (p: P) => <Icon {...p}><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 5 2 5H5" /></Icon>;
+/** Realms: a root node branching to child nodes. */
+export const NodesIcon = (p: P) => <Icon {...p}><circle cx="6" cy="5" r="2.5" /><circle cx="18" cy="12" r="2.5" /><circle cx="18" cy="20" r="2" /><path d="M6 7.5V18a2 2 0 0 0 2 2h8M6 12h9.5" /></Icon>;
+export const GripIcon = (p: P) => <Icon {...p}><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></Icon>;
+export const FlagIcon =(p: P) => <Icon {...p}><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 5 2 5H5" /></Icon>;

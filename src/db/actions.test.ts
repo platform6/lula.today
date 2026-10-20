@@ -7,6 +7,7 @@ import {
   completeProject,
   createArea,
   getAreaDefault,
+  moveTaskToRealm,
   reopenProject,
   updateArea,
   columnsOf,
@@ -148,6 +149,20 @@ describe('areas and their built-in task lists', () => {
     const own = (await getAreaDefault(area.id))!;
     await createTask({ title: 'Call plumber', project_id: own.id });
     expect(await areaDeleteBlocker(area.id)).toMatch(/open task/);
+  });
+});
+
+describe('sorting the Inbox', () => {
+  it('dropping a task on a realm makes it a realm task', async () => {
+    await ensureDefaults();
+    const inbox = (await getInbox())!;
+    const area = await createArea('Health');
+    const t = await createTask({ title: 'Book dentist', project_id: inbox.id });
+    await moveTaskToRealm(t.id, area.id);
+    const moved = (await db.tasks.get(t.id))!;
+    const own = (await getAreaDefault(area.id))!;
+    expect(moved.project_id).toBe(own.id);
+    expect((await columnsOf(own.id)).find((c) => c.id === moved.column_id)?.is_done).toBe(false);
   });
 });
 

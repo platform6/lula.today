@@ -34,9 +34,10 @@ export function Inbox() {
       ) : (
         <>
           <p className="px-4 pt-4 text-base text-fg-2">
-            Everything you capture lands here. Move each task to an area or one of its projects.
+            Everything you capture lands here. Drag a task onto a realm (press and hold on your phone), or tap{' '}
+            <b className="text-fg">Move</b> to pick a realm or one of its projects.
           </p>
-          <TaskList tasks={open} showPlace={false} showMove />
+          <TaskList tasks={open} showPlace={false} showMove draggable />
         </>
       )}
     </div>

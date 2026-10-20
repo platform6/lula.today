@@ -25,7 +25,7 @@ export function placeOf(project: Project | undefined, areas: Map<string, Area>):
       project,
       label: area?.name ?? project.name,
       color: area?.color ?? project.color,
-      href: area ? `/areas/${area.id}` : `/projects/${project.id}`,
+      href: area ? `/realms/${area.id}` : `/projects/${project.id}`,
     };
   }
   return {

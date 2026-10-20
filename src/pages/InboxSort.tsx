@@ -89,7 +89,7 @@ export function InboxSort() {
           </button>
         </article>
 
-        {/* keyed so the picker returns to the area list for each new task */}
+        {/* keyed so the picker returns to the realm list for each new task */}
         <MoveToPicker key={current.id} taskId={current.id} onMoved={() => setConfirmDelete(false)} />
 
         <div className="grid grid-cols-3 gap-2 border-t border-line p-4">

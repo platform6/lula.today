@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { useAuth } from './auth/AuthProvider';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -15,6 +15,12 @@ import { Search } from './pages/Search';
 import { Archive } from './pages/Archive';
 import { Settings } from './pages/Settings';
 
+/** Areas are shown as "Realms"; old /areas links keep working. */
+function AreasRedirect() {
+  const rest = useParams()['*'];
+  return <Navigate to={rest ? `/realms/${rest}` : '/realms'} replace />;
+}
+
 export function App() {
   const { user, loading, recovering } = useAuth();
 
@@ -28,9 +34,10 @@ export function App() {
         <Route index element={<Today />} />
         <Route path="inbox" element={<Inbox />} />
         <Route path="inbox/sort" element={<InboxSort />} />
-        <Route path="areas" element={<Areas />} />
-        <Route path="areas/:id" element={<AreaPage />} />
-        <Route path="projects" element={<Navigate to="/areas" replace />} />
+        <Route path="realms" element={<Areas />} />
+        <Route path="realms/:id" element={<AreaPage />} />
+        <Route path="areas/*" element={<AreasRedirect />} />
+        <Route path="projects" element={<Navigate to="/realms" replace />} />
         <Route path="projects/:id" element={<Board />} />
         <Route path="projects/:id/settings" element={<ProjectSettings />} />
         <Route path="tasks" element={<AllTasks />} />
