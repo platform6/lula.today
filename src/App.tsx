@@ -8,7 +8,7 @@ import { Inbox } from './pages/Inbox';
 import { InboxSort } from './pages/InboxSort';
 import { Areas } from './pages/Areas';
 import { AreaPage } from './pages/AreaPage';
-import { Board } from './pages/Board';
+import { Board, RealmBoard } from './pages/Board';
 import { ProjectSettings } from './pages/ProjectSettings';
 import { AllTasks } from './pages/AllTasks';
 import { Search } from './pages/Search';
@@ -35,7 +35,8 @@ export function App() {
         <Route path="inbox" element={<Inbox />} />
         <Route path="inbox/sort" element={<InboxSort />} />
         <Route path="realms" element={<Areas />} />
-        <Route path="realms/:id" element={<AreaPage />} />
+        <Route path="realms/:id" element={<RealmBoard />} />
+        <Route path="realms/:id/options" element={<AreaPage />} />
         <Route path="areas/*" element={<AreasRedirect />} />
         <Route path="projects" element={<Navigate to="/realms" replace />} />
         <Route path="projects/:id" element={<Board />} />

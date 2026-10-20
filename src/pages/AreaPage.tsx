@@ -33,7 +33,6 @@ export function AreaPage() {
   const own = projects?.find((p) => p.is_area_default && p.area_id === id);
   const ownTasks = useProjectTasks(own?.id);
   const progress = useProjectProgress();
-  const [editing, setEditing] = useState(false);
 
   if (!areas || !projects) return null;
   if (!area) return <p className="p-4 text-base text-muted">Realm not found.</p>;
@@ -48,31 +47,31 @@ export function AreaPage() {
     <div>
       <PageHeader
         title={
-          <span className="flex items-center gap-2">
-            <span className="h-4 w-4 shrink-0 rounded-full" style={{ background: area.color ?? 'var(--line-strong)' }} />
-            {area.name}
+          <span className="flex min-w-0 items-center gap-2">
+            <TreeNode kind="realm" color={area.color} />
+            <span className="truncate">{area.name} options</span>
           </span>
         }
         back={
-          <Link to="/realms" className="btn-ghost -ml-2 px-2" aria-label="All realms">
+          <Link to={`/realms/${area.id}`} className="btn-ghost -ml-2 px-2" aria-label={`Back to ${area.name} board`}>
             <BackIcon />
           </Link>
         }
         actions={
-          <button className="btn-ghost px-3 text-sm" onClick={() => setEditing((v) => !v)}>
-            {editing ? 'Done' : 'Edit'}
-          </button>
+          <Link to={`/realms/${area.id}`} className="btn-outline px-3 text-sm">
+            Board
+          </Link>
         }
       />
       <div className="mx-auto flex max-w-2xl flex-col gap-8 py-4">
-        {editing && <AreaEditor area={area} first={index === 0} last={index === areas.length - 1} />}
+        <AreaEditor area={area} first={index === 0} last={index === areas.length - 1} />
 
         <section>
           <div className="section-title mx-4">
             <span className="flex-1">{area.name} tasks</span>
             {own && (
-              <Link to={`/projects/${own.id}`} className="text-sm font-semibold text-accent">
-                Board view
+              <Link to={`/projects/${own.id}/settings`} className="text-sm font-semibold text-accent">
+                Board columns
               </Link>
             )}
           </div>

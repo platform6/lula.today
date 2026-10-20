@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { DEFAULT_COLUMNS, createLabel, deleteLabel, updateLabel, updateSettings } from '../db/actions';
-import { useLabels, usePendingCount, useSettings } from '../db/hooks';
+import { DEFAULT_COLUMNS, createLabel, deleteLabel, updateArea, updateLabel, updateSettings } from '../db/actions';
+import { useAreas, useLabels, usePendingCount, useSettings } from '../db/hooks';
 import type { ColumnTemplate } from '../db/types';
 import { supabase } from '../lib/supabase';
 import { syncNow, useSyncStatus } from '../sync/engine';
-import { COLORS } from '../components/ColorPicker';
+import { COLORS, ColorPicker, colorName } from '../components/ColorPicker';
+import { useConfirmCompleteSetting } from '../components/ConfirmComplete';
+import { TreeNode } from '../components/NodeTree';
 import { ColumnsEditor } from '../components/ColumnsEditor';
 import { PageHeader } from '../components/PageHeader';
-import { XIcon } from '../components/icons';
+import { DownIcon, UpIcon, XIcon } from '../components/icons';
 
 export function Settings() {
   const settings = useSettings();
@@ -33,6 +35,14 @@ export function Settings() {
               </button>
             ))}
           </div>
+        </Section>
+
+        <Section title="Realm colors" hint="Each realm's color is shared by its projects and the lines in the realm tree.">
+          <RealmColors />
+        </Section>
+
+        <Section title="Completing tasks">
+          <ConfirmCompleteToggle />
         </Section>
 
         <Section title="Default columns" hint="Used when you create a new project. Existing projects are not changed.">
@@ -83,6 +93,48 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
       {hint && <p className="mt-2 text-sm text-fg-2">{hint}</p>}
       <div className="mt-3">{children}</div>
     </section>
+  );
+}
+
+function RealmColors() {
+  const areas = useAreas() ?? [];
+  const [open, setOpen] = useState<string | null>(null);
+  if (areas.length === 0) return <p className="text-base text-fg-2">No realms yet. Add one from the Realms tab.</p>;
+  return (
+    <ul className="flex flex-col gap-2">
+      {areas.map((a) => (
+        <li key={a.id} className="card">
+          <button
+            className="flex min-h-14 w-full items-center gap-3 px-4 text-left"
+            onClick={() => setOpen((id) => (id === a.id ? null : a.id))}
+            aria-expanded={open === a.id}
+          >
+            <TreeNode kind="realm" color={a.color} />
+            <span className="min-w-0 flex-1 truncate text-base font-bold">{a.name}</span>
+            <span className="text-sm font-semibold text-fg-2">{colorName(a.color)}</span>
+            {open === a.id ? <UpIcon /> : <DownIcon />}
+          </button>
+          {open === a.id && (
+            <div className="border-t border-line p-4">
+              <ColorPicker value={a.color} onChange={(color) => void updateArea(a.id, { color })} />
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ConfirmCompleteToggle() {
+  const [on, setOn] = useConfirmCompleteSetting();
+  return (
+    <label className="card flex min-h-14 cursor-pointer items-center gap-3 px-4 py-3">
+      <input type="checkbox" className="h-6 w-6 shrink-0 accent-[var(--accent)]" checked={on} onChange={(e) => setOn(e.target.checked)} />
+      <span className="text-base">
+        <b>Ask before completing a task</b>
+        <span className="block text-sm text-fg-2">Shows a confirmation when a task moves to a Done column. Applies to this device.</span>
+      </span>
+    </label>
   );
 }
 

@@ -15,13 +15,15 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { createTask, moveTask } from '../db/actions';
-import { useAreas, useColumns, useLabels, useProject, useProjectTasks, useStepCounts, useTaskLabelMap } from '../db/hooks';
+import { useAreas, useColumns, useLabels, useProject, useProjectTasks, useProjects, useStepCounts, useTaskLabelMap } from '../db/hooks';
+import { TreeNode } from '../components/NodeTree';
 import type { BoardColumn, Label, Task } from '../db/types';
 import { PRIORITY_BARS, isLive } from '../lib/tasks';
 import { PageHeader } from '../components/PageHeader';
 import { TaskMeta } from '../components/TaskMeta';
 import { BackIcon, GearIcon, PlusIcon } from '../components/icons';
 import { useOpenTask } from '../components/useOpenTask';
+import { useConfirmComplete } from '../components/ConfirmComplete';
 
 type DragData = { type: 'task' | 'column'; columnId: string };
 
@@ -30,6 +32,16 @@ const HIDE_DONE_KEY = 'lula.board.hideDone';
 export function Board() {
   const { id } = useParams();
   return <ProjectBoard projectId={id!} />;
+}
+
+/** Opening a realm lands on the board of its own tasks; options are one tap away. */
+export function RealmBoard() {
+  const { id } = useParams();
+  const projects = useProjects();
+  if (!projects) return null;
+  const own = projects.find((p) => p.is_area_default && p.area_id === id);
+  if (!own) return <p className="p-4 text-base text-muted">Realm not found. If you just created it elsewhere, sync first.</p>;
+  return <ProjectBoard projectId={own.id} />;
 }
 
 export function ProjectBoard({ projectId }: { projectId: string }) {
@@ -42,6 +54,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   const labels = useLabels() ?? [];
   const labelMap = useTaskLabelMap();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const confirmComplete = useConfirmComplete();
   const [hideDone, setHideDone] = useState(() => {
     try {
       return localStorage.getItem(HIDE_DONE_KEY) === '1';
@@ -95,7 +108,13 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
     const source = byColumn.get(String((active.data.current as DragData).columnId)) ?? [];
     const originalIndex = source.findIndex((t) => t.id === active.id);
     if ((active.data.current as DragData).columnId === target && originalIndex === index) return;
-    void moveTask(String(active.id), target, index);
+    const task = tasks?.find((t) => t.id === active.id);
+    const completing = !!task && !task.completed_at && !!columns?.find((c) => c.id === target)?.is_done;
+    void (async () => {
+      // the card snaps back while the dialog is open; it moves once confirmed
+      if (completing && !(await confirmComplete(task.title))) return;
+      await moveTask(String(active.id), target, index);
+    })();
   }
 
   const toggleHideDone = () => {
@@ -114,7 +133,12 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       <PageHeader
         back={
           area && (
-            <Link to={`/realms/${area.id}`} className="btn-ghost -ml-2 px-2" aria-label={`Back to ${area.name}`}>
+            // a realm's board goes back to all realms; a project's board goes back to its realm
+            <Link
+              to={project.is_area_default ? '/realms' : `/realms/${area.id}`}
+              className="btn-ghost -ml-2 px-2"
+              aria-label={project.is_area_default ? 'All realms' : `Back to ${area.name}`}
+            >
               <BackIcon />
             </Link>
           )
@@ -127,9 +151,12 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
                 {area.name} ›
               </Link>
             )}
-            <span className="truncate">
-              {project.is_inbox ? 'Inbox board' : project.is_area_default ? `${area?.name ?? project.name} tasks` : project.name}
-              {project.completed_at && <span className="chip ml-2 align-middle text-ok">Completed</span>}
+            <span className="flex min-w-0 items-center gap-2">
+              {project.is_area_default && <TreeNode kind="realm" color={area?.color} />}
+              <span className="truncate">
+                {project.is_inbox ? 'Inbox board' : project.is_area_default ? (area?.name ?? project.name) : project.name}
+              </span>
+              {project.completed_at && <span className="chip text-ok">Completed</span>}
             </span>
           </span>
         }
@@ -138,9 +165,15 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
             <button className="btn-ghost px-2 text-sm" onClick={toggleHideDone}>
               {hideDone ? 'Show done' : 'Hide done'}
             </button>
-            <Link to={`/projects/${project.id}/settings`} className="btn-ghost px-2" aria-label="Project settings">
-              <GearIcon />
-            </Link>
+            {project.is_area_default && area ? (
+              <Link to={`/realms/${area.id}/options`} className="btn-outline px-3 text-sm">
+                <GearIcon width={18} height={18} /> Options
+              </Link>
+            ) : (
+              <Link to={`/projects/${project.id}/settings`} className="btn-ghost px-2" aria-label="Project settings">
+                <GearIcon />
+              </Link>
+            )}
           </>
         }
       />

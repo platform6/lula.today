@@ -21,6 +21,7 @@ import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { ArchiveIcon, GearIcon, InboxIcon, ListIcon, NodesIcon, PlusIcon, SearchIcon, SunIcon } from './icons';
 import { Celebration } from './Celebration';
+import { ConfirmCompleteProvider } from './ConfirmComplete';
 import { Branch, Children, NODE_SIZE, Stem, TreeNode } from './NodeTree';
 import { QuickAdd } from './QuickAdd';
 import { SyncBadge } from './SyncBadge';
@@ -104,64 +105,66 @@ export function Layout() {
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={collision}
-      onDragStart={onDragStart}
-      onDragCancel={() => setDragging(null)}
-      onDragEnd={onDragEnd}
-    >
-      <div className="flex h-full">
-        <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <main className="pt-safe min-h-0 flex-1 overflow-y-auto pb-40 md:pb-8">
-            <Outlet />
-          </main>
-          <BottomNav />
+    <ConfirmCompleteProvider>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collision}
+        onDragStart={onDragStart}
+        onDragCancel={() => setDragging(null)}
+        onDragEnd={onDragEnd}
+      >
+        <div className="flex h-full">
+          <Sidebar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <main className="pt-safe min-h-0 flex-1 overflow-y-auto pb-40 md:pb-8">
+              <Outlet />
+            </main>
+            <BottomNav />
+          </div>
+
+          {!dragging && (
+            <button
+              className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
+              onClick={() => setQuickAdd(true)}
+              aria-label="Add task"
+            >
+              <PlusIcon width={32} height={32} strokeWidth={2.75} />
+            </button>
+          )}
+
+          {dragging && <RealmDropBar />}
+
+          {quickAdd && (
+            <QuickAdd
+              onClose={() => setQuickAdd(false)}
+              onCreated={(id, openDetails) => {
+                setQuickAdd(false);
+                if (openDetails) openTask(id);
+              }}
+            />
+          )}
+          {taskId && <TaskSheet id={taskId} onClose={() => openTask(null)} />}
+          <Celebration />
+
+          {toast && (
+            <div
+              role="status"
+              className="fixed top-[calc(env(safe-area-inset-top)+4.5rem)] left-1/2 z-50 -translate-x-1/2 rounded-md border-2 border-accent bg-surface px-5 py-3 text-base font-bold shadow-2xl"
+            >
+              {toast}
+            </div>
+          )}
         </div>
 
-        {!dragging && (
-          <button
-            className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
-            onClick={() => setQuickAdd(true)}
-            aria-label="Add task"
-          >
-            <PlusIcon width={32} height={32} strokeWidth={2.75} />
-          </button>
-        )}
-
-        {dragging && <RealmDropBar />}
-
-        {quickAdd && (
-          <QuickAdd
-            onClose={() => setQuickAdd(false)}
-            onCreated={(id, openDetails) => {
-              setQuickAdd(false);
-              if (openDetails) openTask(id);
-            }}
-          />
-        )}
-        {taskId && <TaskSheet id={taskId} onClose={() => openTask(null)} />}
-        <Celebration />
-
-        {toast && (
-          <div
-            role="status"
-            className="fixed top-[calc(env(safe-area-inset-top)+4.5rem)] left-1/2 z-50 -translate-x-1/2 rounded-md border-2 border-accent bg-surface px-5 py-3 text-base font-bold shadow-2xl"
-          >
-            {toast}
-          </div>
-        )}
-      </div>
-
-      <DragOverlay dropAnimation={null}>
-        {dragging && (
-          <div className="card max-w-xs border-2 border-accent px-4 py-3 text-base font-semibold shadow-2xl">
-            {dragging.title}
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay dropAnimation={null}>
+          {dragging && (
+            <div className="card max-w-xs border-2 border-accent px-4 py-3 text-base font-semibold shadow-2xl">
+              {dragging.title}
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+    </ConfirmCompleteProvider>
   );
 }
 

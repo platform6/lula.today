@@ -14,6 +14,7 @@ import {
 } from '../db/actions';
 import { useColumns, useLabels, useProject, useSteps, useTask, useTaskLabelMap } from '../db/hooks';
 import { ProjectSelect } from './ProjectSelect';
+import { useConfirmComplete } from './ConfirmComplete';
 import type { Priority, Step, Task } from '../db/types';
 import { dueDateInput, dueTimeInput, toDueAt } from '../lib/dates';
 import { PRIORITY_LABELS, isArchived, normalizeUrl } from '../lib/tasks';
@@ -41,6 +42,13 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const save = (changes: Partial<Task>) => void updateTask(task.id, changes);
+  const confirmComplete = useConfirmComplete();
+
+  async function changeColumn(columnId: string) {
+    const completing = !task.completed_at && !!columns.find((c) => c.id === columnId)?.is_done;
+    if (completing && !(await confirmComplete(task.title))) return;
+    await moveTask(task.id, columnId);
+  }
 
   return (
     <Sheet title={archived ? 'Archived task' : 'Task'} onClose={onClose}>
@@ -63,7 +71,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
           </div>
           <div className={inInbox ? 'hidden' : ''}>
             <label className="field-label">Column</label>
-            <select className="input" value={task.column_id} onChange={(e) => void moveTask(task.id, e.target.value)}>
+            <select className="input" value={task.column_id} onChange={(e) => void changeColumn(e.target.value)}>
               {columns.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}{c.is_done ? ' ✓' : ''}</option>
               ))}

@@ -10,6 +10,7 @@ import { MoveToSheet } from './MoveToSheet';
 import { PlaceTag } from './PlaceTag';
 import { TaskMeta } from './TaskMeta';
 import { useOpenTask } from './useOpenTask';
+import { useConfirmComplete } from './ConfirmComplete';
 
 /** A flat list of tasks with a completion checkbox, used by list views. */
 export function TaskList({
@@ -78,6 +79,7 @@ function TaskRow({
   onMove?: () => void;
 }) {
   const openTask = useOpenTask();
+  const confirmComplete = useConfirmComplete();
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
     id: `inbox:${task.id}`,
     data: { type: 'inbox-task', id: task.id, title: task.title } satisfies InboxDragData,
@@ -97,7 +99,10 @@ function TaskRow({
       )}
       <button
         className={`grid h-8 w-8 shrink-0 place-items-center rounded-sm border-2 ${done ? 'border-accent bg-accent text-accent-fg' : 'border-fg-2 hover:border-accent'}`}
-        onClick={() => void setTaskCompleted(task, !done)}
+        onClick={async () => {
+          if (!done && !(await confirmComplete(task.title))) return;
+          await setTaskCompleted(task, !done);
+        }}
         aria-label={done ? 'Mark not done' : 'Mark done'}
       >
         {done && <CheckIcon width={20} height={20} strokeWidth={3.5} />}
