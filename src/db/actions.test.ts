@@ -8,6 +8,7 @@ import {
   createArea,
   getAreaDefault,
   moveTaskToRealm,
+  tagTask,
   addStep,
   updateStep,
   updateTask,
@@ -169,6 +170,20 @@ describe('title case on entry', () => {
     expect(step.text).toBe('Find Old Passport');
     await updateStep(step.id, { text: 'take a photo' });
     expect((await db.steps.get(step.id))!.text).toBe('Take a Photo');
+  });
+});
+
+describe('tagging from a task', () => {
+  it('creates a new tag or reuses one with the same name', async () => {
+    const p = await createProject({ name: 'P', area_id: null });
+    const t = await createTask({ title: 'T', project_id: p.id });
+    await tagTask(t.id, 'Errands', '#fff');
+    await tagTask(t.id, '  errands ', '#000');
+    const labels = (await db.labels.toArray()).filter((l) => !l.deleted_at);
+    expect(labels).toHaveLength(1);
+    expect(labels[0].color).toBe('#fff');
+    const links = (await db.task_labels.where('task_id').equals(t.id).toArray()).filter((l) => !l.deleted_at);
+    expect(links.map((l) => l.label_id)).toEqual([labels[0].id]);
   });
 });
 

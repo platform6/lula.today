@@ -471,6 +471,20 @@ export async function deleteLabel(id: string): Promise<void> {
   });
 }
 
+/**
+ * Tag a task by name from the task itself: reuses an existing tag with the
+ * same name (ignoring case) or creates it, then applies it.
+ */
+export async function tagTask(taskId: string, name: string, color: string | null): Promise<void> {
+  const wanted = name.trim();
+  if (!wanted) return;
+  const existing = (await db.labels.toArray()).find(
+    (l) => alive(l) && l.name.trim().toLowerCase() === wanted.toLowerCase(),
+  );
+  const label = existing ?? (await createLabel(wanted, color));
+  await setTaskLabel(taskId, label.id, true);
+}
+
 export async function setTaskLabel(taskId: string, labelId: string, on: boolean): Promise<void> {
   const existing = await db.task_labels.get([taskId, labelId]);
   const t = now();

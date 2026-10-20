@@ -107,15 +107,19 @@ function TaskRow({
       >
         {done && <CheckIcon width={20} height={20} strokeWidth={3.5} />}
       </button>
-      <button className="min-w-0 flex-1 text-left" onClick={() => openTask(task.id)}>
-        <div className={`text-base font-semibold break-words ${done ? 'text-muted line-through' : 'text-fg'}`}>{task.title}</div>
+      {/* The whole area opens the task; the title is the keyboard-focusable control.
+          Tag chips inside are their own buttons and stop the click. */}
+      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openTask(task.id)}>
+        <button type="button" className={`block w-full text-left text-base font-semibold break-words ${done ? 'text-muted line-through' : 'text-fg'}`}>
+          {task.title}
+        </button>
         <TaskMeta task={task} steps={steps} labels={labels} done={done} />
         {place && (
           <div className="mt-1.5">
             <PlaceTag place={place} />
           </div>
         )}
-      </button>
+      </div>
       {onMove && (
         <button className="btn-outline shrink-0 px-3" onClick={onMove}>
           Move

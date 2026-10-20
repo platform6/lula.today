@@ -8,4 +8,4 @@
 [x] when clicking on realm start in board view with an upper right link to the realm options board.
 [x] auto title case task entries.
 [x] rename 'Labels' as 'Tags'
-[] allow filter by tags
+[x] allow filter by tags

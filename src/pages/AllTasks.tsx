@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAllTasks, useAreas, useLabels, useProjects, useTaskLabelMap } from '../db/hooks';
 import type { Task } from '../db/types';
 import { PRIORITY_LABELS, isLive } from '../lib/tasks';
 import { isRealProject } from '../lib/paths';
 import { PageHeader } from '../components/PageHeader';
 import { TaskList } from '../components/TaskList';
+import { XIcon } from '../components/icons';
 
 type Status = 'open' | 'done' | 'all';
 
@@ -24,11 +26,25 @@ export function AllTasks() {
   const labelMap = useTaskLabelMap();
   const [areaId, setAreaId] = useState('');
   const [projectId, setProjectId] = useState('');
-  const [labelId, setLabelId] = useState('');
+  // The tag filter lives in the URL (?tag=) so tapping a tag anywhere lands here pre-filtered.
+  const [params, setParams] = useSearchParams();
+  const labelId = params.get('tag') ?? '';
+  const setLabelId = (id: string) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id) next.set('tag', id);
+        else next.delete('tag');
+        return next;
+      },
+      { replace: true },
+    );
   const [minPriority, setMinPriority] = useState(0);
   const [status, setStatus] = useState<Status>('open');
 
   if (!tasks) return null;
+
+  const activeTag = labels.find((l) => l.id === labelId);
 
   const projectArea = new Map(projects.map((p) => [p.id, p.area_id]));
   const areaName = new Map(areas.map((a) => [a.id, a.name]));
@@ -46,6 +62,19 @@ export function AllTasks() {
   return (
     <div>
       <PageHeader title="All tasks" />
+      {activeTag && (
+        <div
+          className="card mx-4 mt-4 flex min-h-14 items-center gap-3 border-2 border-l-8 px-4 py-2"
+          style={{ borderLeftColor: activeTag.color ?? 'var(--muted)' }}
+        >
+          <span className="min-w-0 flex-1 text-base">
+            Tagged <b className="text-fg">{activeTag.name}</b>
+          </span>
+          <button className="btn-outline px-3" onClick={() => setLabelId('')}>
+            <XIcon width={18} height={18} /> Clear
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-5">
         <select className="input" value={status} onChange={(e) => setStatus(e.target.value as Status)} aria-label="Status">
           <option value="open">Open</option>

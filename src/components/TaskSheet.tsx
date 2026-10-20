@@ -9,11 +9,13 @@ import {
   moveTaskToProject,
   restoreTask,
   setTaskLabel,
+  tagTask,
   updateStep,
   updateTask,
 } from '../db/actions';
 import { useColumns, useLabels, useProject, useSteps, useTask, useTaskLabelMap } from '../db/hooks';
 import { ProjectSelect } from './ProjectSelect';
+import { COLORS } from './ColorPicker';
 import { useConfirmComplete } from './ConfirmComplete';
 import type { Priority, Step, Task } from '../db/types';
 import { dueDateInput, dueTimeInput, toDueAt } from '../lib/dates';
@@ -254,12 +256,11 @@ function StepRow({ step, first, last }: { step: Step; first: boolean; last: bool
 function Labels({ taskId }: { taskId: string }) {
   const labels = useLabels() ?? [];
   const active = new Set(useTaskLabelMap()?.get(taskId) ?? []);
-  if (labels.length === 0) {
-    return <p className="text-sm text-muted">Create tags in Settings to tag tasks.</p>;
-  }
+  const [name, setName] = useState('');
+
   return (
     <div>
-      <label className="field-label">Tags</label>
+      <span className="field-label">Tags</span>
       <div className="flex flex-wrap gap-1.5">
         {labels.map((l) => {
           const on = active.has(l.id);
@@ -277,6 +278,29 @@ function Labels({ taskId }: { taskId: string }) {
           );
         })}
       </div>
+      <form
+        className="mt-2 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = name.trim();
+          if (!v) return;
+          // new tags take the next palette color, as in Settings
+          void tagTask(taskId, v, COLORS[labels.length % COLORS.length]);
+          setName('');
+        }}
+      >
+        <input
+          className="input"
+          placeholder={labels.length ? 'New tag' : 'Add your first tag'}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          enterKeyHint="done"
+          aria-label="New tag"
+        />
+        <button className="btn-outline shrink-0 px-3" disabled={!name.trim()}>
+          Add
+        </button>
+      </form>
     </div>
   );
 }

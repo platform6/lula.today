@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import type { Label, Task } from '../db/types';
 import { formatDue, isOverdue } from '../lib/dates';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../lib/tasks';
@@ -15,6 +16,7 @@ export function TaskMeta({
   labels?: Label[];
   done?: boolean;
 }) {
+  const navigate = useNavigate();
   const overdue = !done && isOverdue(task.due_at, task.due_has_time);
   const hasAny = task.priority > 0 || task.due_at || task.url || (steps && steps[1] > 0) || labels?.length;
   if (!hasAny) return null;
@@ -43,9 +45,21 @@ export function TaskMeta({
         </span>
       )}
       {labels?.map((l) => (
-        <span key={l.id} className="chip border-l-3" style={{ borderLeftColor: l.color ?? 'var(--muted)' }}>
+        // Tapping a tag shows every task with that tag; it never opens the task itself.
+        <button
+          key={l.id}
+          type="button"
+          className="chip min-h-8 border-l-3 hover:bg-line hover:text-fg"
+          style={{ borderLeftColor: l.color ?? 'var(--muted)' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/tasks?tag=${l.id}`);
+          }}
+          onPointerDown={(e) => e.stopPropagation()} // don't start a card drag from a tag
+          title={`All tasks tagged ${l.name}`}
+        >
           {l.name}
-        </span>
+        </button>
       ))}
     </div>
   );
