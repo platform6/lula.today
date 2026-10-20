@@ -26,7 +26,10 @@ export interface Project extends Row {
   description: string | null;
   due_date: string | null;
   is_inbox: boolean;
+  /** The area's built-in task list; shown as the area itself, never as a project. */
+  is_area_default: boolean;
   position: string;
+  completed_at: string | null;
   archived_at: string | null;
 }
 

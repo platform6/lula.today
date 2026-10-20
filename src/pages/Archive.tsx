@@ -3,6 +3,7 @@ import { restoreTask } from '../db/actions';
 import { useAllTasks, useAreas, useProjects } from '../db/hooks';
 import type { Task } from '../db/types';
 import { isArchived } from '../lib/tasks';
+import { isRealProject, placeOf } from '../lib/paths';
 import { PageHeader } from '../components/PageHeader';
 import { useOpenTask } from '../components/useOpenTask';
 
@@ -19,6 +20,7 @@ export function Archive() {
   if (!tasks) return null;
 
   const projectById = new Map(projects.map((p) => [p.id, p]));
+  const areaMap = new Map(areas.map((a) => [a.id, a]));
   const list = tasks
     .filter((t) => isArchived(t))
     .filter((t) => !areaId || projectById.get(t.project_id)?.area_id === areaId)
@@ -38,7 +40,7 @@ export function Archive() {
         <select className="input" value={projectId} onChange={(e) => setProjectId(e.target.value)} aria-label="Project">
           <option value="">All projects</option>
           {projects
-            .filter((p) => !areaId || p.area_id === areaId)
+            .filter((p) => isRealProject(p) && (!areaId || p.area_id === areaId))
             .map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
@@ -56,7 +58,7 @@ export function Archive() {
               <button className="min-w-0 flex-1 text-left" onClick={() => openTask(t.id)}>
                 <div className={`text-base font-semibold break-words ${t.completed_at ? 'text-fg-2 line-through' : 'text-fg'}`}>{t.title}</div>
                 <div className="mt-1 text-sm text-fg-2">
-                  {projectById.get(t.project_id)?.name} · {new Date(archivedAt(t)).toLocaleDateString()}
+                  {placeOf(projectById.get(t.project_id), areaMap)?.label} · {new Date(archivedAt(t)).toLocaleDateString()}
                 </div>
               </button>
               <button className="btn-outline shrink-0" onClick={() => void restoreTask(t)}>Restore</button>

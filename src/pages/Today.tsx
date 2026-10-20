@@ -1,4 +1,6 @@
-import { useAllTasks } from '../db/hooks';
+import { Link } from 'react-router-dom';
+import { useAllTasks, useInboxCount } from '../db/hooks';
+import { InboxIcon } from '../components/icons';
 import type { Task } from '../db/types';
 import { addDays, dayKey, isOverdue, todayKey } from '../lib/dates';
 import { isLive } from '../lib/tasks';
@@ -9,6 +11,7 @@ const byDue = (a: Task, b: Task) => (a.due_at! < b.due_at! ? -1 : a.due_at! > b.
 
 export function Today() {
   const tasks = useAllTasks();
+  const inboxCount = useInboxCount();
   if (!tasks) return null;
 
   const today = todayKey();
@@ -26,6 +29,15 @@ export function Today() {
     <div>
       <PageHeader title="Today" />
       <p className="px-4 pt-4 text-base text-fg-2 italic">{date}</p>
+      {inboxCount > 0 && (
+        <Link to="/inbox" className="card mx-4 mt-4 flex min-h-14 items-center gap-3 border-2 border-accent px-4 py-3 hover:bg-surface-2">
+          <InboxIcon />
+          <span className="flex-1 text-base font-semibold">
+            {inboxCount} task{inboxCount === 1 ? '' : 's'} in your Inbox to sort
+          </span>
+          <span className="kicker">Sort ›</span>
+        </Link>
+      )}
       {overdue.length > 0 && <Section title="Overdue" tone="text-danger" tasks={overdue} />}
       <Section title="Today" tasks={dueToday} empty="Nothing due today." />
       <Section title="Next 7 days" tasks={upcoming} empty="Nothing due this week." />

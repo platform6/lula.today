@@ -11,7 +11,8 @@ import type {
   Step,
   Task,
 } from './types';
-import { byPosition, keyAtEnd, keyAtIndex, keyAtStart } from '../lib/position';
+import { byPosition, keyAtEnd, keyAtIndex, keyAtStart, keyBetween } from '../lib/position';
+import { stableUuid } from '../lib/ids';
 import { emitTaskCompleted } from '../lib/celebrate';
 
 export const DEFAULT_COLUMNS: ColumnTemplate[] = [
@@ -61,28 +62,81 @@ export async function ensureDefaults(): Promise<void> {
     const projects = (await db.projects.toArray()).filter(alive).sort(byPosition);
     await createProject({ name: 'Inbox', area_id: null, is_inbox: true, position: keyAtStart(projects) });
   }
+  // Areas created before built-in task lists existed (or pulled from another device).
+  for (const area of (await db.areas.toArray()).filter(alive)) {
+    if (!(await getAreaDefault(area.id))) await createAreaDefault(area);
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Areas
 // ---------------------------------------------------------------------------
 
+export async function getAreaDefault(areaId: string): Promise<Project | undefined> {
+  return (await db.projects.where('area_id').equals(areaId).toArray()).find((p) => p.is_area_default && alive(p));
+}
+
+/** The area's built-in task list, with ids derived from the area so devices agree. */
+async function createAreaDefault(area: Area): Promise<Project> {
+  const id = await stableUuid(`area-default:${area.id}`);
+  const existing = await db.projects.get(id);
+  if (existing && alive(existing)) return existing;
+  return createProject({
+    id,
+    name: area.name,
+    area_id: area.id,
+    color: area.color,
+    is_area_default: true,
+    position: keyBetween(null, null),
+    stableColumnIds: true,
+  });
+}
+
 export async function createArea(name: string, color: string | null = null): Promise<Area> {
   const areas = (await db.areas.toArray()).filter(alive).sort(byPosition);
   const area: Area = { ...newRow(), name, color, icon: null, position: keyAtEnd(areas), archived_at: null };
   await put('areas', area);
+  await createAreaDefault(area);
   return area;
 }
 
-export const updateArea = (id: string, changes: Partial<Area>) => patch('areas', id, changes);
-
-/** Soft-delete an area; its projects move to "No area". */
-export async function deleteArea(id: string): Promise<void> {
+/** Name and color changes flow to the area's projects so the family reads together. */
+export async function updateArea(id: string, changes: Partial<Area>): Promise<void> {
   await writeTx(async () => {
-    const projects = await db.projects.where('area_id').equals(id).toArray();
-    await putMany('projects', projects.map((p) => ({ ...p, area_id: null })));
-    await patch('areas', id, { deleted_at: now() });
+    await patch('areas', id, changes);
+    const projects = (await db.projects.where('area_id').equals(id).toArray()).filter(alive);
+    const updated = projects.flatMap((p) => {
+      const next: Partial<Project> = {};
+      if (changes.color !== undefined) next.color = changes.color;
+      if (changes.name && p.is_area_default) next.name = changes.name; // built-in list mirrors the area
+      return Object.keys(next).length ? [{ ...p, ...next }] : [];
+    });
+    await putMany('projects', updated);
   });
+}
+
+/** Why an area can't be deleted yet, or null if it can. */
+export async function areaDeleteBlocker(id: string): Promise<string | null> {
+  const projects = (await db.projects.where('area_id').equals(id).toArray()).filter(alive);
+  const real = projects.filter((p) => !p.is_area_default && !p.archived_at);
+  if (real.length) return `Move or complete its ${real.length} project${real.length === 1 ? '' : 's'} first.`;
+  const def = projects.find((p) => p.is_area_default);
+  if (def) {
+    const open = (await db.tasks.where('project_id').equals(def.id).toArray()).filter(
+      (t) => alive(t) && !t.completed_at && !t.archived_at,
+    );
+    if (open.length) return `Move or finish its ${open.length} open task${open.length === 1 ? '' : 's'} first.`;
+  }
+  return null;
+}
+
+/** Soft-delete an empty area along with its built-in task list and archived projects. */
+export async function deleteArea(id: string): Promise<void> {
+  const blocker = await areaDeleteBlocker(id);
+  if (blocker) throw new Error(blocker);
+  const projects = (await db.projects.where('area_id').equals(id).toArray()).filter(alive);
+  for (const p of projects) await deleteProject(p.id);
+  await patch('areas', id, { deleted_at: now() });
 }
 
 export async function moveArea(id: string, dir: -1 | 1): Promise<void> {
@@ -99,27 +153,42 @@ export async function createProject(input: {
   area_id: string | null;
   color?: string | null;
   is_inbox?: boolean;
+  is_area_default?: boolean;
   position?: string;
+  id?: string;
+  /** Derive column ids from the project id (for rows every device may create). */
+  stableColumnIds?: boolean;
 }): Promise<Project> {
   const settings = await getSettings();
   const templates = settings?.default_columns?.length ? settings.default_columns : DEFAULT_COLUMNS;
-  const siblings = (await db.projects.toArray()).filter((p) => alive(p) && p.area_id === input.area_id).sort(byPosition);
+  const siblings = (await db.projects.toArray())
+    .filter((p) => alive(p) && p.area_id === input.area_id && !p.is_area_default)
+    .sort(byPosition);
+  const color =
+    input.color !== undefined ? input.color : input.area_id ? ((await db.areas.get(input.area_id))?.color ?? null) : null;
   const project: Project = {
     ...newRow(),
+    ...(input.id ? { id: input.id } : {}),
     area_id: input.area_id,
     name: input.name,
-    color: input.color ?? null,
+    color,
     description: null,
     due_date: null,
     is_inbox: input.is_inbox ?? false,
+    is_area_default: input.is_area_default ?? false,
     position: input.position ?? keyAtEnd(siblings),
+    completed_at: null,
     archived_at: null,
   };
+  const columnIds = input.stableColumnIds
+    ? await Promise.all(templates.map((_, i) => stableUuid(`${project.id}:column:${i}`)))
+    : null;
   let prev: string | null = null;
-  const columns: BoardColumn[] = templates.map((tpl) => {
-    const position = keyAtIndex(prev ? [{ position: prev }] : [], 1);
+  const columns: BoardColumn[] = templates.map((tpl, i) => {
+    const position = keyBetween(prev, null);
     prev = position;
-    return { ...newRow(), project_id: project.id, name: tpl.name, is_done: tpl.is_done, position };
+    const row = { ...newRow(), project_id: project.id, name: tpl.name, is_done: tpl.is_done, position };
+    return columnIds ? { ...row, id: columnIds[i] } : row;
   });
   await writeTx(async () => {
     await put('projects', project);
@@ -132,6 +201,42 @@ export const updateProject = (id: string, changes: Partial<Project>) => patch('p
 
 export async function archiveProject(id: string, archived: boolean): Promise<void> {
   await patch('projects', id, { archived_at: archived ? now() : null });
+}
+
+/** Open (live, not completed) tasks in a project. */
+export async function openTasksOf(projectId: string): Promise<Task[]> {
+  return (await db.tasks.where('project_id').equals(projectId).toArray()).filter(
+    (t) => alive(t) && !t.completed_at && !t.archived_at,
+  );
+}
+
+/**
+ * Mark a project finished and archive it. Open tasks either move to the area's
+ * own task list (they still need doing) or are archived with the project.
+ */
+export async function completeProject(id: string, openTasks: 'move' | 'archive'): Promise<void> {
+  const project = await db.projects.get(id);
+  if (!project || project.is_inbox || project.is_area_default) return;
+  const open = await openTasksOf(id);
+  if (open.length) {
+    const target = openTasks === 'move' && project.area_id ? await getAreaDefault(project.area_id) : undefined;
+    for (const task of open) {
+      if (target) await moveTaskToProject(task.id, target.id);
+      else await archiveTask(task.id);
+    }
+  }
+  const t = now();
+  await patch('projects', id, { completed_at: t, archived_at: t });
+}
+
+export async function reopenProject(id: string): Promise<void> {
+  await patch('projects', id, { completed_at: null, archived_at: null });
+}
+
+/** Move a project to another area; it takes on the new area's color. */
+export async function setProjectArea(id: string, areaId: string): Promise<void> {
+  const area = await db.areas.get(areaId);
+  await patch('projects', id, { area_id: areaId, color: area?.color ?? null });
 }
 
 /** Soft-delete a project and everything in it. */

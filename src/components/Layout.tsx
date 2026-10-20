@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useMatch, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAreas, useProjects, useSettings } from '../db/hooks';
+import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAreas, useInboxCount, useProjects, useSettings } from '../db/hooks';
+import { isRealProject } from '../lib/paths';
 import { ArchiveIcon, FolderIcon, GearIcon, InboxIcon, ListIcon, PlusIcon, SearchIcon, SunIcon } from './icons';
 import { Celebration } from './Celebration';
 import { QuickAdd } from './QuickAdd';
@@ -17,7 +18,6 @@ export function Layout() {
   const taskId = params.get('task');
   const openTask = useOpenTask();
   const navigate = useNavigate();
-  const projectMatch = useMatch('/projects/:id');
   const theme = useSettings()?.theme;
 
   useEffect(() => {
@@ -66,7 +66,6 @@ export function Layout() {
 
       {quickAdd && (
         <QuickAdd
-          defaultProjectId={projectMatch?.params.id}
           onClose={() => setQuickAdd(false)}
           onCreated={(id, openDetails) => {
             setQuickAdd(false);
@@ -85,8 +84,9 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 function Sidebar() {
   const areas = useAreas() ?? [];
-  const projects = (useProjects() ?? []).filter((p) => !p.archived_at && !p.is_inbox);
-  const ungrouped = projects.filter((p) => !p.area_id || !areas.some((a) => a.id === p.area_id));
+  const projects = (useProjects() ?? []).filter((p) => isRealProject(p) && !p.archived_at);
+  const orphans = projects.filter((p) => !areas.some((a) => a.id === p.area_id));
+  const inboxCount = useInboxCount();
 
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-r border-line bg-surface md:flex">
@@ -96,33 +96,35 @@ function Sidebar() {
       </div>
       <nav className="flex flex-col gap-0.5 px-2">
         <NavLink to="/" end className={navClass}><SunIcon /> Today</NavLink>
-        <NavLink to="/inbox" className={navClass}><InboxIcon /> Inbox</NavLink>
+        <NavLink to="/inbox" className={navClass}>
+          <InboxIcon /> <span className="flex-1">Inbox</span>
+          <CountBadge count={inboxCount} />
+        </NavLink>
         <NavLink to="/tasks" className={navClass}><ListIcon /> All tasks</NavLink>
         <NavLink to="/search" className={navClass}><SearchIcon /> Search</NavLink>
         <NavLink to="/archive" className={navClass}><ArchiveIcon /> Archive</NavLink>
       </nav>
-      <div className="mt-4 flex-1 overflow-y-auto px-2">
-        <NavLink to="/projects" end className={navClass}><FolderIcon /> Areas &amp; projects</NavLink>
+      <div className="mt-4 flex-1 overflow-y-auto border-t border-line px-2 pt-3">
+        <NavLink to="/areas" end className={navClass}><FolderIcon /> Areas</NavLink>
         {areas.map((area) => (
-          <div key={area.id} className="mt-3">
-            <div className="flex items-center gap-2 px-3 pb-1 text-sm font-bold text-fg-2">
-              <span className="h-3 w-3 rounded-full" style={{ background: area.color ?? 'var(--muted)' }} />
-              {area.name}
+          <div key={area.id} className="mt-2">
+            <NavLink to={`/areas/${area.id}`} className={navClass}>
+              <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: area.color ?? 'var(--muted)' }} />
+              <span className="truncate">{area.name}</span>
+            </NavLink>
+            <div className="ml-5 border-l-2 border-line pl-1">
+              {projects
+                .filter((p) => p.area_id === area.id)
+                .map((p) => (
+                  <ProjectLink key={p.id} id={p.id} name={p.name} />
+                ))}
             </div>
-            {projects
-              .filter((p) => p.area_id === area.id)
-              .map((p) => (
-                <ProjectLink key={p.id} id={p.id} name={p.name} color={p.color} />
-              ))}
           </div>
         ))}
-        {ungrouped.length > 0 && (
-          <div className="mt-3">
-            <div className="px-3 pb-1 text-sm font-bold text-fg-2">No area</div>
-            {ungrouped.map((p) => (
-              <ProjectLink key={p.id} id={p.id} name={p.name} color={p.color} />
-            ))}
-          </div>
+        {orphans.length > 0 && (
+          <NavLink to="/areas" className="mt-3 block rounded-sm border-2 border-warn px-3 py-2 text-sm font-semibold text-warn">
+            {orphans.length} project{orphans.length === 1 ? ' needs' : 's need'} an area
+          </NavLink>
         )}
       </div>
       <nav className="border-t border-line p-2">
@@ -132,28 +134,53 @@ function Sidebar() {
   );
 }
 
-function ProjectLink({ id, name, color }: { id: string; name: string; color: string | null }) {
+function ProjectLink({ id, name }: { id: string; name: string }) {
   return (
-    <NavLink to={`/projects/${id}`} className={navClass}>
-      <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: color ?? 'var(--line-strong)' }} />
+    <NavLink
+      to={`/projects/${id}`}
+      className={({ isActive }) =>
+        `flex min-h-10 items-center rounded-sm px-3 py-1.5 text-sm font-semibold ${isActive ? 'bg-surface-2 text-fg shadow-[inset_3px_0_0_var(--accent)]' : 'text-fg-2 hover:bg-surface-2 hover:text-fg'}`
+      }
+    >
       <span className="truncate">{name}</span>
     </NavLink>
   );
 }
 
-const tabClass = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold ${isActive ? 'text-accent shadow-[inset_0_3px_0_var(--accent)]' : 'text-fg-2'}`;
+function CountBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+  return (
+    <span className="grid min-w-6 place-items-center rounded-full bg-accent px-1.5 text-xs font-bold text-accent-fg">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
+const tabClass = (isActive: boolean) =>
+  `relative flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold ${isActive ? 'text-accent shadow-[inset_0_3px_0_var(--accent)]' : 'text-fg-2'}`;
 
 const tabIcon = { width: 26, height: 26 };
 
 function BottomNav() {
+  const inboxCount = useInboxCount();
+  const { pathname } = useLocation();
+  // Area pages and the boards inside them all belong to the Areas tab.
+  const inAreas = pathname.startsWith('/areas') || pathname.startsWith('/projects');
   return (
     <nav className="pb-safe fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
-      <NavLink to="/" end className={tabClass}><SunIcon {...tabIcon} /> Today</NavLink>
-      <NavLink to="/inbox" className={tabClass}><InboxIcon {...tabIcon} /> Inbox</NavLink>
-      <NavLink to="/projects" className={tabClass}><FolderIcon {...tabIcon} /> Projects</NavLink>
-      <NavLink to="/search" className={tabClass}><SearchIcon {...tabIcon} /> Search</NavLink>
-      <NavLink to="/settings" className={tabClass}><GearIcon {...tabIcon} /> Settings</NavLink>
+      <NavLink to="/" end className={({ isActive }) => tabClass(isActive)}><SunIcon {...tabIcon} /> Today</NavLink>
+      <NavLink to="/inbox" className={({ isActive }) => tabClass(isActive)}>
+        <span className="relative">
+          <InboxIcon {...tabIcon} />
+          <span className="absolute -top-2 -right-4">
+            <CountBadge count={inboxCount} />
+          </span>
+        </span>
+        Inbox
+      </NavLink>
+      <NavLink to="/areas" className={() => tabClass(inAreas)}><FolderIcon {...tabIcon} /> Areas</NavLink>
+      <NavLink to="/search" className={({ isActive }) => tabClass(isActive)}><SearchIcon {...tabIcon} /> Search</NavLink>
+      <NavLink to="/settings" className={({ isActive }) => tabClass(isActive)}><GearIcon {...tabIcon} /> Settings</NavLink>
     </nav>
   );
 }

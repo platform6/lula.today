@@ -15,12 +15,12 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { createTask, moveTask } from '../db/actions';
-import { useColumns, useLabels, useProject, useProjectTasks, useStepCounts, useTaskLabelMap } from '../db/hooks';
+import { useAreas, useColumns, useLabels, useProject, useProjectTasks, useStepCounts, useTaskLabelMap } from '../db/hooks';
 import type { BoardColumn, Label, Task } from '../db/types';
 import { PRIORITY_BARS, isLive } from '../lib/tasks';
 import { PageHeader } from '../components/PageHeader';
 import { TaskMeta } from '../components/TaskMeta';
-import { GearIcon, PlusIcon } from '../components/icons';
+import { BackIcon, GearIcon, PlusIcon } from '../components/icons';
 import { useOpenTask } from '../components/useOpenTask';
 
 type DragData = { type: 'task' | 'column'; columnId: string };
@@ -34,6 +34,8 @@ export function Board() {
 
 export function ProjectBoard({ projectId }: { projectId: string }) {
   const project = useProject(projectId);
+  const areas = useAreas();
+  const area = project?.area_id ? areas?.find((a) => a.id === project.area_id) : undefined;
   const columns = useColumns(projectId);
   const tasks = useProjectTasks(projectId);
   const stepCounts = useStepCounts();
@@ -110,10 +112,25 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   return (
     <div className="flex h-full flex-col">
       <PageHeader
+        back={
+          area && (
+            <Link to={`/areas/${area.id}`} className="btn-ghost -ml-2 px-2" aria-label={`Back to ${area.name}`}>
+              <BackIcon />
+            </Link>
+          )
+        }
         title={
-          <span className="flex items-center gap-2">
-            <span className="h-4 w-4 shrink-0 rounded-sm" style={{ background: project.color ?? 'var(--line-strong)' }} />
-            {project.is_inbox ? 'Inbox' : project.name}
+          <span className="flex min-w-0 flex-col leading-tight">
+            {area && !project.is_area_default && (
+              <Link to={`/areas/${area.id}`} className="flex items-center gap-1.5 text-sm font-semibold text-fg-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: area.color ?? 'var(--line-strong)' }} />
+                {area.name} ›
+              </Link>
+            )}
+            <span className="truncate">
+              {project.is_inbox ? 'Inbox board' : project.is_area_default ? `${area?.name ?? project.name} tasks` : project.name}
+              {project.completed_at && <span className="chip ml-2 align-middle text-ok">Completed</span>}
+            </span>
           </span>
         }
         actions={

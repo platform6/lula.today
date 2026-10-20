@@ -12,7 +12,8 @@ import {
   updateStep,
   updateTask,
 } from '../db/actions';
-import { useColumns, useLabels, useProjects, useSteps, useTask, useTaskLabelMap } from '../db/hooks';
+import { useColumns, useLabels, useProject, useSteps, useTask, useTaskLabelMap } from '../db/hooks';
+import { ProjectSelect } from './ProjectSelect';
 import type { Priority, Step, Task } from '../db/types';
 import { dueDateInput, dueTimeInput, toDueAt } from '../lib/dates';
 import { PRIORITY_LABELS, isArchived, normalizeUrl } from '../lib/tasks';
@@ -34,7 +35,7 @@ export function TaskSheet({ id, onClose }: { id: string; onClose: () => void }) 
 }
 
 function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
-  const projects = (useProjects() ?? []).filter((p) => !p.archived_at || p.id === task.project_id);
+  const inInbox = !!useProject(task.project_id)?.is_inbox;
   const columns = useColumns(task.project_id) ?? [];
   const archived = isArchived(task);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -56,19 +57,11 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
         />
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="field-label">Project</label>
-            <select
-              className="input"
-              value={task.project_id}
-              onChange={(e) => void moveTaskToProject(task.id, e.target.value)}
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+          <div className="col-span-2">
+            <span className="field-label">Where</span>
+            <ProjectSelect value={task.project_id} onChange={(id) => void moveTaskToProject(task.id, id)} ariaLabel="Where" />
           </div>
-          <div>
+          <div className={inInbox ? 'hidden' : ''}>
             <label className="field-label">Column</label>
             <select className="input" value={task.column_id} onChange={(e) => void moveTask(task.id, e.target.value)}>
               {columns.map((c) => (

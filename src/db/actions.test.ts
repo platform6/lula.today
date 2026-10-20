@@ -3,6 +3,12 @@ import { db, clearLocalData } from './db';
 import { setCurrentUser } from './mutate';
 import { onTaskCompleted } from '../lib/celebrate';
 import {
+  areaDeleteBlocker,
+  completeProject,
+  createArea,
+  getAreaDefault,
+  reopenProject,
+  updateArea,
   columnsOf,
   createProject,
   createTask,
@@ -87,6 +93,90 @@ describe('tasks and columns', () => {
     const order = (await db.tasks.toArray()).sort((x, y) => (x.position < y.position ? -1 : 1)).map((t) => t.title);
     expect(order).toEqual(['C', 'A', 'B']);
     expect(b).toBeTruthy();
+  });
+});
+
+describe('areas and their built-in task lists', () => {
+  it('creates a built-in list with columns when an area is created', async () => {
+    const area = await createArea('Home', '#f00');
+    const own = await getAreaDefault(area.id);
+    expect(own).toBeTruthy();
+    expect(own!.is_area_default).toBe(true);
+    expect(own!.color).toBe('#f00');
+    expect((await columnsOf(own!.id)).length).toBe(4);
+  });
+
+  it('derives the same ids on every device, so offline devices converge', async () => {
+    const area = await createArea('Home');
+    const first = (await getAreaDefault(area.id))!;
+    const firstCols = (await columnsOf(first.id)).map((c) => c.id);
+
+    // Simulate another device: same area row, no built-in list yet.
+    await clearLocalData();
+    setCurrentUser('user-1');
+    await db.areas.put(area);
+    await ensureDefaults();
+    const second = (await getAreaDefault(area.id))!;
+    expect(second.id).toBe(first.id);
+    expect((await columnsOf(second.id)).map((c) => c.id)).toEqual(firstCols);
+  });
+
+  it('backfills built-in lists for areas that predate them, exactly once', async () => {
+    const area = await createArea('Work');
+    await db.projects.clear();
+    await ensureDefaults();
+    await ensureDefaults();
+    const defaults = (await db.projects.toArray()).filter((p) => p.is_area_default && p.area_id === area.id);
+    expect(defaults).toHaveLength(1);
+  });
+
+  it('renames the built-in list and recolors projects with the area', async () => {
+    const area = await createArea('Home', '#111111');
+    const project = await createProject({ name: 'Garage', area_id: area.id });
+    expect(project.color).toBe('#111111');
+    await updateArea(area.id, { name: 'House', color: '#222222' });
+    expect((await getAreaDefault(area.id))!.name).toBe('House');
+    expect((await db.projects.get(project.id))!.color).toBe('#222222');
+    expect((await db.projects.get(project.id))!.name).toBe('Garage');
+  });
+
+  it('refuses to delete an area that still has projects or open tasks', async () => {
+    const area = await createArea('Home');
+    const project = await createProject({ name: 'Garage', area_id: area.id });
+    expect(await areaDeleteBlocker(area.id)).toMatch(/project/);
+    await completeProject(project.id, 'archive');
+    const own = (await getAreaDefault(area.id))!;
+    await createTask({ title: 'Call plumber', project_id: own.id });
+    expect(await areaDeleteBlocker(area.id)).toMatch(/open task/);
+  });
+});
+
+describe('completing a project', () => {
+  it('moves open tasks to the area list and archives the project', async () => {
+    const area = await createArea('Home');
+    const project = await createProject({ name: 'Garage', area_id: area.id });
+    const [, , , done] = await columnsOf(project.id);
+    const open = await createTask({ title: 'Sweep', project_id: project.id });
+    const finished = await createTask({ title: 'Sort boxes', project_id: project.id, column_id: done.id });
+
+    await completeProject(project.id, 'move');
+
+    const p = (await db.projects.get(project.id))!;
+    expect(p.completed_at).toBeTruthy();
+    expect(p.archived_at).toBeTruthy();
+    expect((await db.tasks.get(open.id))!.project_id).toBe((await getAreaDefault(area.id))!.id);
+    expect((await db.tasks.get(finished.id))!.project_id).toBe(project.id);
+
+    await reopenProject(project.id);
+    expect((await db.projects.get(project.id))!.archived_at).toBeNull();
+  });
+
+  it('can archive open tasks along with the project instead', async () => {
+    const area = await createArea('Home');
+    const project = await createProject({ name: 'Garage', area_id: area.id });
+    const open = await createTask({ title: 'Sweep', project_id: project.id });
+    await completeProject(project.id, 'archive');
+    expect((await db.tasks.get(open.id))!.archived_at).toBeTruthy();
   });
 });
 

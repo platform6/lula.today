@@ -5,9 +5,11 @@ import { Login } from './pages/Login';
 import { ResetPassword } from './pages/ResetPassword';
 import { Today } from './pages/Today';
 import { Inbox } from './pages/Inbox';
+import { InboxSort } from './pages/InboxSort';
+import { Areas } from './pages/Areas';
+import { AreaPage } from './pages/AreaPage';
 import { Board } from './pages/Board';
 import { ProjectSettings } from './pages/ProjectSettings';
-import { Projects } from './pages/Projects';
 import { AllTasks } from './pages/AllTasks';
 import { Search } from './pages/Search';
 import { Archive } from './pages/Archive';
@@ -25,7 +27,10 @@ export function App() {
       <Route element={<Layout />}>
         <Route index element={<Today />} />
         <Route path="inbox" element={<Inbox />} />
-        <Route path="projects" element={<Projects />} />
+        <Route path="inbox/sort" element={<InboxSort />} />
+        <Route path="areas" element={<Areas />} />
+        <Route path="areas/:id" element={<AreaPage />} />
+        <Route path="projects" element={<Navigate to="/areas" replace />} />
         <Route path="projects/:id" element={<Board />} />
         <Route path="projects/:id/settings" element={<ProjectSettings />} />
         <Route path="tasks" element={<AllTasks />} />

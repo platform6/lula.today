@@ -5,6 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import type { Task } from '../db/types';
 import { isArchived } from '../lib/tasks';
+import { isRealProject } from '../lib/paths';
 import { PageHeader } from '../components/PageHeader';
 import { TaskList } from '../components/TaskList';
 
@@ -37,6 +38,7 @@ function useSearchData() {
       links: links.filter((l) => !l.deleted_at),
       projects: projects.filter((p) => !p.deleted_at),
       areas: new Map(areas.filter((a) => !a.deleted_at).map((a) => [a.id, a.name])),
+      areaList: areas.filter((a) => !a.deleted_at),
     };
   });
 }
@@ -83,8 +85,22 @@ export function Search() {
   const results: Task[] = q && index ? index.search(q).map((r) => taskById.get(r.id)!).filter(Boolean) : [];
   const live = results.filter((t) => !isArchived(t));
   const archived = results.filter((t) => isArchived(t));
-  const projectHits = q
-    ? (data?.projects ?? []).filter((p) => p.name.toLowerCase().includes(q.toLowerCase()))
+  // Places whose names match: areas, and projects shown with their area.
+  const needle = q.toLowerCase();
+  const placeHits = q
+    ? [
+        ...(data?.areaList ?? [])
+          .filter((a) => a.name.toLowerCase().includes(needle))
+          .map((a) => ({ key: a.id, href: `/areas/${a.id}`, label: a.name, color: a.color })),
+        ...(data?.projects ?? [])
+          .filter((p) => isRealProject(p) && p.name.toLowerCase().includes(needle))
+          .map((p) => ({
+            key: p.id,
+            href: `/projects/${p.id}`,
+            label: `${data?.areas.get(p.area_id ?? '') ?? '?'} › ${p.name}`,
+            color: p.color,
+          })),
+      ]
     : [];
 
   return (
@@ -101,12 +117,12 @@ export function Search() {
           enterKeyHint="search"
         />
       </div>
-      {projectHits.length > 0 && (
+      {placeHits.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 pb-2">
-          {projectHits.map((p) => (
-            <Link key={p.id} to={p.is_inbox ? '/inbox' : `/projects/${p.id}`} className="card flex min-h-11 items-center gap-2 px-3 py-2 font-semibold">
-              <span className="h-3 w-3 rounded-sm" style={{ background: p.color ?? 'var(--line-strong)' }} />
-              {p.name}
+          {placeHits.map((h) => (
+            <Link key={h.key} to={h.href} className="card flex min-h-11 items-center gap-2 px-3 py-2 font-semibold">
+              <span className="h-3 w-3 rounded-sm" style={{ background: h.color ?? 'var(--line-strong)' }} />
+              {h.label}
             </Link>
           ))}
         </div>

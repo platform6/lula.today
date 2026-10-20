@@ -46,9 +46,36 @@ A personal, offline-first task manager installed as a PWA on iPhone and usable f
 - Sign-ups disabled in Supabase; the single account is created by hand.
 
 ### 3.2 Organization
-- **Areas** (e.g. Work, Home, Health): name, color, icon, sort order. Create / rename / reorder / archive.
-- **Projects**: belong to an area (optional), name, color, description, optional due date, status (active / archived).
-- **Inbox**: a built-in project for quick capture of unsorted tasks.
+
+The model: **Inbox → Area → Project**. Everything is captured into the Inbox, then sorted into an area (the kind of work, ongoing) and optionally a project (a finite effort within that area).
+
+```
+Inbox                      capture only; sorted out of, never worked in
+Area: Home                 ongoing; never "done"
+ ├─ (area tasks)           tasks that belong to the area but no project
+ ├─ Project: Garage clean-out
+ └─ Project: Kitchen reno  finite; completed and archived when finished
+```
+
+**Inbox**
+- Built-in, one per user. It's the only capture destination for the global **+** button.
+- Shown as a **list, not a board**. Each task has a primary **Move to…** action: pick an area, then (optionally) a project in it.
+- **Sort mode**: steps through Inbox tasks one at a time with large targets: each area, that area's projects, "Do today" (sets the due date to today), Delete, and Skip.
+- An Inbox count badge on the nav tab, and a "N tasks to sort" prompt on Today. Empty state reads as "Inbox zero."
+
+**Areas**
+- e.g. Work, Home, Health: name, color, icon, sort order. Create / rename / reorder / archive. Areas have no completion state.
+- Every area has a **built-in area-tasks list** for tasks that belong to the area but not to a project. It is implemented as a hidden project flagged `is_area_default` (one per area, created with the area). The UI never calls it a project: it appears as the area's own task list.
+- The area page shows the area's tasks first, then its projects.
+
+**Projects**
+- **Every project belongs to an area.** Projects are created from within an area; "No area" no longer exists. Existing projects without an area get a one-time prompt to choose one.
+- Name, description, optional due date, status (active / completed / archived). Colors are taken from the area so families read together.
+- Projects show progress ("6 of 10 done") and a **Complete project** action that archives it. Areas show neither.
+
+**Wayfinding**
+- Breadcrumbs everywhere a task or board appears: **Work › Website redesign**, or **Work** alone for area tasks.
+- The mobile tab bar reads Today · Inbox · Areas · Search · Settings.
 
 ### 3.3 Tasks
 | Field | Required | Notes |
@@ -56,7 +83,7 @@ A personal, offline-first task manager installed as a PWA on iPhone and usable f
 | Title | ✓ | |
 | Notes | | Plain text / light markdown |
 | URL | | Optional link, opens in a new tab |
-| Project | ✓ | Defaults to Inbox |
+| Project | ✓ | Inbox on capture; an area's built-in task list for area-only tasks |
 | Column | ✓ | Defaults to the project's first column |
 | Priority | | None / Low / Medium / High |
 | Due date | | Date, optional time |
@@ -64,7 +91,7 @@ A personal, offline-first task manager installed as a PWA on iPhone and usable f
 | Steps | | Ordered subtasks: text, done state |
 | Completed at | | Set automatically when moved into a "done" column |
 
-- **Quick add**: always-visible "+" that captures a title in one step (Enter to save), with optional fast fields (project, due date, priority).
+- **Quick add**: the always-visible "+" captures a title in one step (Enter to save, then the panel closes) and **always saves to the Inbox**, whatever page you're on. Optional fast fields: due date and priority. "Add task" inside a project's column saves directly to that column.
 - Edit in a detail sheet (bottom sheet on mobile, side panel on desktop).
 - Steps can be added, checked off, reordered, and deleted inline in the detail sheet.
 - Archive and delete (soft delete, see §5).

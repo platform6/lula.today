@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { currentUserId } from './mutate';
@@ -98,6 +99,39 @@ export function useTaskLabelMap(): Map<string, string[]> | undefined {
 
 export function useSettings(): Settings | undefined {
   return useLiveQuery(async () => db.settings.get(currentUserId()));
+}
+
+export function useAreaMap(): Map<string, Area> {
+  const areas = useAreas();
+  return useMemo(() => new Map((areas ?? []).map((a) => [a.id, a])), [areas]);
+}
+
+/** Open tasks waiting in the Inbox to be sorted. */
+export function useInboxCount(): number {
+  return (
+    useLiveQuery(async () => {
+      const inbox = (await db.projects.toArray()).find((p) => p.is_inbox && !p.deleted_at);
+      if (!inbox) return 0;
+      return (await db.tasks.where('project_id').equals(inbox.id).toArray()).filter(
+        (t) => !t.deleted_at && !t.archived_at && !t.completed_at,
+      ).length;
+    }) ?? 0
+  );
+}
+
+/** [done, total] per project, counting archived tasks so finished work stays counted. */
+export function useProjectProgress(): Map<string, [number, number]> | undefined {
+  return useLiveQuery(async () => {
+    const map = new Map<string, [number, number]>();
+    for (const t of await db.tasks.toArray()) {
+      if (t.deleted_at) continue;
+      const c = map.get(t.project_id) ?? [0, 0];
+      c[1]++;
+      if (t.completed_at) c[0]++;
+      map.set(t.project_id, c);
+    }
+    return map;
+  });
 }
 
 export function usePendingCount(): number {

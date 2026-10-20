@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAllTasks, useAreas, useLabels, useProjects, useTaskLabelMap } from '../db/hooks';
 import type { Task } from '../db/types';
 import { PRIORITY_LABELS, isLive } from '../lib/tasks';
+import { isRealProject } from '../lib/paths';
 import { PageHeader } from '../components/PageHeader';
 import { TaskList } from '../components/TaskList';
 
@@ -30,7 +31,8 @@ export function AllTasks() {
   if (!tasks) return null;
 
   const projectArea = new Map(projects.map((p) => [p.id, p.area_id]));
-  const visibleProjects = projects.filter((p) => !areaId || p.area_id === areaId);
+  const areaName = new Map(areas.map((a) => [a.id, a.name]));
+  const visibleProjects = projects.filter((p) => isRealProject(p) && !p.archived_at && (!areaId || p.area_id === areaId));
 
   const filtered = tasks
     .filter((t) => isLive(t))
@@ -67,7 +69,7 @@ export function AllTasks() {
         <select className="input" value={projectId} onChange={(e) => setProjectId(e.target.value)} aria-label="Project">
           <option value="">All projects</option>
           {visibleProjects.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
+            <option key={p.id} value={p.id}>{areaId ? p.name : `${areaName.get(p.area_id ?? '') ?? '?'} › ${p.name}`}</option>
           ))}
         </select>
         <select className="input" value={labelId} onChange={(e) => setLabelId(e.target.value)} aria-label="Label">
