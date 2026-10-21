@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addBusPurchase, setWorkDay } from '../db/actions';
 import { useBusPurchases, useWorkDays } from '../db/hooks';
 import type { WorkStatus } from '../db/types';
 import { dayKey, todayKey } from '../lib/dates';
-import { LOW_TICKETS, PACK_SIZE, TICKETS_PER_OFFICE_DAY, WORK_STATUSES, statusInfo, summarize, ticketsLeft } from '../lib/worklog';
+import { LOW_TICKETS, PACK_SIZE, TICKETS_PER_OFFICE_DAY, WORK_STATUSES, firstUnfilledDay, statusInfo, summarize, ticketsLeft } from '../lib/worklog';
 import { PageHeader } from '../components/PageHeader';
 import { BackIcon, ChevronRightIcon, DownIcon, PrinterIcon } from '../components/icons';
 
@@ -17,6 +17,21 @@ export function WorkLog() {
     const d = new Date();
     return { y: d.getFullYear(), m: d.getMonth() };
   });
+  const listRef = useRef<HTMLUListElement>(null);
+  // the month the list was last scrolled for, so filling in a day doesn't jump it
+  const scrolledFor = useRef<string | null>(null);
+  const loaded = !!days && !!purchases;
+
+  useEffect(() => {
+    const list = listRef.current;
+    const monthKey = `${month.y}-${month.m}`;
+    if (!days || !list || scrolledFor.current === monthKey) return;
+    scrolledFor.current = monthKey;
+    const keys = Array.from(list.querySelectorAll<HTMLElement>('li[data-day]'), (li) => li.dataset.day!);
+    const target = firstUnfilledDay(keys, new Set(days.map((d) => d.day)), todayKey());
+    const li = target ? list.querySelector<HTMLElement>(`li[data-day="${target}"]`) : null;
+    list.scrollTop = li ? li.offsetTop : 0;
+  }, [days, loaded, month.y, month.m]);
 
   if (!days || !purchases) return null;
 
@@ -92,13 +107,13 @@ export function WorkLog() {
               </button>
             </span>
           </div>
-          <ul className="divide-y divide-line">
+          <ul ref={listRef} className="relative max-h-[60vh] divide-y divide-line overflow-y-auto">
             {monthDays.map((key) => {
               const status = byDay.get(key);
               const date = new Date(`${key}T00:00`);
               const weekend = date.getDay() === 0 || date.getDay() === 6;
               return (
-                <li key={key} className="flex min-h-12 items-center gap-3 py-1">
+                <li key={key} data-day={key} className="flex min-h-12 items-center gap-3 py-1">
                   <span className={`w-20 shrink-0 text-sm ${key === today ? 'font-bold text-accent' : weekend ? 'text-muted' : 'text-fg-2'}`}>
                     {date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
                   </span>

@@ -38,6 +38,21 @@ export function summarize(days: WorkDay[], year: number): YearSummary {
 }
 
 /**
+ * The day the month list should open at: the earliest weekday up to `today`
+ * with nothing logged, or `today` when every one is filled in. Weekends are
+ * skipped since they're usually left blank. Null for a month wholly after today
+ * or a past month with no gaps.
+ */
+export function firstUnfilledDay(monthDays: string[], filled: Set<string>, today: string): string | null {
+  for (const key of monthDays) {
+    if (key > today) break;
+    const dow = new Date(`${key}T00:00`).getDay();
+    if (dow !== 0 && dow !== 6 && !filled.has(key)) return key;
+  }
+  return monthDays.includes(today) ? today : null;
+}
+
+/**
  * Tickets bought, less a round trip for every office day from when tracking
  * began (the first purchase, which may be a starting balance) up to and
  * including `today`. Office days logged before tracking began use nothing.

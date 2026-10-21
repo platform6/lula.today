@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BusPurchase, WorkDay, WorkStatus } from '../db/types';
-import { summarize, ticketsLeft } from './worklog';
+import { firstUnfilledDay, summarize, ticketsLeft } from './worklog';
 
 const base = { user_id: 'u', created_at: '', updated_at: '', deleted_at: null };
 const day = (d: string, status: WorkStatus): WorkDay => ({ ...base, id: d, day: d, status });
@@ -36,5 +36,26 @@ describe('ticketsLeft', () => {
     const days = [day('2026-10-14', 'office'), day('2026-10-20', 'office')];
     expect(ticketsLeft([bought('2026-10-15', 6)], days, '2026-10-21')).toBe(4);
     expect(ticketsLeft([], days, '2026-10-21')).toBe(0);
+  });
+});
+
+describe('firstUnfilledDay', () => {
+  // October 2026: the 1st is a Thursday, the 3rd and 4th a weekend
+  const oct = Array.from({ length: 31 }, (_, i) => `2026-10-${String(i + 1).padStart(2, '0')}`);
+
+  it('opens at the earliest blank weekday up to today, skipping weekends', () => {
+    expect(firstUnfilledDay(oct, new Set(['2026-10-01', '2026-10-02']), '2026-10-21')).toBe('2026-10-05');
+    expect(firstUnfilledDay(oct, new Set(), '2026-10-21')).toBe('2026-10-01');
+  });
+
+  it('falls back to today when every weekday so far is filled', () => {
+    const filled = new Set(oct.filter((d) => d <= '2026-10-21'));
+    expect(firstUnfilledDay(oct, filled, '2026-10-21')).toBe('2026-10-21');
+  });
+
+  it('ignores days after today and months outside it', () => {
+    expect(firstUnfilledDay(oct, new Set(['2026-10-01', '2026-10-02']), '2026-10-04')).toBe('2026-10-04');
+    expect(firstUnfilledDay(oct, new Set(), '2026-09-30')).toBeNull();
+    expect(firstUnfilledDay(oct, new Set(oct), '2026-11-15')).toBeNull();
   });
 });
