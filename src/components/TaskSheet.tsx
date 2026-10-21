@@ -23,7 +23,7 @@ import { useConfirmComplete } from './ConfirmComplete';
 import type { Priority, Step, Task } from '../db/types';
 import { dueDateInput, dueTimeInput, toDueAt } from '../lib/dates';
 import { PRIORITY_LABELS, isArchived, normalizeUrl } from '../lib/tasks';
-import { CheckIcon, DownIcon, LinkIcon, PlusIcon, UpIcon, XIcon } from './icons';
+import { CheckIcon, CopyIcon, DownIcon, LinkIcon, PlusIcon, UpIcon, XIcon } from './icons';
 import { RepeatField } from './RepeatPicker';
 import { Sheet } from './Sheet';
 
@@ -72,7 +72,12 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
 
   return (
     <Sheet
-      title={archived ? 'Archived task' : 'Task'}
+      title={
+        <span className="flex items-center gap-3">
+          {archived ? 'Archived task' : 'Task'}
+          <CopyId id={task.id} />
+        </span>
+      }
       onClose={onClose}
       footer={
         <div className="mb-2 flex gap-2">
@@ -356,6 +361,43 @@ function NewProjectForm({ task }: { task: Task }) {
         </button>
       </div>
     </form>
+  );
+}
+
+/**
+ * The task's short id (as the board script shows it), so a card can be named
+ * exactly when asking Claude to work on it. Tap to copy.
+ */
+function CopyId({ id }: { id: string }) {
+  const short = id.slice(0, 8);
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(short);
+      setState('copied');
+    } catch {
+      setState('failed');
+    }
+    setTimeout(() => setState('idle'), 1500);
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void copy()}
+      className="flex min-h-9 items-center gap-1.5 rounded-sm border border-line-strong px-2 font-mono text-xs font-medium text-fg-2 hover:border-fg hover:text-fg"
+      aria-label={`Copy task id ${short}`}
+      title="Copy id"
+    >
+      {short}
+      {state === 'copied' ? (
+        <CheckIcon width={14} height={14} strokeWidth={3} className="text-ok" />
+      ) : (
+        <CopyIcon width={14} height={14} />
+      )}
+      <span role="status" className={state === 'failed' ? 'font-sans text-danger' : 'sr-only'}>
+        {state === 'copied' ? 'Copied' : state === 'failed' ? "Couldn't copy" : ''}
+      </span>
+    </button>
   );
 }
 

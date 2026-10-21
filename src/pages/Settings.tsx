@@ -73,6 +73,10 @@ export function Settings() {
           <SyncPanel />
         </Section>
 
+        <Section title="Working on lula with Claude" hint="How app ideas get from your board into the app.">
+          <ClaudeGuide />
+        </Section>
+
         <Section title="Install on iPhone">
           <p className="text-base text-fg-2">
             In Safari, tap <b>Share</b> → <b>Add to Home Screen</b>, then open lula from the Home Screen and sign in
@@ -85,6 +89,78 @@ export function Settings() {
         </Section>
       </div>
     </div>
+  );
+}
+
+const code = 'rounded-sm bg-surface-2 px-1.5 py-0.5 font-mono text-sm text-fg';
+
+/** A reminder of the Remote Control + board workflow (CLAUDE.md has Claude's side of it). */
+function ClaudeGuide() {
+  return (
+    <details className="card group px-4 py-3">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold">
+        Show how it works
+        <DownIcon className="text-fg-2 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="mt-3 flex flex-col gap-4 text-base text-fg-2">
+        <div>
+          <h3 className="font-bold text-fg">1. Capture ideas</h3>
+          <p>
+            Add cards to <b className="text-fg">Dev › Lula</b>. Keep rough ideas in Backlog; move a card to <b className="text-fg">To Do</b>{' '}
+            when it's ready to build. Claude only takes cards from To Do.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-bold text-fg">2. Start a session</h3>
+          <p>
+            On the computer, open a terminal in <code className={code}>C:\dev\listing_things_living_life</code>, run{' '}
+            <code className={code}>claude</code>, then <code className={code}>/remote-control</code>. Carry on from your phone in the
+            Claude app. The computer has to stay on and awake.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-bold text-fg">3. Ask for work</h3>
+          <p>
+            Say <i>"work the To Do cards"</i>, or name one card by its id: open the task, tap the id next to "Task" to copy it, and
+            say <i>"work 0dc670dc"</i>.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-bold text-fg">4. Follow it across the board</h3>
+          <ul className="mt-1 flex list-disc flex-col gap-1 pl-5">
+            <li>
+              <b className="text-fg">Doing</b>: Claude is on it, and leaves notes on the card as it goes. An unclear card gets a
+              question in its notes and stays in To Do.
+            </li>
+            <li>
+              Nothing is committed or pushed until you say so (<i>"commit and push"</i>).
+            </li>
+            <li>
+              <b className="text-fg">UAT</b>: pushed and waiting for you. Tap <b className="text-fg">Update available</b> in the app,
+              then try it.
+            </li>
+            <li>
+              <b className="text-fg">Done</b>: you move it there once it works. Claude never does.
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="font-bold text-fg">Behind the scenes</h3>
+          <ul className="mt-1 flex list-disc flex-col gap-1 pl-5">
+            <li>
+              Claude reads and moves cards with <code className={code}>npm run board -- help</code> (the list of commands).
+            </li>
+            <li>
+              It signs in with your login from <code className={code}>.env.local</code>; permission to run it without asking is in{' '}
+              <code className={code}>.claude/settings.local.json</code>. Both stay on this computer.
+            </li>
+            <li>
+              The rules Claude follows are in <code className={code}>CLAUDE.md</code>; edit it to change the flow.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </details>
   );
 }
 
