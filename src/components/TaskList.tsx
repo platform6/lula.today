@@ -97,9 +97,9 @@ function TaskRow({
           <GripIcon />
         </span>
       )}
-      {/* A 44px tap area around a smaller box. */}
+      {/* A 44px tap area around a 20px box; the smaller right margin leaves 20px before the text. */}
       <button
-        className="group -m-[9px] grid h-11 w-11 shrink-0 place-items-center"
+        className="group -my-3 -mr-1 -ml-3 grid h-11 w-11 shrink-0 place-items-center"
         onClick={async () => {
           if (!done && !(await confirmComplete(task))) return;
           await setTaskCompleted(task, !done);
@@ -107,9 +107,9 @@ function TaskRow({
         aria-label={done ? 'Mark not done' : 'Mark done'}
       >
         <span
-          className={`grid h-[26px] w-[26px] place-items-center rounded-sm border-2 ${done ? 'border-accent bg-accent text-accent-fg' : 'border-fg-2 group-hover:border-accent'}`}
+          className={`grid h-5 w-5 place-items-center rounded-sm border-2 ${done ? 'border-accent bg-accent text-accent-fg' : 'border-fg-2 group-hover:border-accent'}`}
         >
-          {done && <CheckIcon width={17} height={17} strokeWidth={3.5} />}
+          {done && <CheckIcon width={14} height={14} strokeWidth={3.5} />}
         </span>
       </button>
       {/* The whole area opens the task; the title is the keyboard-focusable control.
