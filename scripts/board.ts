@@ -153,7 +153,9 @@ async function show(idPrefix: string) {
   const steps = (await rows<Step>('steps', (q) => q.eq('task_id', t.id))).sort(byPosition);
   console.log(`${t.title}`);
   console.log(`id ${t.id}`);
-  console.log(`board ${project?.is_inbox ? 'Inbox' : project?.name} › ${column?.name}${t.completed_at ? ' (completed)' : ''}`);
+  console.log(
+    `board ${project?.is_inbox ? 'Inbox' : project?.name} › ${column?.name}${t.cancelled_at ? ' (cancelled)' : t.completed_at ? ' (completed)' : ''}`,
+  );
   if (t.priority) console.log(`priority ${PRIORITY[t.priority]}`);
   if (t.due_at) console.log(`due ${fmtDue(t)}`);
   if (t.recurrence) console.log(`repeats ${JSON.stringify(t.recurrence)}`);

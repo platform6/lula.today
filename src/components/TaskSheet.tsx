@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   addStep,
   archiveTask,
+  cancelTask,
   createProject,
   deleteStep,
   deleteTask,
@@ -72,7 +73,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
 
   return (
     <Sheet
-      title={archived ? 'Archived task' : 'Task'}
+      title={task.cancelled_at ? 'Cancelled task' : archived ? 'Archived task' : 'Task'}
       onClose={onClose}
       side="modal"
       footer={
@@ -172,7 +173,12 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
           {archived ? (
             <button className="btn-ghost" onClick={() => void restoreTask(task)}>Restore</button>
           ) : (
-            <button className="btn-ghost" onClick={() => void archiveTask(task.id).then(onClose)}>Archive</button>
+            <>
+              <button className="btn-ghost" onClick={() => void cancelTask(task.id).then(onClose)}>
+                Cancel task
+              </button>
+              <button className="btn-ghost" onClick={() => void archiveTask(task.id).then(onClose)}>Archive</button>
+            </>
           )}
           <div className="flex-1" />
           {confirmDelete ? (
@@ -190,6 +196,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
         <p className="-mt-2 text-sm text-muted">
           Created {new Date(task.created_at).toLocaleString()}
           {task.completed_at && ` · Completed ${new Date(task.completed_at).toLocaleDateString()}`}
+          {task.cancelled_at && ` · Cancelled ${new Date(task.cancelled_at).toLocaleDateString()}`}
         </p>
       </div>
     </Sheet>

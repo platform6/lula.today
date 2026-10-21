@@ -355,6 +355,7 @@ export async function createTask(input: {
     completed_at: column.is_done ? t : null,
     archived_at: null,
     recurrence: null,
+    cancelled_at: null,
     position: input.atTop ? keyAtStart(siblings) : keyAtEnd(siblings),
   };
   await put('tasks', task);
@@ -478,9 +479,15 @@ export async function archiveTask(id: string): Promise<void> {
   await patch('tasks', id, { archived_at: now() });
 }
 
-/** Restore from the archive. Completed tasks get a fresh 7-day window. */
+/** Drop a task without doing it: it goes straight to the Archive, marked cancelled. */
+export async function cancelTask(id: string): Promise<void> {
+  const t = now();
+  await patch('tasks', id, { cancelled_at: t, archived_at: t });
+}
+
+/** Restore from the archive. Completed tasks get a fresh 7-day window; cancelled ones reopen. */
 export async function restoreTask(task: Task): Promise<void> {
-  await patch('tasks', task.id, { archived_at: null, completed_at: task.completed_at ? now() : null });
+  await patch('tasks', task.id, { archived_at: null, cancelled_at: null, completed_at: task.completed_at ? now() : null });
 }
 
 async function deleteTaskTree(task: Task, t: string) {

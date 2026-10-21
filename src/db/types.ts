@@ -78,6 +78,8 @@ export interface Task extends Row {
   position: string;
   /** Absent on rows synced before recurrence existed. */
   recurrence?: Recurrence | null;
+  /** Dropped without being done; a cancelled task is also archived. */
+  cancelled_at?: string | null;
 }
 
 export interface Step extends Row {

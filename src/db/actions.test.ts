@@ -26,7 +26,10 @@ import {
   setTaskCompleted,
   skipOccurrence,
   moveAreaTo,
+  cancelTask,
+  restoreTask,
 } from './actions';
+import { isArchived } from '../lib/tasks';
 import { byPosition } from '../lib/position';
 import { presetRule } from '../lib/recurrence';
 import { dayKey } from '../lib/dates';
@@ -259,6 +262,24 @@ describe('completion event', () => {
     } finally {
       off();
     }
+  });
+});
+
+describe('cancelling a task', () => {
+  it('archives it marked cancelled, and restoring reopens it', async () => {
+    const p = await createProject({ name: 'P', area_id: null });
+    const t = await createTask({ title: 'Maybe', project_id: p.id });
+
+    await cancelTask(t.id);
+    const cancelled = (await db.tasks.get(t.id))!;
+    expect(cancelled.cancelled_at).toBeTruthy();
+    expect(isArchived(cancelled)).toBe(true);
+    expect(cancelled.completed_at).toBeNull();
+
+    await restoreTask(cancelled);
+    const back = (await db.tasks.get(t.id))!;
+    expect(back.cancelled_at).toBeNull();
+    expect(isArchived(back)).toBe(false);
   });
 });
 

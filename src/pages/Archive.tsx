@@ -7,7 +7,7 @@ import { isRealProject, placeOf } from '../lib/paths';
 import { PageHeader } from '../components/PageHeader';
 import { useOpenTask } from '../components/useOpenTask';
 
-const archivedAt = (t: Task) => t.archived_at ?? t.completed_at ?? t.updated_at;
+const archivedAt = (t: Task) => t.cancelled_at ?? t.archived_at ?? t.completed_at ?? t.updated_at;
 
 export function Archive() {
   const tasks = useAllTasks();
@@ -47,7 +47,8 @@ export function Archive() {
         </select>
       </div>
       <p className="px-4 text-sm text-fg-2">
-        Completed tasks move here 7 days after completion and are kept indefinitely.
+        Completed tasks move here 7 days after completion; cancelled tasks move here right away. Both are kept
+        indefinitely.
       </p>
       {list.length === 0 ? (
         <p className="px-4 py-4 text-base text-muted">Nothing archived yet.</p>
@@ -56,8 +57,9 @@ export function Archive() {
           {list.map((t) => (
             <li key={t.id} className="flex items-center gap-3 px-4 py-4">
               <button className="min-w-0 flex-1 text-left" onClick={() => openTask(t.id)}>
-                <div className={`text-base font-semibold break-words ${t.completed_at ? 'text-fg-2 line-through' : 'text-fg'}`}>{t.title}</div>
+                <div className={`text-base font-semibold break-words ${t.completed_at ? 'text-fg-2 line-through' : t.cancelled_at ? 'text-fg-2' : 'text-fg'}`}>{t.title}</div>
                 <div className="mt-1 text-sm text-fg-2">
+                  {t.cancelled_at && <span className="chip mr-2 text-warn">Cancelled</span>}
                   {placeOf(projectById.get(t.project_id), areaMap)?.label} · {new Date(archivedAt(t)).toLocaleDateString()}
                 </div>
               </button>
