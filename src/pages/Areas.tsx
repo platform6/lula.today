@@ -21,6 +21,7 @@ import { Branch, Children, NODE_SIZE, Stem, TreeNode } from '../components/NodeT
 import { PageHeader } from '../components/PageHeader';
 import { ArchiveIcon, GripIcon, ListIcon } from '../components/icons';
 import type { Area } from '../db/types';
+import { RealmExpansionAll, RealmToggle, useRealmExpansion } from '../components/RealmExpansion';
 
 // Row heights (px) for the tree; connectors meet each row's vertical center.
 const ROOT_H = 48;
@@ -34,6 +35,7 @@ export function Areas() {
   const tasks = useAllTasks();
   const progress = useProjectProgress();
   const [name, setName] = useState('');
+  const { collapsed, toggle } = useRealmExpansion();
   // Realms reorder by dragging their grip; taps and scrolling elsewhere are unaffected.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -95,6 +97,7 @@ export function Areas() {
             <TreeNode kind="root" compact />
             <span className="text-xl font-bold">Realms</span>
             <span className="chip">{areas.length}</span>
+            <RealmExpansionAll ids={areas.filter((a) => active.some((p) => p.area_id === a.id)).map((a) => a.id)} />
             {areas.length > 0 && <Stem x={NODE_SIZE.compactRoot / 2} y={ROOT_H / 2} />}
           </div>
 
@@ -103,6 +106,7 @@ export function Areas() {
               <Children x={NODE_SIZE.compactRoot / 2}>
                 {areas.map((a, i) => {
                   const mine = active.filter((p) => p.area_id === a.id);
+                  const expanded = !collapsed.has(a.id);
                   const open = openByArea.get(a.id) ?? 0;
                   return (
                     <Branch key={a.id} last={i === areas.length - 1} y={REALM_H / 2} indent={20}>
@@ -117,10 +121,11 @@ export function Areas() {
                                   {open} open task{open === 1 ? '' : 's'} · {mine.length} project{mine.length === 1 ? '' : 's'}
                                 </div>
                               </Link>
-                              {mine.length > 0 && <Stem x={NODE_SIZE.compactRealm / 2} y={REALM_H / 2} color={a.color} />}
+                              {mine.length > 0 && <RealmToggle name={a.name} expanded={expanded} onClick={() => toggle(a.id)} />}
+                              {mine.length > 0 && expanded && <Stem x={NODE_SIZE.compactRealm / 2} y={REALM_H / 2} color={a.color} />}
                               {grip}
                             </div>
-                            {mine.length > 0 && (
+                            {mine.length > 0 && expanded && (
                               <Children x={NODE_SIZE.compactRealm / 2}>
                                 {mine.map((p, j) => {
                                   const [done, total] = progress?.get(p.id) ?? [0, 0];

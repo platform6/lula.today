@@ -29,6 +29,7 @@ import { QuickAdd } from './QuickAdd';
 import { SyncBadge } from './SyncBadge';
 import { TaskSheet } from './TaskSheet';
 import { useOpenTask } from './useOpenTask';
+import { RealmExpansionAll, RealmExpansionProvider, RealmToggle, useRealmExpansion } from './RealmExpansion';
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
@@ -112,6 +113,7 @@ export function Layout() {
   };
 
   return (
+    <RealmExpansionProvider>
     <ConfirmCompleteProvider>
       <DndContext
         sensors={sensors}
@@ -172,6 +174,7 @@ export function Layout() {
         </DragOverlay>
       </DndContext>
     </ConfirmCompleteProvider>
+    </RealmExpansionProvider>
   );
 }
 
@@ -219,6 +222,7 @@ const SIDE_REALM_H = 40;
 const SIDE_PROJECT_H = 36;
 
 function Sidebar() {
+  const { collapsed, toggle } = useRealmExpansion();
   const areas = useAreas() ?? [];
   const projects = (useProjects() ?? []).filter((p) => isRealProject(p) && !p.archived_at).sort(byPosition);
   const orphans = projects.filter((p) => !areas.some((a) => a.id === p.area_id));
@@ -245,11 +249,12 @@ function Sidebar() {
         <NavLink to="/archive" className={navClass}><ArchiveIcon /> Archive</NavLink>
       </nav>
       <div className="mt-4 flex-1 overflow-y-auto border-t border-line px-4 pt-3 pb-4">
+        <div className="relative flex items-center">
         <NavLink
           to="/realms"
           end
           className={({ isActive }) =>
-            `relative flex items-center gap-3 rounded-sm text-base font-bold ${isActive ? 'text-accent' : 'text-fg hover:text-accent'}`
+            `relative flex flex-1 items-center gap-3 rounded-sm text-base font-bold ${isActive ? 'text-accent' : 'text-fg hover:text-accent'}`
           }
           style={{ height: SIDE_ROOT_H }}
         >
@@ -257,13 +262,16 @@ function Sidebar() {
           Realms
           {areas.length > 0 && <Stem x={NODE_SIZE.compactRoot / 2} y={SIDE_ROOT_H / 2} />}
         </NavLink>
+        <RealmExpansionAll ids={areas.filter((a) => projects.some((p) => p.area_id === a.id)).map((a) => a.id)} />
+        </div>
         <Children x={NODE_SIZE.compactRoot / 2}>
           {areas.map((area, i) => {
             const mine = projects.filter((p) => p.area_id === area.id);
+            const expanded = !collapsed.has(area.id);
             return (
               <Branch key={area.id} last={i === areas.length - 1} y={SIDE_REALM_H / 2} indent={18}>
-                <SidebarRealm area={area} hasChildren={mine.length > 0} />
-                {mine.length > 0 && (
+                <SidebarRealm area={area} hasChildren={mine.length > 0} expanded={expanded} onToggle={() => toggle(area.id)} />
+                {mine.length > 0 && expanded && (
                   <Children x={NODE_SIZE.compactRealm / 2}>
                     {mine.map((p, j) => (
                       <Branch key={p.id} last={j === mine.length - 1} y={SIDE_PROJECT_H / 2} indent={16} color={area.color}>
@@ -302,23 +310,24 @@ function Sidebar() {
 }
 
 /** A realm node in the sidebar; also a drop target for Inbox tasks. */
-function SidebarRealm({ area, hasChildren }: { area: Area; hasChildren: boolean }) {
+function SidebarRealm({ area, hasChildren, expanded, onToggle }: { area: Area; hasChildren: boolean; expanded: boolean; onToggle: () => void }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `realm-side:${area.id}`,
     data: { type: 'realm', areaId: area.id, name: area.name } satisfies RealmDropData,
   });
   return (
-    <div ref={setNodeRef} className="relative" style={{ height: SIDE_REALM_H }}>
+    <div ref={setNodeRef} className="relative flex items-center" style={{ height: SIDE_REALM_H }}>
       <NavLink
         to={`/realms/${area.id}`}
         className={({ isActive }) =>
-          `flex h-full items-center gap-3 rounded-sm pr-2 text-base font-semibold ${isOver ? 'bg-accent/20 text-fg outline-2 outline-accent' : isActive ? 'bg-surface-2 text-fg' : 'text-fg-2 hover:text-fg'}`
+          `flex h-full min-w-0 flex-1 items-center gap-3 rounded-sm pr-2 text-base font-semibold ${isOver ? 'bg-accent/20 text-fg outline-2 outline-accent' : isActive ? 'bg-surface-2 text-fg' : 'text-fg-2 hover:text-fg'}`
         }
       >
         <TreeNode kind="realm" color={area.color} compact />
         <span className="truncate">{area.name}</span>
       </NavLink>
-      {hasChildren && <Stem x={NODE_SIZE.compactRealm / 2} y={SIDE_REALM_H / 2} color={area.color} />}
+      {hasChildren && <RealmToggle name={area.name} expanded={expanded} onClick={onToggle} />}
+      {hasChildren && expanded && <Stem x={NODE_SIZE.compactRealm / 2} y={SIDE_REALM_H / 2} color={area.color} />}
     </div>
   );
 }
