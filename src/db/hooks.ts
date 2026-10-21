@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { currentUserId } from './mutate';
-import type { Area, BoardColumn, Label, Project, Settings, Step, Task } from './types';
+import type { Area, BoardColumn, BusPurchase, Label, Project, Settings, Step, Task, WorkDay } from './types';
 import { byPosition } from '../lib/position';
 
 // Live views over the local database. They re-render whenever the underlying
@@ -136,4 +136,13 @@ export function useProjectProgress(): Map<string, [number, number]> | undefined 
 
 export function usePendingCount(): number {
   return useLiveQuery(() => db.outbox.count()) ?? 0;
+}
+
+/** Every work log day, oldest first. */
+export function useWorkDays(): WorkDay[] | undefined {
+  return useLiveQuery(async () => (await db.work_days.orderBy('day').toArray()).filter(alive));
+}
+
+export function useBusPurchases(): BusPurchase[] | undefined {
+  return useLiveQuery(async () => (await db.bus_purchases.toArray()).filter(alive));
 }

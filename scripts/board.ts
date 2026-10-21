@@ -4,56 +4,14 @@
 //
 //   npm run board -- help
 //
-// Credentials: LULA_EMAIL and LULA_PASSWORD in .env.local (gitignored). The
-// session is cached in .board-session.local so later runs don't sign in again.
+// Signs in through scripts/session.ts (credentials in .env.local).
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
 import { byPosition, keyAtEnd } from '../src/lib/position';
 import { nextDue } from '../src/lib/recurrence';
 import { titleCase } from '../src/lib/titleCase';
 import type { Area, BoardColumn, Label, Project, Step, Task } from '../src/db/types';
-
-process.loadEnvFile('.env');
-if (existsSync('.env.local')) process.loadEnvFile('.env.local');
-
-const SESSION_FILE = '.board-session.local';
-const fileStore = {
-  getItem: (key: string) => {
-    if (!existsSync(SESSION_FILE)) return null;
-    return (JSON.parse(readFileSync(SESSION_FILE, 'utf8')) as Record<string, string>)[key] ?? null;
-  },
-  setItem: (key: string, value: string) => {
-    const all = existsSync(SESSION_FILE) ? JSON.parse(readFileSync(SESSION_FILE, 'utf8')) : {};
-    writeFileSync(SESSION_FILE, JSON.stringify({ ...all, [key]: value }));
-  },
-  removeItem: (key: string) => {
-    if (!existsSync(SESSION_FILE)) return;
-    const all = JSON.parse(readFileSync(SESSION_FILE, 'utf8'));
-    delete all[key];
-    writeFileSync(SESSION_FILE, JSON.stringify(all));
-  },
-};
-
-const supabase = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_PUBLISHABLE_KEY!, {
-  auth: { storage: fileStore, persistSession: true, autoRefreshToken: false, detectSessionInUrl: false },
-});
-
-function fail(message: string): never {
-  console.error(message);
-  process.exit(1);
-}
-
-async function signIn() {
-  const { data } = await supabase.auth.getSession();
-  if (data.session) return;
-  const email = process.env.LULA_EMAIL;
-  const password = process.env.LULA_PASSWORD;
-  if (!email || !password) fail('Add LULA_EMAIL and LULA_PASSWORD to .env.local, then try again.');
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) fail(`Sign-in failed: ${error.message}`);
-}
+import { fail, signIn, supabase } from './session';
 
 async function rows<T>(table: string, build?: (q: any) => any): Promise<T[]> {
   let q = supabase.from(table).select('*').is('deleted_at', null);

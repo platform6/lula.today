@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   Area,
   BoardColumn,
+  BusPurchase,
   Label,
   OutboxEntry,
   Project,
@@ -11,6 +12,7 @@ import type {
   TableRows,
   Task,
   TaskLabel,
+  WorkDay,
 } from './types';
 
 export class LulaDB extends Dexie {
@@ -22,6 +24,8 @@ export class LulaDB extends Dexie {
   labels!: Table<Label, string>;
   task_labels!: Table<TaskLabel, [string, string]>;
   settings!: Table<Settings, string>;
+  work_days!: Table<WorkDay, string>;
+  bus_purchases!: Table<BusPurchase, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<{ key: string; value: unknown }, string>;
 
@@ -39,6 +43,10 @@ export class LulaDB extends Dexie {
       outbox: '++seq, table',
       meta: 'key',
     });
+    this.version(2).stores({
+      work_days: 'id, day',
+      bus_purchases: 'id',
+    });
   }
 }
 
@@ -54,6 +62,8 @@ export const SYNC_TABLES: SyncTable[] = [
   'steps',
   'labels',
   'task_labels',
+  'work_days',
+  'bus_purchases',
 ];
 
 /** Server-side conflict target for upserts. */
@@ -66,6 +76,8 @@ export const CONFLICT_TARGET: Record<SyncTable, string> = {
   labels: 'id',
   task_labels: 'task_id,label_id',
   settings: 'user_id',
+  work_days: 'id',
+  bus_purchases: 'id',
 };
 
 /** Stable string key for a row, used by the outbox. */

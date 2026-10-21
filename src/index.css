@@ -253,6 +253,18 @@ textarea {
   }
 }
 
+/* Printing (the work log's year sheet): plain white paper, one landscape page. */
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+  html,
+  body {
+    background: #fff;
+  }
+}
+
 .pt-safe {
   padding-top: env(safe-area-inset-top);
 }

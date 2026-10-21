@@ -110,6 +110,20 @@ export interface Settings extends SyncMeta {
   theme: 'dark' | 'light';
 }
 
+export type WorkStatus = 'office' | 'remote' | 'off' | 'holiday' | 'jury';
+
+/** One day of the work log (date as YYYY-MM-DD); its id is derived from the date. */
+export interface WorkDay extends Row {
+  day: string;
+  status: WorkStatus;
+}
+
+/** Bus tickets bought (a 10-pack, or the starting balance when tracking began). */
+export interface BusPurchase extends Row {
+  bought_on: string;
+  tickets: number;
+}
+
 export interface TableRows {
   areas: Area;
   projects: Project;
@@ -119,6 +133,8 @@ export interface TableRows {
   labels: Label;
   task_labels: TaskLabel;
   settings: Settings;
+  work_days: WorkDay;
+  bus_purchases: BusPurchase;
 }
 
 export type SyncTable = keyof TableRows;

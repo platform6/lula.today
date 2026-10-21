@@ -11,12 +11,15 @@ import type {
   Settings,
   Step,
   Task,
+  WorkStatus,
 } from './types';
 import { byPosition, keyAtEnd, keyAtIndex, keyAtStart, keyBetween } from '../lib/position';
 import { stableUuid } from '../lib/ids';
 import { titleCase } from '../lib/titleCase';
 import { emitNotice, emitTaskCompleted } from '../lib/celebrate';
 import { nextDue } from '../lib/recurrence';
+import { PACK_SIZE, workDayId } from '../lib/worklog';
+import { todayKey } from '../lib/dates';
 
 export const DEFAULT_COLUMNS: ColumnTemplate[] = [
   { name: 'Backlog', is_done: false },
@@ -573,6 +576,31 @@ export async function setTaskLabel(taskId: string, labelId: string, on: boolean)
     updated_at: t,
     deleted_at: on ? null : t,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Work log
+// ---------------------------------------------------------------------------
+
+/** Mark where a day (YYYY-MM-DD) was worked, or clear it with null. */
+export async function setWorkDay(day: string, status: WorkStatus | null): Promise<void> {
+  const id = await workDayId(currentUserId(), day);
+  const existing = await db.work_days.get(id);
+  if (status === null) {
+    if (existing && !existing.deleted_at) await patch('work_days', id, { deleted_at: now() });
+    return;
+  }
+  if (existing) {
+    await patch('work_days', id, { status, deleted_at: null });
+    return;
+  }
+  const t = now();
+  await put('work_days', { id, user_id: currentUserId(), day, status, created_at: t, updated_at: t, deleted_at: null });
+}
+
+/** Record bought bus tickets (a 10-pack unless told otherwise). */
+export async function addBusPurchase(tickets = PACK_SIZE, on = todayKey()): Promise<void> {
+  await put('bus_purchases', { ...newRow(), bought_on: on, tickets });
 }
 
 // ---------------------------------------------------------------------------

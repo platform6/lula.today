@@ -13,6 +13,8 @@ import { ProjectSettings } from './pages/ProjectSettings';
 import { AllTasks } from './pages/AllTasks';
 import { Search } from './pages/Search';
 import { Calendar } from './pages/Calendar';
+import { WorkLog } from './pages/WorkLog';
+import { WorkLogPrint } from './pages/WorkLogPrint';
 import { Archive } from './pages/Archive';
 import { Settings } from './pages/Settings';
 
@@ -31,6 +33,8 @@ export function App() {
 
   return (
     <Routes>
+      {/* paper layout, outside the app shell */}
+      <Route path="work/print/:year" element={<WorkLogPrint />} />
       <Route element={<Layout />}>
         <Route index element={<Today />} />
         <Route path="inbox" element={<Inbox />} />
@@ -45,6 +49,7 @@ export function App() {
         <Route path="tasks" element={<AllTasks />} />
         <Route path="search" element={<Search />} />
         <Route path="calendar" element={<Calendar />} />
+        <Route path="work" element={<WorkLog />} />
         <Route path="archive" element={<Archive />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

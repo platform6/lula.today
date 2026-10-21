@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { useAllTasks, useInboxCount } from '../db/hooks';
-import { CalendarIcon, InboxIcon } from '../components/icons';
+import { useAllTasks, useBusPurchases, useInboxCount, useWorkDays } from '../db/hooks';
+import { BriefcaseIcon, CalendarIcon, InboxIcon } from '../components/icons';
+import { LOW_TICKETS, statusInfo, ticketsLeft } from '../lib/worklog';
 import { BrandLockup } from '../components/Brand';
 import type { Task } from '../db/types';
 import { addDays, dayKey, isOverdue, todayKey } from '../lib/dates';
@@ -46,6 +47,7 @@ export function Today() {
         }
       />
       <p className="px-4 pt-4 text-base text-fg-2 italic">{date}</p>
+      <WorkToday />
       {inboxCount > 0 && (
         <Link to="/inbox" className="card mx-4 mt-4 flex min-h-14 items-center gap-3 border-2 border-accent px-4 py-3 hover:bg-surface-2">
           <InboxIcon />
@@ -59,6 +61,40 @@ export function Today() {
       <Section title="Today" tasks={dueToday} empty="Nothing due today." />
       <Section title="Next 7 days" tasks={upcoming} empty="Nothing due this week." />
     </div>
+  );
+}
+
+/** Today's work log entry and bus tickets at a glance; opens the Work log. */
+function WorkToday() {
+  const days = useWorkDays();
+  const purchases = useBusPurchases();
+  if (!days || !purchases) return null;
+  // Nothing to show until the work log is in use.
+  if (days.length === 0 && purchases.length === 0) {
+    return (
+      <Link to="/work" className="mx-4 mt-3 flex min-h-11 items-center gap-2 text-sm font-semibold text-fg-2 hover:text-fg">
+        <BriefcaseIcon width={18} height={18} /> Work log ›
+      </Link>
+    );
+  }
+  const today = todayKey();
+  const status = days.find((d) => d.day === today)?.status;
+  const left = ticketsLeft(purchases, days, today);
+  const low = left <= LOW_TICKETS;
+  return (
+    <Link
+      to="/work"
+      className={`card mx-4 mt-3 flex min-h-12 items-center gap-3 border-2 px-4 py-2 hover:bg-surface-2 ${low ? 'border-warn' : 'border-line'}`}
+    >
+      <BriefcaseIcon width={20} height={20} className="shrink-0 text-fg-2" />
+      <span className="min-w-0 flex-1 text-sm">
+        <b className="text-fg">{status ? statusInfo(status).label : 'Not logged yet'}</b>
+        <span className={`block ${low ? 'font-semibold text-warn' : 'text-fg-2'}`}>
+          {Math.max(0, left)} bus ticket{left === 1 ? '' : 's'} left{low ? ': buy a 10-pack' : ''}
+        </span>
+      </span>
+      <span className="kicker">Work log ›</span>
+    </Link>
   );
 }
 

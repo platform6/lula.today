@@ -20,7 +20,7 @@ import type { Area } from '../db/types';
 import { onNotice } from '../lib/celebrate';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
-import { ArchiveIcon, CalendarIcon, InboxIcon, ListIcon, NodesIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
+import { ArchiveIcon, BriefcaseIcon, CalendarIcon, InboxIcon, ListIcon, NodesIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
 import { BrandLockup } from './Brand';
 import { Celebration } from './Celebration';
 import { ConfirmCompleteProvider } from './ConfirmComplete';
@@ -235,6 +235,7 @@ function Sidebar() {
       <nav className="flex flex-col gap-0.5 px-2">
         <NavLink to="/" end className={navClass}><SunIcon /> Today</NavLink>
         <NavLink to="/calendar" className={navClass}><CalendarIcon /> Calendar</NavLink>
+        <NavLink to="/work" className={navClass}><BriefcaseIcon /> Work log</NavLink>
         <NavLink to="/inbox" className={navClass}>
           <InboxIcon /> <span className="flex-1">Inbox</span>
           <CountBadge count={inboxCount} />
@@ -341,8 +342,8 @@ function BottomNav() {
   const { pathname } = useLocation();
   // Realm pages and the boards inside them all belong to the Realms tab.
   const inRealms = pathname.startsWith('/realms') || pathname.startsWith('/projects');
-  // On phones the calendar is reached from Today, so it belongs to that tab.
-  const inToday = pathname === '/' || pathname.startsWith('/calendar');
+  // On phones the calendar and work log are reached from Today, so they belong to that tab.
+  const inToday = pathname === '/' || pathname.startsWith('/calendar') || pathname.startsWith('/work');
   return (
     <nav className="pb-tabbar fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
       <NavLink to="/" end className={() => tabClass(inToday)}><SunIcon {...tabIcon} /> Today</NavLink>

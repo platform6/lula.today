@@ -19,6 +19,8 @@
   "include": [
     "vite.config.ts",
     "pwa-assets.config.ts",
-    "scripts/board.ts"
+    "scripts/board.ts",
+    "scripts/session.ts",
+    "scripts/import-worklog.ts"
   ]
 }
