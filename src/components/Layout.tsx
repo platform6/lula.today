@@ -17,6 +17,7 @@ import {
 import { moveTaskToRealm } from '../db/actions';
 import { useAreas, useInboxCount, useProjects, useSettings } from '../db/hooks';
 import type { Area } from '../db/types';
+import { onNotice } from '../lib/celebrate';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { ArchiveIcon, InboxIcon, ListIcon, NodesIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
@@ -93,6 +94,9 @@ export function Layout() {
     setToast(text);
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   };
+
+  // e.g. "Done · next one Wed, Oct 28" when a recurring task moves on
+  useEffect(() => onNotice(showToast), []);
 
   const onDragStart = ({ active }: DragStartEvent) => {
     const data = active.data.current as InboxDragData | undefined;

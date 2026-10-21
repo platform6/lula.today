@@ -7,6 +7,7 @@ import type {
   Label,
   Priority,
   Project,
+  Recurrence,
   Settings,
   Step,
   Task,
@@ -14,7 +15,8 @@ import type {
 import { byPosition, keyAtEnd, keyAtIndex, keyAtStart, keyBetween } from '../lib/position';
 import { stableUuid } from '../lib/ids';
 import { titleCase } from '../lib/titleCase';
-import { emitTaskCompleted } from '../lib/celebrate';
+import { emitNotice, emitTaskCompleted } from '../lib/celebrate';
+import { nextDue } from '../lib/recurrence';
 
 export const DEFAULT_COLUMNS: ColumnTemplate[] = [
   { name: 'Backlog', is_done: false },
@@ -346,6 +348,7 @@ export async function createTask(input: {
     due_has_time: input.due_has_time ?? false,
     completed_at: column.is_done ? t : null,
     archived_at: null,
+    recurrence: null,
     position: input.atTop ? keyAtStart(siblings) : keyAtEnd(siblings),
   };
   await put('tasks', task);
@@ -358,10 +361,19 @@ export const updateTask = (id: string, changes: Partial<Task>) =>
 /** Move a task to `index` within a column (index counts tasks excluding the moving one). */
 export async function moveTask(taskId: string, columnId: string, index?: number): Promise<void> {
   let justCompleted = null as string | null; // set inside the transaction callback
+  let notice = null as string | null;
   await writeTx(async () => {
     const task = await db.tasks.get(taskId);
     const column = await db.board_columns.get(columnId);
     if (!task || !column) return;
+    if (column.is_done && !task.completed_at && task.recurrence) {
+      // A recurring task comes back with its next due date instead of staying done.
+      notice = await advanceRecurring(task, column);
+      if (notice !== null) {
+        justCompleted = taskId;
+        return;
+      }
+    }
     const siblings = await tasksInColumn(columnId, taskId);
     const position = keyAtIndex(siblings, index ?? siblings.length);
     const completed_at = completedFor(task, column, now());
@@ -370,10 +382,51 @@ export async function moveTask(taskId: string, columnId: string, index?: number)
       project_id: column.project_id,
       position,
       completed_at,
+      ...(task.recurrence && completed_at && !task.completed_at ? { recurrence: finishedOne(task.recurrence) } : {}),
     });
     if (!task.completed_at && completed_at) justCompleted = taskId;
   });
   if (justCompleted) emitTaskCompleted(justCompleted);
+  if (notice) emitNotice(notice);
+}
+
+const finishedOne = (rule: Recurrence): Recurrence => ({ ...rule, done: (rule.done ?? 0) + 1 });
+
+/**
+ * Move a recurring task on to its next due date, in an open column of `toward`'s
+ * project (where it was, if that column is open). Returns the notice to show, or
+ * null when the series has ended and the task should simply complete.
+ */
+async function advanceRecurring(task: Task, toward: BoardColumn | null, skipped = false): Promise<string | null> {
+  const rule = task.recurrence!;
+  const next = nextDue(rule, task.due_at);
+  if (!next) return null;
+  const projectId = toward?.project_id ?? task.project_id;
+  const columns = await columnsOf(projectId);
+  const current = columns.find((c) => c.id === task.column_id && !c.is_done);
+  const column = current ?? columns.find((c) => !c.is_done) ?? null;
+  await patch('tasks', task.id, {
+    due_at: next.toISOString(),
+    recurrence: finishedOne(rule),
+    ...(column && column.id !== task.column_id
+      ? { column_id: column.id, project_id: projectId, position: keyAtEnd(await tasksInColumn(column.id, task.id)) }
+      : {}),
+  });
+  const when = next.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return `${skipped ? 'Skipped' : 'Done'} · next one ${when}`;
+}
+
+/** Skip the current occurrence of a recurring task without completing it. */
+export async function skipOccurrence(taskId: string): Promise<void> {
+  let notice = null as string | null;
+  await writeTx(async () => {
+    const task = await db.tasks.get(taskId);
+    if (!task?.recurrence || task.completed_at) return;
+    notice = await advanceRecurring(task, null, true);
+    // Skipping the last one ends the series.
+    if (notice === null) await patch('tasks', taskId, { completed_at: now(), recurrence: finishedOne(task.recurrence) });
+  });
+  if (notice) emitNotice(notice);
 }
 
 /** Move a task to another project, landing in that project's first open column. */
@@ -399,6 +452,17 @@ export async function setTaskCompleted(task: Task, completed: boolean): Promise<
     await moveTask(task.id, target.id);
   } else {
     // No suitable column (e.g. a project with no done column): just set the flag.
+    if (completed && !task.completed_at && task.recurrence) {
+      let notice = null as string | null;
+      await writeTx(async () => {
+        notice = await advanceRecurring(task, null);
+      });
+      if (notice) {
+        emitTaskCompleted(task.id);
+        emitNotice(notice);
+        return;
+      }
+    }
     await patch('tasks', task.id, { completed_at: completed ? now() : null });
     if (completed && !task.completed_at) emitTaskCompleted(task.id);
   }

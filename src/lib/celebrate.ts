@@ -14,3 +14,18 @@ export function onTaskCompleted(fn: Listener): () => void {
 export function emitTaskCompleted(taskId: string) {
   listeners.forEach((fn) => fn(taskId));
 }
+
+// Short status messages from the data layer (e.g. "Done · next one Wed, Oct 28"),
+// shown as the app's toast.
+type NoticeListener = (text: string) => void;
+
+const noticeListeners = new Set<NoticeListener>();
+
+export function onNotice(fn: NoticeListener): () => void {
+  noticeListeners.add(fn);
+  return () => noticeListeners.delete(fn);
+}
+
+export function emitNotice(text: string) {
+  noticeListeners.forEach((fn) => fn(text));
+}

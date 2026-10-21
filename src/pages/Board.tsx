@@ -122,7 +122,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
     const completing = !!task && !task.completed_at && !!columns?.find((c) => c.id === target)?.is_done;
     void (async () => {
       // the card snaps back while the dialog is open; it moves once confirmed
-      if (completing && !(await confirmComplete(task.title))) return;
+      if (completing && !(await confirmComplete(task))) return;
       await moveTask(String(active.id), target, index);
     })();
   }

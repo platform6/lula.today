@@ -24,7 +24,10 @@ import {
   moveTask,
   setColumnDone,
   setTaskCompleted,
+  skipOccurrence,
 } from './actions';
+import { presetRule } from '../lib/recurrence';
+import { dayKey } from '../lib/dates';
 
 beforeEach(async () => {
   await clearLocalData();
@@ -254,6 +257,46 @@ describe('completion event', () => {
     } finally {
       off();
     }
+  });
+});
+
+describe('recurring tasks', () => {
+  it('come back open with the next due date instead of completing', async () => {
+    const p = await createProject({ name: 'P', area_id: null });
+    const [backlog, , , done] = await columnsOf(p.id);
+    const today = new Date();
+    const due = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const t = await createTask({ title: 'Water', project_id: p.id, due_at: due.toISOString() });
+    await updateTask(t.id, { recurrence: presetRule('weekly', due) });
+    const fired: string[] = [];
+    const off = onTaskCompleted((id) => fired.push(id));
+
+    await moveTask(t.id, done.id);
+    off();
+    const after = (await db.tasks.get(t.id))!;
+    expect(after.completed_at).toBeNull();
+    expect(after.column_id).toBe(backlog.id);
+    expect(dayKey(new Date(after.due_at!))).toBe(dayKey(new Date(due.getFullYear(), due.getMonth(), due.getDate() + 7)));
+    expect(after.recurrence!.done).toBe(1);
+    expect(fired).toEqual([t.id]);
+  });
+
+  it('complete for good after the last occurrence, and can skip one', async () => {
+    const p = await createProject({ name: 'P', area_id: null });
+    const [, , , done] = await columnsOf(p.id);
+    const due = new Date();
+    const t = await createTask({ title: 'Twice', project_id: p.id, due_at: due.toISOString() });
+    await updateTask(t.id, { recurrence: { ...presetRule('daily', due), count: 2 } });
+
+    await skipOccurrence(t.id);
+    const skipped = (await db.tasks.get(t.id))!;
+    expect(skipped.completed_at).toBeNull();
+    expect(skipped.recurrence!.done).toBe(1);
+
+    await moveTask(t.id, done.id);
+    const finished = (await db.tasks.get(t.id))!;
+    expect(finished.completed_at).toBeTruthy();
+    expect(finished.column_id).toBe(done.id);
   });
 });
 

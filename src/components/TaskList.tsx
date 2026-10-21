@@ -101,7 +101,7 @@ function TaskRow({
       <button
         className="group -m-[9px] grid h-11 w-11 shrink-0 place-items-center"
         onClick={async () => {
-          if (!done && !(await confirmComplete(task.title))) return;
+          if (!done && !(await confirmComplete(task))) return;
           await setTaskCompleted(task, !done);
         }}
         aria-label={done ? 'Mark not done' : 'Mark done'}

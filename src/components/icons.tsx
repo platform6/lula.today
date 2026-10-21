@@ -28,6 +28,7 @@ export const FolderIcon = (p: P) => <Icon {...p}><path d="M4 20h16a2 2 0 0 0 2-2
 export const ListIcon = (p: P) => <Icon {...p}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></Icon>;
 export const SearchIcon = (p: P) => <Icon {...p}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></Icon>;
 export const ArchiveIcon = (p: P) => <Icon {...p}><rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4" /></Icon>;
+export const RepeatIcon = (p: P) => <Icon {...p}><path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3" /></Icon>;
 export const SlidersIcon = (p: P) => <Icon {...p}><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4" /></Icon>;
 export const CheckIcon = (p: P) => <Icon {...p}><path d="M20 6 9 17l-5-5" /></Icon>;
 export const XIcon = (p: P) => <Icon {...p}><path d="M18 6 6 18M6 6l12 12" /></Icon>;
@@ -35,6 +36,8 @@ export const LinkIcon = (p: P) => <Icon {...p}><path d="M10 13a5 5 0 0 0 7.5.5l3
 export const UpIcon = (p: P) => <Icon {...p}><path d="m18 15-6-6-6 6" /></Icon>;
 export const DownIcon = (p: P) => <Icon {...p}><path d="m6 9 6 6 6-6" /></Icon>;
 export const BackIcon = (p: P) => <Icon {...p}><path d="m15 18-6-6 6-6" /></Icon>;
+export const ChevronRightIcon = (p: P) => <Icon {...p}><path d="m9 18 6-6-6-6" /></Icon>;
+export const MinusIcon = (p: P) => <Icon {...p}><path d="M5 12h14" /></Icon>;
 /** Realms: a root node branching to child nodes. */
 export const NodesIcon = (p: P) => <Icon {...p}><circle cx="6" cy="5" r="2.5" /><circle cx="18" cy="12" r="2.5" /><circle cx="18" cy="20" r="2" /><path d="M6 7.5V18a2 2 0 0 0 2 2h8M6 12h9.5" /></Icon>;
 export const GripIcon = (p: P) => <Icon {...p}><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></Icon>;

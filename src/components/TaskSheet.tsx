@@ -2,18 +2,20 @@ import { useState } from 'react';
 import {
   addStep,
   archiveTask,
+  createProject,
   deleteStep,
   deleteTask,
   moveStep,
   moveTask,
   moveTaskToProject,
   restoreTask,
+  setTaskCompleted,
   setTaskLabel,
   tagTask,
   updateStep,
   updateTask,
 } from '../db/actions';
-import { useColumns, useLabels, useProject, useSteps, useTask, useTaskLabelMap } from '../db/hooks';
+import { useAreas, useColumns, useLabels, useProject, useSteps, useTask, useTaskLabelMap } from '../db/hooks';
 import { ProjectSelect } from './ProjectSelect';
 import { DateField } from './DateField';
 import { COLORS } from './ColorPicker';
@@ -21,7 +23,8 @@ import { useConfirmComplete } from './ConfirmComplete';
 import type { Priority, Step, Task } from '../db/types';
 import { dueDateInput, dueTimeInput, toDueAt } from '../lib/dates';
 import { PRIORITY_LABELS, isArchived, normalizeUrl } from '../lib/tasks';
-import { DownIcon, LinkIcon, PlusIcon, UpIcon, XIcon } from './icons';
+import { CheckIcon, DownIcon, LinkIcon, PlusIcon, UpIcon, XIcon } from './icons';
+import { RepeatField } from './RepeatPicker';
 import { Sheet } from './Sheet';
 
 export function TaskSheet({ id, onClose }: { id: string; onClose: () => void }) {
@@ -49,8 +52,10 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
 
   async function changeColumn(columnId: string) {
     const completing = !task.completed_at && !!columns.find((c) => c.id === columnId)?.is_done;
-    if (completing && !(await confirmComplete(task.title))) return;
+    if (completing && !(await confirmComplete(task))) return;
     await moveTask(task.id, columnId);
+    // A completed task is finished with: close it, as the celebration plays.
+    if (completing) onClose();
   }
 
   // Fields save as you leave them; blurring the focused one commits it before closing.
@@ -59,14 +64,27 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
     onClose();
   };
 
+  async function complete() {
+    if (!(await confirmComplete(task))) return;
+    saveAndClose();
+    await setTaskCompleted(task, true);
+  }
+
   return (
     <Sheet
       title={archived ? 'Archived task' : 'Task'}
       onClose={onClose}
       footer={
-        <button type="button" className="btn-primary mb-2 min-h-10 px-8 text-sm" onClick={saveAndClose}>
-          Save
-        </button>
+        <div className="mb-2 flex gap-2">
+          {!task.completed_at && !archived && (
+            <button type="button" className="btn-outline min-h-10 gap-1.5 px-5 text-sm" onClick={() => void complete()}>
+              <CheckIcon width={18} height={18} strokeWidth={3} /> Complete
+            </button>
+          )}
+          <button type="button" className="btn-primary min-h-10 px-8 text-sm" onClick={saveAndClose}>
+            Save
+          </button>
+        </div>
       }
     >
       <div className="flex flex-col gap-4 p-4">
@@ -83,8 +101,9 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
-            <span className="field-label">Where</span>
-            <ProjectSelect value={task.project_id} onChange={(id) => void moveTaskToProject(task.id, id)} ariaLabel="Where" />
+            <span className="field-label">Realm | Project</span>
+            <ProjectSelect value={task.project_id} onChange={(id) => void moveTaskToProject(task.id, id)} ariaLabel="Realm or project" />
+            <NewProjectForm task={task} />
           </div>
           <div className={inInbox ? 'hidden' : ''}>
             <label className="field-label">Column</label>
@@ -107,6 +126,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
             </select>
           </div>
           <DueFields task={task} />
+          {!archived && <RepeatField task={task} />}
         </div>
 
         <div>
@@ -272,6 +292,70 @@ function StepRow({ step, first, last }: { step: Step; first: boolean; last: bool
         <XIcon width={22} height={22} />
       </button>
     </li>
+  );
+}
+
+/** Create a project from inside a task, and move the task into it. */
+function NewProjectForm({ task }: { task: Task }) {
+  const areas = useAreas() ?? [];
+  const currentArea = useProject(task.project_id)?.area_id;
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [areaId, setAreaId] = useState('');
+
+  if (!open) {
+    return (
+      <button type="button" className="btn-ghost mt-1 -ml-3 min-h-10 gap-1.5 text-sm" onClick={() => setOpen(true)}>
+        <PlusIcon width={16} height={16} /> New project
+      </button>
+    );
+  }
+  if (areas.length === 0) {
+    return <p className="mt-2 text-sm text-fg-2">Create a realm first (Realms tab), then add projects to it.</p>;
+  }
+
+  const realm = areaId || (areas.some((a) => a.id === currentArea) ? currentArea! : areas[0].id);
+  const close = () => {
+    setOpen(false);
+    setName('');
+    setAreaId('');
+  };
+
+  return (
+    <form
+      className="mt-2 flex flex-col gap-2 rounded-sm border-2 border-line-strong p-3"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const v = name.trim();
+        if (!v) return;
+        const project = await createProject({ name: v, area_id: realm });
+        await moveTaskToProject(task.id, project.id);
+        close();
+      }}
+    >
+      <select className="input" value={realm} onChange={(e) => setAreaId(e.target.value)} aria-label="Realm">
+        {areas.map((a) => (
+          <option key={a.id} value={a.id}>{a.name}</option>
+        ))}
+      </select>
+      <input
+        className="input"
+        placeholder="Project name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        enterKeyHint="done"
+        aria-label="Project name"
+        autoFocus
+      />
+      <div className="flex justify-end gap-2">
+        <button type="button" className="btn-ghost min-h-10 text-sm" onClick={close}>
+          Cancel
+        </button>
+        <button className="btn-primary min-h-10 px-4 text-sm" disabled={!name.trim()}>
+          Create and move
+        </button>
+      </div>
+    </form>
   );
 }
 

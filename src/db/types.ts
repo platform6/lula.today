@@ -42,6 +42,28 @@ export interface BoardColumn extends Row {
 
 export type Priority = 0 | 1 | 2 | 3;
 
+export type RepeatPreset = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+
+/** A repeat rule (tasks.recurrence, jsonb). Date math lives in lib/recurrence.ts. */
+export interface Recurrence {
+  /** Which picker option made the rule; the rule fields are what count. */
+  preset: RepeatPreset;
+  unit: 'day' | 'week' | 'month' | 'year';
+  every: number;
+  /** Weekly rules: weekdays to land on, 0 = Sunday. */
+  days?: number[];
+  /** Monthly rules: the same day number, or the same weekday occurrence ("3rd Wednesday"). */
+  month_mode?: 'day' | 'nth';
+  /** Count the next one from the due date (fixed schedule) or from completion. */
+  from: 'due' | 'done';
+  /** Last date (YYYY-MM-DD) an occurrence may fall on. */
+  until?: string | null;
+  /** Total occurrences, when the series ends after a number of times. */
+  count?: number | null;
+  /** Occurrences completed or skipped so far. */
+  done?: number;
+}
+
 export interface Task extends Row {
   project_id: string;
   column_id: string;
@@ -54,6 +76,8 @@ export interface Task extends Row {
   completed_at: string | null;
   archived_at: string | null;
   position: string;
+  /** Absent on rows synced before recurrence existed. */
+  recurrence?: Recurrence | null;
 }
 
 export interface Step extends Row {
