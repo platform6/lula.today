@@ -10,12 +10,42 @@ import { XIcon } from '../components/icons';
 
 type Status = 'open' | 'done' | 'all';
 
-// Due date first (undated last), then priority, then newest.
-function compare(a: Task, b: Task) {
+const newest = (a: Task, b: Task) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0);
+const byPriority = (a: Task, b: Task) => b.priority - a.priority;
+// Undated tasks always go last.
+const byDue = (a: Task, b: Task) => {
   if (a.due_at && b.due_at && a.due_at !== b.due_at) return a.due_at < b.due_at ? -1 : 1;
-  if (!!a.due_at !== !!b.due_at) return a.due_at ? -1 : 1;
-  if (a.priority !== b.priority) return b.priority - a.priority;
-  return a.created_at < b.created_at ? 1 : -1;
+  return !!a.due_at === !!b.due_at ? 0 : a.due_at ? -1 : 1;
+};
+const then =
+  (...cmps: ((a: Task, b: Task) => number)[]) =>
+  (a: Task, b: Task) => {
+    for (const c of cmps) {
+      const r = c(a, b);
+      if (r) return r;
+    }
+    return 0;
+  };
+
+const SORTS = {
+  due: { label: 'Due date', compare: then(byDue, byPriority, newest) },
+  priority: { label: 'Priority', compare: then(byPriority, byDue, newest) },
+  newest: { label: 'Newest', compare: newest },
+  oldest: { label: 'Oldest', compare: (a: Task, b: Task) => newest(b, a) },
+  updated: { label: 'Recently changed', compare: (a: Task, b: Task) => (a.updated_at < b.updated_at ? 1 : a.updated_at > b.updated_at ? -1 : 0) },
+  title: { label: 'Title (A–Z)', compare: (a: Task, b: Task) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }) },
+};
+type SortKey = keyof typeof SORTS;
+
+const SORT_KEY = 'lula.allTasksSort';
+function readSort(): SortKey {
+  try {
+    const v = localStorage.getItem(SORT_KEY);
+    if (v && v in SORTS) return v as SortKey;
+  } catch {
+    // storage unavailable: default order
+  }
+  return 'due';
 }
 
 export function AllTasks() {
@@ -41,6 +71,15 @@ export function AllTasks() {
     );
   const [minPriority, setMinPriority] = useState(0);
   const [status, setStatus] = useState<Status>('open');
+  const [sort, setSortState] = useState<SortKey>(readSort);
+  const setSort = (next: SortKey) => {
+    setSortState(next);
+    try {
+      localStorage.setItem(SORT_KEY, next); // remembered per device
+    } catch {
+      // storage unavailable; the choice still applies until you leave
+    }
+  };
 
   if (!tasks) return null;
 
@@ -57,7 +96,7 @@ export function AllTasks() {
     .filter((t) => !projectId || t.project_id === projectId)
     .filter((t) => !labelId || (labelMap?.get(t.id) ?? []).includes(labelId))
     .filter((t) => t.priority >= minPriority)
-    .sort(compare);
+    .sort(SORTS[sort].compare);
 
   return (
     <div>
@@ -114,7 +153,23 @@ export function AllTasks() {
           ))}
         </select>
       </div>
-      <p className="section-title mx-4 text-sm">{filtered.length} task{filtered.length === 1 ? '' : 's'}</p>
+      <div className="mx-4 flex items-center justify-between gap-2 border-b border-line pb-2 text-sm font-bold text-fg">
+        <span>
+          {filtered.length} task{filtered.length === 1 ? '' : 's'}
+        </span>
+        <label className="flex items-center gap-2 font-semibold text-fg-2">
+          Sort
+          <select
+            className="min-h-10 rounded-md border-2 border-line-strong bg-surface px-2 text-sm text-fg focus:border-accent focus:outline-none"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+          >
+            {(Object.keys(SORTS) as SortKey[]).map((k) => (
+              <option key={k} value={k}>{SORTS[k].label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
       <TaskList tasks={filtered} empty="No tasks match these filters." />
     </div>
   );

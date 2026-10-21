@@ -17,3 +17,5 @@
 - [x] The header icon and headline are not aligned perfectly and are not aligned with the sync indicator.
 - [x] Add a UI size setting (small, medium, large) to try scaling the UI down as a whole.
 - [x] Try an icon other than a gear for Settings.
+- [x] On the All tasks screen, add sorting by priority and the other sortable fields.
+- [x] Remove the text from priority indicators (just the icon) and reduce the icon's size.

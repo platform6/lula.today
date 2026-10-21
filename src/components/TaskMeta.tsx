@@ -24,9 +24,14 @@ export function TaskMeta({
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm font-medium text-fg-2">
       {task.priority > 0 && (
-        <span className={`flex items-center gap-1 font-bold ${PRIORITY_COLORS[task.priority]}`} title={`${PRIORITY_LABELS[task.priority]} priority`}>
-          <FlagIcon width={16} height={16} strokeWidth={2.5} />
-          {PRIORITY_LABELS[task.priority]}
+        // Just the flag; its color is the priority. Filled so it still reads at this size.
+        <span
+          role="img"
+          aria-label={`${PRIORITY_LABELS[task.priority]} priority`}
+          title={`${PRIORITY_LABELS[task.priority]} priority`}
+          className={`flex items-center ${PRIORITY_COLORS[task.priority]}`}
+        >
+          <FlagIcon width={13} height={13} strokeWidth={2.5} fill="currentColor" />
         </span>
       )}
       {task.due_at && (
