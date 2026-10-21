@@ -15,6 +15,8 @@ npm run board -- move <id> Doing
 npm run board -- note <id> "<text>"
 ```
 
+`/next-card [id]` works one card (the top of To Do, or the given one) end to end.
+
 When asked to work the board:
 
 - Only take cards in **To Do**. Ideas and other columns are the owner's scratchpad; leave them alone.

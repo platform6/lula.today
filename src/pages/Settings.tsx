@@ -121,8 +121,9 @@ function ClaudeGuide() {
         <div>
           <h3 className="font-bold text-fg">3. Ask for work</h3>
           <p>
-            Say <i>"work the To Do cards"</i>, or name one card by its id: open the task, tap the id next to "Task" to copy it, and
-            say <i>"work 0dc670dc"</i>.
+            Type <code className={code}>/next-card</code> to have Claude take the top card in To Do, or{' '}
+            <code className={code}>/next-card 0dc670dc</code> for a particular one (open the task and tap the id next to "Task" to
+            copy it). Or just say <i>"work the To Do cards"</i>.
           </p>
         </div>
         <div>
