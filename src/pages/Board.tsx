@@ -7,9 +7,11 @@ import {
   MouseSensor,
   TouchSensor,
   closestCorners,
+  pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -26,6 +28,21 @@ import { useOpenTask } from '../components/useOpenTask';
 import { useConfirmComplete } from '../components/ConfirmComplete';
 
 type DragData = { type: 'task' | 'column'; columnId: string };
+
+/**
+ * The column under the pointer gets the drop, wherever in the column it is;
+ * within it, the nearest card decides the position. Plain closestCorners let a
+ * card in the next column win over the middle of a tall, mostly empty column.
+ */
+const collision: CollisionDetection = (args) => {
+  const column = pointerWithin(args).find((h) => (h.data?.droppableContainer.data.current as DragData | undefined)?.type === 'column');
+  if (!column) return closestCorners(args); // keyboard drags, or the pointer outside every column
+  const columnId = (column.data!.droppableContainer.data.current as DragData).columnId;
+  return closestCorners({
+    ...args,
+    droppableContainers: args.droppableContainers.filter((c) => (c.data.current as DragData | undefined)?.columnId === columnId),
+  });
+};
 
 const HIDE_DONE_KEY = 'lula.board.hideDone';
 
@@ -240,7 +257,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       )}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collision}
         onDragStart={(e) => setActiveId(String(e.active.id))}
         onDragCancel={() => setActiveId(null)}
         onDragEnd={onDragEnd}
@@ -302,14 +319,14 @@ function Column({
   const [title, setTitle] = useState('');
 
   return (
-    <section className="flex w-full shrink-0 snap-center flex-col md:w-80">
+    // The whole column, heading included, is the drop target.
+    <section ref={setNodeRef} className="flex w-full shrink-0 snap-center flex-col md:w-80">
       <div className="mb-3 flex items-center gap-2 border-b-2 border-line-strong px-1 pb-2">
         <h2 className="text-lg font-bold">{column.name}</h2>
         <span className="chip">{tasks.length}</span>
         {column.is_done && <span className="text-sm font-bold text-ok">✓ Done</span>}
       </div>
       <div
-        ref={setNodeRef}
         className={`flex min-h-28 flex-1 flex-col gap-2.5 rounded-md p-1 transition-colors ${isOver ? 'bg-accent/15 outline-2 outline-accent outline-dashed' : ''}`}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
