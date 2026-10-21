@@ -113,10 +113,6 @@ export function Calendar() {
             );
           })}
         </div>
-        <p className="mt-3 flex items-center gap-2 text-xs text-muted">
-          <span className="h-1.5 w-1.5 shrink-0 rotate-45 bg-ok" aria-hidden="true" />
-          U.S. bank holiday · Weekends shaded
-        </p>
       </div>
 
       <section className="mt-2">
