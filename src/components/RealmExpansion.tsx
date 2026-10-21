@@ -34,8 +34,8 @@ export function RealmToggle({ name, expanded, onClick }: { name: string; expande
   const label = `${expanded ? 'Collapse' : 'Expand'} ${name} projects`;
   return (
     <button type="button" onClick={onClick} aria-expanded={expanded} aria-label={label} title={label}
-      className="grid h-10 w-10 shrink-0 place-items-center rounded-sm text-fg-2 hover:bg-surface-2 hover:text-fg">
-      {expanded ? <DownIcon /> : <ChevronRightIcon />}
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-sm text-fg-2 hover:bg-surface-2 hover:text-fg">
+      {expanded ? <DownIcon width={16} height={16} /> : <ChevronRightIcon width={16} height={16} />}
     </button>
   );
 }
@@ -47,9 +47,9 @@ export function RealmExpansionAll({ ids }: { ids: string[] }) {
   const label = allCollapsed ? 'Expand all' : 'Collapse all';
   return (
     <button type="button" aria-label={label} title={label}
-      className="ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-sm text-fg-2 hover:bg-surface-2 hover:text-fg"
+      className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-sm text-fg-2 hover:bg-surface-2 hover:text-fg"
       onClick={() => allCollapsed ? expandAll() : collapseAll(ids)}>
-      {allCollapsed ? <ExpandAllIcon /> : <CollapseAllIcon />}
+      {allCollapsed ? <ExpandAllIcon width={16} height={16} /> : <CollapseAllIcon width={16} height={16} />}
     </button>
   );
 }
