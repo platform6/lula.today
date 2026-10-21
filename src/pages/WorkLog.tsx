@@ -6,7 +6,7 @@ import type { WorkStatus } from '../db/types';
 import { dayKey, todayKey } from '../lib/dates';
 import { LOW_TICKETS, PACK_SIZE, TICKETS_PER_OFFICE_DAY, WORK_STATUSES, statusInfo, summarize, ticketsLeft } from '../lib/worklog';
 import { PageHeader } from '../components/PageHeader';
-import { BackIcon, ChevronRightIcon, PrinterIcon } from '../components/icons';
+import { BackIcon, ChevronRightIcon, DownIcon, PrinterIcon } from '../components/icons';
 
 /** Where each day was worked, the in-office percentage, and bus tickets left. */
 export function WorkLog() {
@@ -68,10 +68,16 @@ export function WorkLog() {
               <div className="text-lg font-bold">{summary.total}</div>
             </div>
           </div>
-          <p className="mt-3 text-base">
-            In office: <b className="text-xl text-accent">{summary.inOfficePct === null ? '—' : `${summary.inOfficePct.toFixed(2)}%`}</b>
-            <span className="block text-sm text-fg-2">Office days as a share of office and remote days.</span>
-          </p>
+          <details className="group mt-3">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-sm text-base font-semibold">
+              In-office percentage
+              <DownIcon className="text-fg-2 transition-transform group-open:rotate-180" />
+            </summary>
+            <p className="mt-1 text-base">
+              In office: <b className="text-xl text-accent">{summary.inOfficePct === null ? '—' : `${summary.inOfficePct.toFixed(2)}%`}</b>
+              <span className="block text-sm text-fg-2">Office days as a share of office and remote days.</span>
+            </p>
+          </details>
         </section>
 
         <section>

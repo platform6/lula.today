@@ -344,7 +344,7 @@ function CountBadge({ count }: { count: number }) {
 }
 
 const tabClass = (isActive: boolean) =>
-  `relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pt-2 text-xs font-semibold ${isActive ? 'text-accent shadow-[inset_0_3px_0_var(--accent)]' : 'text-fg-2'}`;
+  `relative flex min-h-16 flex-1 flex-col items-center justify-center gap-0.5 pt-4 text-xs font-semibold ${isActive ? 'text-accent shadow-[inset_0_3px_0_var(--accent)]' : 'text-fg-2'}`;
 
 const tabIcon = { width: 26, height: 26 };
 
@@ -356,7 +356,7 @@ function BottomNav() {
   // On phones the calendar and work log are reached from Today, so they belong to that tab.
   const inToday = pathname === '/' || pathname.startsWith('/calendar') || pathname.startsWith('/work');
   return (
-    <nav className="pb-tabbar fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface pt-2 md:hidden">
+    <nav className="pb-tabbar fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
       <NavLink to="/" end className={() => tabClass(inToday)}><SunIcon {...tabIcon} /> Today</NavLink>
       <NavLink to="/inbox" className={({ isActive }) => tabClass(isActive)}>
         <span className="relative">

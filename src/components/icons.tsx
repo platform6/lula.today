@@ -40,6 +40,8 @@ export const XIcon = (p: P) => <Icon {...p}><path d="M18 6 6 18M6 6l12 12" /></I
 export const LinkIcon = (p: P) => <Icon {...p}><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" /><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" /></Icon>;
 export const UpIcon = (p: P) => <Icon {...p}><path d="m18 15-6-6-6 6" /></Icon>;
 export const DownIcon = (p: P) => <Icon {...p}><path d="m6 9 6 6 6-6" /></Icon>;
+export const ExpandAllIcon = (p: P) => <Icon {...p}><path d="m7 7 5-5 5 5M7 17l5 5 5-5M5 12h14" /></Icon>;
+export const CollapseAllIcon = (p: P) => <Icon {...p}><path d="m7 2 5 5 5-5M7 22l5-5 5 5M5 12h14" /></Icon>;
 export const BackIcon = (p: P) => <Icon {...p}><path d="m15 18-6-6 6-6" /></Icon>;
 export const ChevronRightIcon = (p: P) => <Icon {...p}><path d="m9 18 6-6-6-6" /></Icon>;
 export const MinusIcon = (p: P) => <Icon {...p}><path d="M5 12h14" /></Icon>;

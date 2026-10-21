@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { ChevronRightIcon, DownIcon } from './icons';
+import { ChevronRightIcon, CollapseAllIcon, DownIcon, ExpandAllIcon } from './icons';
 
 const RealmExpansionContext = createContext<{
   collapsed: Set<string>;
@@ -44,10 +44,12 @@ export function RealmExpansionAll({ ids }: { ids: string[] }) {
   const { collapsed, collapseAll, expandAll } = useRealmExpansion();
   if (!ids.length) return null;
   const allCollapsed = ids.every((id) => collapsed.has(id));
+  const label = allCollapsed ? 'Expand all' : 'Collapse all';
   return (
-    <button type="button" className="ml-auto min-h-10 shrink-0 rounded-sm px-2 text-xs font-semibold text-fg-2 hover:bg-surface-2 hover:text-fg"
+    <button type="button" aria-label={label} title={label}
+      className="ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-sm text-fg-2 hover:bg-surface-2 hover:text-fg"
       onClick={() => allCollapsed ? expandAll() : collapseAll(ids)}>
-      {allCollapsed ? 'Expand all' : 'Collapse all'}
+      {allCollapsed ? <ExpandAllIcon /> : <CollapseAllIcon />}
     </button>
   );
 }
