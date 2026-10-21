@@ -125,6 +125,8 @@ export interface BusPurchase extends Row {
 }
 
 export interface TableRows {
+  lists: ExperienceList;
+  list_items: ListItem;
   areas: Area;
   projects: Project;
   board_columns: BoardColumn;
@@ -135,6 +137,24 @@ export interface TableRows {
   settings: Settings;
   work_days: WorkDay;
   bus_purchases: BusPurchase;
+}
+
+export type ListKind = 'general' | 'games' | 'concerts' | 'television';
+
+export interface ExperienceList extends Row {
+  name: string;
+  kind: ListKind;
+  description: string | null;
+}
+
+export interface ListItem extends Row {
+  list_id: string;
+  title: string;
+  experienced_on: string | null;
+  rating: number | null;
+  notes: string | null;
+  url: string | null;
+  details: Record<string, string>;
 }
 
 export type SyncTable = keyof TableRows;

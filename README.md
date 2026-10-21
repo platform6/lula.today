@@ -29,3 +29,15 @@ npm run icons      # regenerate PWA icons from public/favicon.svg
 | `supabase/migrations/` | Postgres schema, RLS, `updated_at` triggers, nightly auto-archive cron |
 
 Conflicts resolve last-synced-write-wins per row. Deletes are soft (`deleted_at`) so they propagate.
+
+## Experience lists
+
+Lists is a standalone section below Realms in the desktop sidebar and a separate mobile tab.
+It starts empty. Create General, Video games, Concerts, or Television lists, then add entries
+with optional dates, ratings, notes, links, and category-specific details. Entries are separate
+from tasks and can be searched within their list. Lists can be renamed; their category stays
+fixed to preserve the entry fields. Deleting a list also soft-deletes its entries.
+
+Before deploying this feature, apply `supabase/migrations/0009_experience_lists.sql` in the
+Supabase SQL editor. It creates owner-protected `lists` and `list_items` tables with realtime
+sync. Deploying first would cause sync errors because the tables would not exist yet.

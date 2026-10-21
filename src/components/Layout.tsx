@@ -50,6 +50,7 @@ export function Layout() {
   const taskId = params.get('task');
   const openTask = useOpenTask();
   const navigate = useNavigate();
+  const onListsPage = useLocation().pathname.startsWith('/lists');
   const theme = useSettings()?.theme;
   const [dragging, setDragging] = useState<InboxDragData | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -131,7 +132,7 @@ export function Layout() {
             <BottomNav />
           </div>
 
-          {!dragging && (
+          {!dragging && !onListsPage && (
             <button
               className="fixed right-4 bottom-[calc(4.625rem+var(--tab-safe))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
               onClick={() => setQuickAdd(true)}
@@ -293,6 +294,7 @@ function Sidebar() {
             );
           })}
         </Children>
+        <NavLink to="/lists" className={({ isActive }) => `mt-4 border-t border-line pt-3 ${navClass({ isActive })}`}><ListIcon /> Lists</NavLink>
         {orphans.length > 0 && (
           <NavLink to="/realms" className="mt-3 block rounded-sm border-2 border-warn px-3 py-2 text-sm font-semibold text-warn">
             {orphans.length} project{orphans.length === 1 ? ' needs' : 's need'} a realm
@@ -366,6 +368,7 @@ function BottomNav() {
         Inbox
       </NavLink>
       <NavLink to="/realms" className={() => tabClass(inRealms)}><NodesIcon {...tabIcon} /> Realms</NavLink>
+      <NavLink to="/lists" className={({ isActive }) => tabClass(isActive)}><ListIcon {...tabIcon} /> Lists</NavLink>
       <NavLink to="/search" className={({ isActive }) => tabClass(isActive)}><SearchIcon {...tabIcon} /> Search</NavLink>
       <NavLink to="/settings" className={({ isActive }) => tabClass(isActive)}><SlidersIcon {...tabIcon} /> Settings</NavLink>
     </nav>

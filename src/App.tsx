@@ -17,6 +17,7 @@ import { WorkLog } from './pages/WorkLog';
 import { WorkLogPrint } from './pages/WorkLogPrint';
 import { Archive } from './pages/Archive';
 import { Settings } from './pages/Settings';
+import { Lists, ListPage } from './pages/Lists';
 
 /** Areas are shown as "Realms"; old /areas links keep working. */
 function AreasRedirect() {
@@ -47,6 +48,8 @@ export function App() {
         <Route path="projects/:id" element={<Board />} />
         <Route path="projects/:id/settings" element={<ProjectSettings />} />
         <Route path="tasks" element={<AllTasks />} />
+        <Route path="lists" element={<Lists />} />
+        <Route path="lists/:id" element={<ListPage />} />
         <Route path="search" element={<Search />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="work" element={<WorkLog />} />
