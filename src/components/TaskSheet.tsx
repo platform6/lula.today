@@ -42,6 +42,8 @@ export function TaskSheet({ id, onClose }: { id: string; onClose: () => void }) 
   return <TaskDetails key={task.id} task={task} onClose={onClose} />;
 }
 
+const actionBtn = 'btn border-2 border-fg hover:bg-surface-2';
+
 function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
   const inInbox = !!useProject(task.project_id)?.is_inbox;
   const columns = useColumns(task.project_id) ?? [];
@@ -169,25 +171,37 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
         <Steps taskId={task.id} />
         <Labels taskId={task.id} />
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
-          {archived ? (
-            <button className="btn-ghost" onClick={() => void restoreTask(task)}>Restore</button>
-          ) : (
-            <>
-              <button className="btn-ghost" onClick={() => void cancelTask(task.id).then(onClose)}>
-                Cancel task
-              </button>
-              <button className="btn-ghost" onClick={() => void archiveTask(task.id).then(onClose)}>Archive</button>
-            </>
-          )}
-          <div className="flex-1" />
+        {/* Two equal buttons: what fits the task's state, then Delete. */}
+        <div className="grid grid-cols-2 gap-2 border-t border-line pt-4">
           {confirmDelete ? (
             <>
-              <button className="btn-ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>
-              <button className="btn-danger" onClick={() => void deleteTask(task.id).then(onClose)}>Confirm delete</button>
+              <button className={actionBtn} onClick={() => setConfirmDelete(false)}>
+                Keep it
+              </button>
+              <button className={`${actionBtn} text-danger`} onClick={() => void deleteTask(task.id).then(onClose)}>
+                Confirm delete
+              </button>
             </>
           ) : (
-            <button className="btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
+            <>
+              {archived ? (
+                <button className={actionBtn} onClick={() => void restoreTask(task)}>
+                  Restore
+                </button>
+              ) : task.completed_at ? (
+                // Completed tasks archive themselves after 7 days; this clears one now.
+                <button className={actionBtn} onClick={() => void archiveTask(task.id).then(onClose)}>
+                  Archive
+                </button>
+              ) : (
+                <button className={actionBtn} onClick={() => void cancelTask(task.id).then(onClose)}>
+                  Cancel task
+                </button>
+              )}
+              <button className={`${actionBtn} text-danger`} onClick={() => setConfirmDelete(true)}>
+                Delete
+              </button>
+            </>
           )}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted">
