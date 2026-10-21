@@ -41,5 +41,4 @@ fixed to preserve the entry fields. Deleting a list also soft-deletes its entrie
 The Lists migration is `supabase/migrations/20261021143600_experience_lists.sql`. It creates
 owner-protected `lists` and `list_items` tables with realtime sync. It is already applied to
 the production project. In a new environment, apply the files in `supabase/migrations/` in
-order (see "Database changes" in AGENTS.md); they are not safe to re-run on a database that
-already has them.
+order (see "Database changes" in AGENTS.md). Each migration is written to be safe to re-run.

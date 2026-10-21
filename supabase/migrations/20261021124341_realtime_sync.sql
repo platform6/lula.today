@@ -3,12 +3,18 @@
 -- applies the event payload itself), so the updated_at cursor stays the single
 -- source of truth. Realtime enforces the tables' RLS for each subscriber.
 
-alter publication supabase_realtime add table
-  public.settings,
-  public.areas,
-  public.projects,
-  public.board_columns,
-  public.tasks,
-  public.steps,
-  public.labels,
-  public.task_labels;
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['settings', 'areas', 'projects', 'board_columns', 'tasks', 'steps', 'labels', 'task_labels']
+  loop
+    if not exists (
+      select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end;
+$$;

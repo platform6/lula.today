@@ -3,7 +3,8 @@
 -- src/db/types.ts; the date math runs client-side (src/lib/recurrence.ts).
 
 alter table public.tasks
-  add column recurrence jsonb;
+  add column if not exists recurrence jsonb;
 
 alter table public.tasks
+  drop constraint if exists tasks_recurrence_is_object,
   add constraint tasks_recurrence_is_object check (recurrence is null or jsonb_typeof(recurrence) = 'object');

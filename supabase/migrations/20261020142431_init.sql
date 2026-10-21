@@ -23,7 +23,7 @@ $$;
 -- position columns hold fractional-index strings; collate "C" gives the
 -- byte-order comparison the fractional-indexing library expects.
 -- ---------------------------------------------------------------------------
-create table public.areas (
+create table if not exists public.areas (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users on delete cascade,
   name        text not null,
@@ -36,7 +36,7 @@ create table public.areas (
   deleted_at  timestamptz
 );
 
-create table public.projects (
+create table if not exists public.projects (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users on delete cascade,
   area_id     uuid references public.areas on delete set null,
@@ -53,10 +53,10 @@ create table public.projects (
 );
 
 -- One Inbox per user
-create unique index projects_one_inbox_per_user
+create unique index if not exists projects_one_inbox_per_user
   on public.projects (user_id) where is_inbox and deleted_at is null;
 
-create table public.board_columns (
+create table if not exists public.board_columns (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users on delete cascade,
   project_id  uuid not null references public.projects on delete cascade,
@@ -68,7 +68,7 @@ create table public.board_columns (
   deleted_at  timestamptz
 );
 
-create table public.tasks (
+create table if not exists public.tasks (
   id           uuid primary key,
   user_id      uuid not null default auth.uid() references auth.users on delete cascade,
   project_id   uuid not null references public.projects on delete cascade,
@@ -87,7 +87,7 @@ create table public.tasks (
   deleted_at   timestamptz
 );
 
-create table public.steps (
+create table if not exists public.steps (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users on delete cascade,
   task_id     uuid not null references public.tasks on delete cascade,
@@ -99,7 +99,7 @@ create table public.steps (
   deleted_at  timestamptz
 );
 
-create table public.labels (
+create table if not exists public.labels (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users on delete cascade,
   name        text not null,
@@ -109,7 +109,7 @@ create table public.labels (
   deleted_at  timestamptz
 );
 
-create table public.task_labels (
+create table if not exists public.task_labels (
   task_id     uuid not null references public.tasks on delete cascade,
   label_id    uuid not null references public.labels on delete cascade,
   user_id     uuid not null default auth.uid() references auth.users on delete cascade,
@@ -119,7 +119,7 @@ create table public.task_labels (
   primary key (task_id, label_id)
 );
 
-create table public.settings (
+create table if not exists public.settings (
   user_id         uuid primary key default auth.uid() references auth.users on delete cascade,
   default_columns jsonb not null default
     '[{"name":"Backlog","is_done":false},{"name":"To Do","is_done":false},{"name":"Doing","is_done":false},{"name":"Done","is_done":true}]'::jsonb,
@@ -131,21 +131,21 @@ create table public.settings (
 -- ---------------------------------------------------------------------------
 -- Indexes: sync pulls (user_id, updated_at) and foreign keys
 -- ---------------------------------------------------------------------------
-create index areas_sync         on public.areas         (user_id, updated_at);
-create index projects_sync      on public.projects      (user_id, updated_at);
-create index board_columns_sync on public.board_columns (user_id, updated_at);
-create index tasks_sync         on public.tasks         (user_id, updated_at);
-create index steps_sync         on public.steps         (user_id, updated_at);
-create index labels_sync        on public.labels        (user_id, updated_at);
-create index task_labels_sync   on public.task_labels   (user_id, updated_at);
+create index if not exists areas_sync         on public.areas         (user_id, updated_at);
+create index if not exists projects_sync      on public.projects      (user_id, updated_at);
+create index if not exists board_columns_sync on public.board_columns (user_id, updated_at);
+create index if not exists tasks_sync         on public.tasks         (user_id, updated_at);
+create index if not exists steps_sync         on public.steps         (user_id, updated_at);
+create index if not exists labels_sync        on public.labels        (user_id, updated_at);
+create index if not exists task_labels_sync   on public.task_labels   (user_id, updated_at);
 
-create index projects_area_id         on public.projects      (area_id);
-create index board_columns_project_id on public.board_columns (project_id);
-create index tasks_project_id         on public.tasks         (project_id);
-create index tasks_column_id          on public.tasks         (column_id);
-create index steps_task_id            on public.steps         (task_id);
-create index task_labels_label_id     on public.task_labels   (label_id);
-create index tasks_pending_archive    on public.tasks         (completed_at)
+create index if not exists projects_area_id         on public.projects      (area_id);
+create index if not exists board_columns_project_id on public.board_columns (project_id);
+create index if not exists tasks_project_id         on public.tasks         (project_id);
+create index if not exists tasks_column_id          on public.tasks         (column_id);
+create index if not exists steps_task_id            on public.steps         (task_id);
+create index if not exists task_labels_label_id     on public.task_labels   (label_id);
+create index if not exists tasks_pending_archive    on public.tasks         (completed_at)
   where archived_at is null and completed_at is not null;
 
 -- ---------------------------------------------------------------------------
@@ -158,21 +158,25 @@ begin
   foreach t in array array['areas','projects','board_columns','tasks','steps','labels','task_labels','settings']
   loop
     execute format(
-      'create trigger set_updated_at before insert or update on public.%I
+      'create or replace trigger set_updated_at before insert or update on public.%I
          for each row execute function public.set_updated_at()', t);
 
     execute format('alter table public.%I enable row level security', t);
 
+    execute format('drop policy if exists "owner select" on public.%I', t);
     execute format(
       'create policy "owner select" on public.%I for select to authenticated
          using ((select auth.uid()) = user_id)', t);
+    execute format('drop policy if exists "owner insert" on public.%I', t);
     execute format(
       'create policy "owner insert" on public.%I for insert to authenticated
          with check ((select auth.uid()) = user_id)', t);
+    execute format('drop policy if exists "owner update" on public.%I', t);
     execute format(
       'create policy "owner update" on public.%I for update to authenticated
          using ((select auth.uid()) = user_id)
          with check ((select auth.uid()) = user_id)', t);
+    execute format('drop policy if exists "owner delete" on public.%I', t);
     execute format(
       'create policy "owner delete" on public.%I for delete to authenticated
          using ((select auth.uid()) = user_id)', t);
@@ -201,6 +205,7 @@ $$;
 
 revoke execute on function public.archive_completed_tasks() from public, anon, authenticated;
 
+-- Scheduling by name replaces any existing job, so re-running is safe.
 select cron.schedule(
   'archive-completed-tasks',
   '0 8 * * *',

@@ -3,4 +3,4 @@
 -- "Cancelled"; restoring clears both.
 
 alter table public.tasks
-  add column cancelled_at timestamptz;
+  add column if not exists cancelled_at timestamptz;
