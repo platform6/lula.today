@@ -347,9 +347,11 @@ function SyncPanel() {
       <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
         <span className="text-muted">Last build</span>
         <time dateTime={__BUILD_TIME__}>
-          {new Date(__BUILD_TIME__).toLocaleString(undefined, {
-            year: 'numeric', month: 'short', day: 'numeric',
-            hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+          {new Date(__BUILD_TIME__).toLocaleDateString('en-US', {
+            year: '2-digit', month: '2-digit', day: '2-digit',
+          })}{' '}
+          {new Date(__BUILD_TIME__).toLocaleTimeString('en-US', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
           })}
         </time>
       </div>
