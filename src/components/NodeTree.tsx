@@ -15,9 +15,10 @@ export const NODE_SIZE = {
   root: 22,
   realm: 18,
   project: 12,
+  // The compact trees (sidebar, Realms page) draw every node at the root's size.
   compactRoot: 16,
-  compactRealm: 14,
-  compactProject: 10,
+  compactRealm: 16,
+  compactProject: 16,
 } as const;
 
 export function TreeNode({ kind, color, compact = false }: { kind: NodeKind; color?: string | null; compact?: boolean }) {
@@ -35,7 +36,23 @@ export function TreeNode({ kind, color, compact = false }: { kind: NodeKind; col
     );
   }
   if (kind === 'realm') {
-    const size = compact ? NODE_SIZE.compactRealm : NODE_SIZE.realm;
+    if (compact) {
+      // Ring, gap and dot all inside the node's box, so it is exactly the root's size.
+      return (
+        <span
+          aria-hidden="true"
+          className="shrink-0 rounded-full p-0.5"
+          style={{
+            width: NODE_SIZE.compactRealm,
+            height: NODE_SIZE.compactRealm,
+            border: `2px solid ${c}`,
+            background: c,
+            backgroundClip: 'content-box',
+          }}
+        />
+      );
+    }
+    const size = NODE_SIZE.realm;
     return (
       <span
         aria-hidden="true"
@@ -44,7 +61,7 @@ export function TreeNode({ kind, color, compact = false }: { kind: NodeKind; col
           width: size,
           height: size,
           background: c,
-          boxShadow: compact ? `0 0 0 2px var(--bg), 0 0 0 3.5px ${c}` : `0 0 0 3px var(--bg), 0 0 0 5px ${c}`,
+          boxShadow: `0 0 0 3px var(--bg), 0 0 0 5px ${c}`,
         }}
       />
     );

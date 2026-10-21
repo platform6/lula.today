@@ -19,6 +19,8 @@ When asked to work the board:
 
 - Only take cards in **To Do**. Ideas and other columns are the owner's scratchpad; leave them alone.
 - Move a card to **Doing** when starting it.
-- When it's built and checked, add a note saying what changed, and move it to **Done** only
-  once it's committed. Commit and push only when the owner says to, as usual.
+- When it's built and checked, add a note saying what changed. Commit and push only when the
+  owner says to, as usual.
+- Once it's pushed, add a note with the commit and move the card to **UAT**, where the owner
+  tests it. Never move cards to **Done**; that is the owner's call after testing.
 - If a card is unclear, add a note with the question and leave it in To Do rather than guessing.
