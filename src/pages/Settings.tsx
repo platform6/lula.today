@@ -94,7 +94,7 @@ export function Settings() {
 
 const code = 'rounded-sm bg-surface-2 px-1.5 py-0.5 font-mono text-sm text-fg';
 
-/** A reminder of the Remote Control + board workflow (CLAUDE.md has Claude's side of it). */
+/** A reminder of the Remote Control + board workflow (AGENTS.md has the agents' side of it). */
 function ClaudeGuide() {
   return (
     <details className="card group px-4 py-3">
@@ -188,7 +188,8 @@ function ClaudeGuide() {
               <code className={code}>.claude/settings.local.json</code>. Both stay on this computer.
             </li>
             <li>
-              The rules Claude follows are in <code className={code}>CLAUDE.md</code>; edit it to change the flow.
+              The rules agents follow are in <code className={code}>AGENTS.md</code> (Claude Code and Codex both read
+              it); edit it to change the flow. In Codex, say <i>"work the next card"</i> or <i>"commit and push"</i>.
             </li>
           </ul>
         </div>

@@ -4,7 +4,7 @@ argument-hint: "[card id]"
 allowed-tools: Bash(npm run board *)
 ---
 
-Work one card from the **lula** board, following the board rules in CLAUDE.md.
+Work one card from the **lula** board, following the board rules in AGENTS.md.
 
 1. Pick the card:
    - If an id was given (`$ARGUMENTS`), use that card. It must be in **To Do**; if it isn't, say where it is and stop.

@@ -155,10 +155,10 @@ async function move(idPrefix: string, columnName: string) {
   console.log(`Moved "${t.title}" to ${target.name}.`);
 }
 
-async function note(idPrefix: string, text: string) {
+async function note(idPrefix: string, text: string, by = 'Claude') {
   const t = await findTask(idPrefix);
   const stamp = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const entry = `[Claude · ${stamp}] ${text}`;
+  const entry = `[${by} · ${stamp}] ${text}`;
   await update('tasks', t.id, { notes: t.notes ? `${t.notes}\n\n${entry}` : entry });
   console.log(`Added a note to "${t.title}".`);
 }
@@ -191,7 +191,7 @@ const HELP = `lula board
   list <board> [column]           cards by column, with their ids
   show <id>                       one card: notes, steps, details
   move <id> <column>              move a card (Done completes it)
-  note <id> "<text>"              append a note to a card
+  note <id> "<text>" [--by name]  append a note to a card (signed Claude unless --by)
   add <board> "<title>" [column]  add a card (first open column by default)
 
 <board> is a project name, a realm name (its own tasks) or "inbox".
@@ -210,7 +210,14 @@ if (!cmd || cmd === 'help') {
   else if (cmd === 'list') (need(1), await list(args[0], args[1]));
   else if (cmd === 'show') (need(1), await show(args[0]));
   else if (cmd === 'move') (need(2), await move(args[0], args.slice(1).join(' ')));
-  else if (cmd === 'note') (need(2), await note(args[0], args.slice(1).join(' ')));
+  else if (cmd === 'note') {
+    // An optional trailing "--by <name>" signs the note for another agent.
+    const byAt = args.indexOf('--by');
+    const by = byAt > 0 ? args[byAt + 1] : undefined;
+    const text = (byAt > 0 ? args.slice(1, byAt) : args.slice(1)).join(' ');
+    if (!text || (byAt > 0 && !by)) fail(HELP);
+    await note(args[0], text, by);
+  }
   else if (cmd === 'add') (need(2), await add(args[0], args[1], args[2]));
   else fail(HELP);
 }
