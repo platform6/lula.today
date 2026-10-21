@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAllTasks } from '../db/hooks';
 import type { Task } from '../db/types';
 import { dayKey, todayKey } from '../lib/dates';
+import { bankHolidays } from '../lib/bankHolidays';
 import { describeShort, upcomingOccurrences } from '../lib/recurrence';
 import { isLive } from '../lib/tasks';
 import { PageHeader } from '../components/PageHeader';
@@ -27,6 +28,7 @@ export function Calendar() {
   if (!tasks) return null;
 
   const first = new Date(month.y, month.m, 1);
+  const holidays = bankHolidays(month.y);
   const daysInMonth = new Date(month.y, month.m + 1, 0).getDate();
   const monthEnd = new Date(month.y, month.m, daysInMonth, 23, 59);
 
@@ -54,6 +56,7 @@ export function Calendar() {
 
   const [sy, sm, sd] = selected.split('-').map(Number);
   const selectedDate = new Date(sy, sm - 1, sd);
+  const selectedHoliday = (sy === month.y ? holidays : bankHolidays(sy)).get(selected);
   const dayTasks = (due.get(selected) ?? []).sort(byDue);
   const dayRepeats = repeats.get(selected) ?? [];
 
@@ -88,16 +91,20 @@ export function Calendar() {
             const count = (due.get(key)?.length ?? 0) + (repeats.get(key)?.length ?? 0);
             const isToday = key === today;
             const isSelected = key === selected;
+            const weekend = i % 7 === 0 || i % 7 === 6;
+            const holiday = holidays.get(key);
             return (
               <button
                 key={key}
                 onClick={() => setSelected(key)}
                 aria-pressed={isSelected}
-                aria-label={`${new Date(month.y, month.m, d).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}${count ? `, ${count} task${count === 1 ? '' : 's'}` : ''}`}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md border-2 text-sm font-semibold ${isSelected ? 'border-accent bg-accent/15' : 'border-transparent hover:bg-surface-2'} ${isToday ? 'text-accent' : 'text-fg'}`}
+                aria-label={`${new Date(month.y, month.m, d).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}${holiday ? `, ${holiday}, U.S. bank holiday` : ''}${count ? `, ${count} task${count === 1 ? '' : 's'}` : ''}`}
+                title={holiday}
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md border-2 text-sm font-semibold ${isSelected ? 'border-accent bg-accent/15' : `border-transparent hover:bg-surface-2 ${weekend ? 'bg-surface-2/60' : ''}`} ${isToday ? 'text-accent' : 'text-fg'}`}
               >
                 {d}
                 <span className="flex h-1.5 gap-0.5" aria-hidden="true">
+                  {holiday && <span className="h-1.5 w-1.5 rotate-45 bg-ok" />}
                   {Array.from({ length: Math.min(count, 3) }, (_, j) => (
                     <span key={j} className="h-1.5 w-1.5 rounded-full bg-accent" />
                   ))}
@@ -106,6 +113,10 @@ export function Calendar() {
             );
           })}
         </div>
+        <p className="mt-3 flex items-center gap-2 text-xs text-muted">
+          <span className="h-1.5 w-1.5 shrink-0 rotate-45 bg-ok" aria-hidden="true" />
+          U.S. bank holiday · Weekends shaded
+        </p>
       </div>
 
       <section className="mt-2">
@@ -115,6 +126,12 @@ export function Calendar() {
             <span className="text-sm font-semibold text-fg-2">{dayTasks.length + dayRepeats.length}</span>
           )}
         </h2>
+        {selectedHoliday && (
+          <p className="mx-4 mb-3 border-l-4 border-ok bg-ok/10 px-3 py-2 text-sm text-fg">
+            <span className="font-semibold">{selectedHoliday}</span>
+            <span className="block text-xs text-muted">U.S. bank holiday</span>
+          </p>
+        )}
         {dayTasks.length > 0 || dayRepeats.length === 0 ? <TaskList tasks={dayTasks} empty="Nothing scheduled." /> : null}
         {dayRepeats.length > 0 && (
           <ul className="divide-y divide-line">
