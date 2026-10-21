@@ -72,12 +72,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
 
   return (
     <Sheet
-      title={
-        <span className="flex items-center gap-3">
-          {archived ? 'Archived task' : 'Task'}
-          <CopyId id={task.id} />
-        </span>
-      }
+      title={archived ? 'Archived task' : 'Task'}
       onClose={onClose}
       footer={
         <div className="mb-2 flex gap-2">
@@ -188,7 +183,10 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
             <button className="btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
           )}
         </div>
-        <p className="text-sm text-muted">
+        <div className="flex items-center gap-2 text-sm text-muted">
+          Id <CopyId id={task.id} />
+        </div>
+        <p className="-mt-2 text-sm text-muted">
           Created {new Date(task.created_at).toLocaleString()}
           {task.completed_at && ` · Completed ${new Date(task.completed_at).toLocaleDateString()}`}
         </p>

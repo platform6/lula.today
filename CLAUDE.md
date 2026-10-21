@@ -15,7 +15,8 @@ npm run board -- move <id> Doing
 npm run board -- note <id> "<text>"
 ```
 
-`/next-card [id]` works one card (the top of To Do, or the given one) end to end.
+`/next-card [id]` works one card (the top of To Do, or the given one) end to end. `/cp` commits and
+pushes the current work and moves its finished Doing cards to UAT.
 
 When asked to work the board:
 

@@ -122,8 +122,8 @@ function ClaudeGuide() {
           <h3 className="font-bold text-fg">3. Ask for work</h3>
           <p>
             Type <code className={code}>/next-card</code> to have Claude take the top card in To Do, or{' '}
-            <code className={code}>/next-card 0dc670dc</code> for a particular one (open the task and tap the id next to "Task" to
-            copy it). Or just say <i>"work the To Do cards"</i>.
+            <code className={code}>/next-card 0dc670dc</code> for a particular one (open the task and tap the id at the bottom, above
+            Created, to copy it). Or just say <i>"work the To Do cards"</i>.
           </p>
         </div>
         <div>
@@ -134,7 +134,8 @@ function ClaudeGuide() {
               question in its notes and stays in To Do.
             </li>
             <li>
-              Nothing is committed or pushed until you say so (<i>"commit and push"</i>).
+              Nothing is committed or pushed until you say so: type <code className={code}>/cp</code> (or say{' '}
+              <i>"commit and push"</i>).
             </li>
             <li>
               <b className="text-fg">UAT</b>: pushed and waiting for you. Tap <b className="text-fg">Update available</b> in the app,
