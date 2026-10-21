@@ -8,7 +8,6 @@ import {
   TouchSensor,
   closestCorners,
   pointerWithin,
-  useDndContext,
   useDroppable,
   useSensor,
   useSensors,
@@ -72,6 +71,8 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   const labels = useLabels() ?? [];
   const labelMap = useTaskLabelMap();
   const [activeId, setActiveId] = useState<string | null>(null);
+  // The column a drop would land in right now, for the drag highlight.
+  const [overColumn, setOverColumn] = useState<string | null>(null);
   // Phones show one full-width column at a time; tabs above track and jump between them.
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeCol, setActiveCol] = useState(0);
@@ -119,6 +120,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
 
   function onDragEnd({ active, over }: DragEndEvent) {
     setActiveId(null);
+    setOverColumn(null);
     if (!over) return;
     const data = over.data.current as DragData | undefined;
     if (!data) return;
@@ -260,7 +262,11 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
         sensors={sensors}
         collisionDetection={collision}
         onDragStart={(e) => setActiveId(String(e.active.id))}
-        onDragCancel={() => setActiveId(null)}
+        onDragOver={({ over }) => setOverColumn((over?.data.current as DragData | undefined)?.columnId ?? null)}
+        onDragCancel={() => {
+          setActiveId(null);
+          setOverColumn(null);
+        }}
         onDragEnd={onDragEnd}
       >
         <div
@@ -272,6 +278,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
             <Column
               key={c.id}
               column={c}
+              highlight={overColumn === c.id}
               tasks={byColumn.get(c.id) ?? []}
               projectId={project.id}
               stepCounts={stepCounts}
@@ -301,12 +308,15 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
 
 function Column({
   column,
+  highlight,
   tasks,
   projectId,
   stepCounts,
   labelsFor,
 }: {
   column: BoardColumn;
+  /** A dragged card would land in this column. */
+  highlight: boolean;
   tasks: Task[];
   projectId: string;
   stepCounts: Map<string, [number, number]> | undefined;
@@ -316,23 +326,21 @@ function Column({
     id: `col:${column.id}`,
     data: { type: 'column', columnId: column.id } satisfies DragData,
   });
-  // Highlight whenever the drop will land in this column: over the column itself or any card in it.
-  const { over } = useDndContext();
-  const isOver = (over?.data.current as DragData | undefined)?.columnId === column.id;
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState('');
 
   return (
     // The whole column, heading included, is the drop target.
-    <section ref={setNodeRef} className="flex w-full shrink-0 snap-center flex-col md:w-80">
-      <div className="mb-3 flex items-center gap-2 border-b-2 border-line-strong px-1 pb-2">
-        <h2 className="text-lg font-bold">{column.name}</h2>
+    <section
+      ref={setNodeRef}
+      className={`flex w-full shrink-0 snap-center flex-col rounded-md transition-colors md:w-80 ${highlight ? 'bg-accent/10 outline-2 outline-offset-4 outline-accent outline-dashed' : ''}`}
+    >
+      <div className={`mb-3 flex items-center gap-2 border-b-2 px-1 pb-2 ${highlight ? 'border-accent' : 'border-line-strong'}`}>
+        <h2 className={`text-lg font-bold ${highlight ? 'text-accent' : ''}`}>{column.name}</h2>
         <span className="chip">{tasks.length}</span>
         {column.is_done && <span className="text-sm font-bold text-ok">✓ Done</span>}
       </div>
-      <div
-        className={`flex min-h-28 flex-1 flex-col gap-2.5 rounded-md p-1 transition-colors ${isOver ? 'bg-accent/15 outline-2 outline-accent outline-dashed' : ''}`}
-      >
+      <div className="flex min-h-28 flex-1 flex-col gap-2.5 rounded-md p-1">
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((t) => (
             <Card key={t.id} task={t} done={column.is_done} steps={stepCounts?.get(t.id)} labels={labelsFor(t.id)} />
