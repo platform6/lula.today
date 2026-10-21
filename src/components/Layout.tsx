@@ -291,6 +291,9 @@ function Sidebar() {
       </div>
       <nav className="border-t border-line p-2">
         <NavLink to="/settings" className={navClass}><SlidersIcon /> Settings</NavLink>
+        <p className="px-3 pt-1 font-mono text-[0.6875rem] text-muted" title={`Built ${new Date(__BUILD_TIME__).toLocaleString()}`}>
+          {__APP_VERSION__}
+        </p>
       </nav>
     </aside>
   );

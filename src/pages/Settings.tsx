@@ -336,6 +336,13 @@ function SyncPanel() {
         <span className="text-muted">Changes waiting to upload</span>
         <span>{pending}</span>
       </div>
+      {/* the build's commit, matching the "Committed in …" notes on board cards */}
+      <div className="flex justify-between">
+        <span className="text-muted">Version</span>
+        <span className="font-mono" title={`Built ${new Date(__BUILD_TIME__).toLocaleString()}`}>
+          {__APP_VERSION__}
+        </span>
+      </div>
       {status.error && <p className="text-danger">{status.error}</p>}
       <button className="btn-primary mt-1" onClick={() => void syncNow()} disabled={status.state === 'syncing'}>
         Sync now
