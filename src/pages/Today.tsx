@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAllTasks, useInboxCount } from '../db/hooks';
-import { InboxIcon } from '../components/icons';
+import { CalendarIcon, InboxIcon } from '../components/icons';
 import { BrandLockup } from '../components/Brand';
 import type { Task } from '../db/types';
 import { addDays, dayKey, isOverdue, todayKey } from '../lib/dates';
@@ -29,6 +29,12 @@ export function Today() {
   return (
     <div>
       <PageHeader
+        actions={
+          // Phones reach the calendar from here; desktop has it in the sidebar.
+          <Link to="/calendar" className="btn-outline min-h-10 px-3 text-sm md:hidden">
+            <CalendarIcon width={18} height={18} /> Calendar
+          </Link>
+        }
         title={
           <>
             {/* the main page carries the brand on phones; desktop shows it in the sidebar */}

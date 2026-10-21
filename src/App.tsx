@@ -12,6 +12,7 @@ import { Board, RealmBoard } from './pages/Board';
 import { ProjectSettings } from './pages/ProjectSettings';
 import { AllTasks } from './pages/AllTasks';
 import { Search } from './pages/Search';
+import { Calendar } from './pages/Calendar';
 import { Archive } from './pages/Archive';
 import { Settings } from './pages/Settings';
 
@@ -43,6 +44,7 @@ export function App() {
         <Route path="projects/:id/settings" element={<ProjectSettings />} />
         <Route path="tasks" element={<AllTasks />} />
         <Route path="search" element={<Search />} />
+        <Route path="calendar" element={<Calendar />} />
         <Route path="archive" element={<Archive />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

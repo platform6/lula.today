@@ -136,3 +136,23 @@ export function describeLower(rule: Recurrence): string {
   const text = named[rule.preset] ?? `every ${unitText(rule)}`;
   return rule.from === 'done' ? `${text}, counted from when you complete it` : text;
 }
+
+/**
+ * Later occurrences of a repeating task, after its current due date and up to
+ * `until`, for showing ahead on the calendar. Only fixed schedules can be
+ * projected: a rule counted from completion has no dates until it's completed.
+ */
+export function upcomingOccurrences(rule: Recurrence, dueAt: string, until: Date, max = 400): Date[] {
+  if (rule.from === 'done') return [];
+  const out: Date[] = [];
+  let current = new Date(dueAt);
+  let done = rule.done ?? 0;
+  for (let i = 0; i < max; i++) {
+    const next = nextDue({ ...rule, done }, current.toISOString(), current);
+    if (!next || next > until) break;
+    out.push(next);
+    current = next;
+    done++;
+  }
+  return out;
+}

@@ -1,6 +1,6 @@
 import { describe as group, expect, it } from 'vitest';
 import type { Recurrence } from '../db/types';
-import { describe, describeShort, nextDue, presetRule } from './recurrence';
+import { describe, describeShort, nextDue, presetRule, upcomingOccurrences } from './recurrence';
 import { dayKey } from './dates';
 
 // Wednesday, October 21, 2026 (local midnight, as date-only due dates are stored).
@@ -81,5 +81,24 @@ group('describe', () => {
     expect(describe({ preset: 'custom', unit: 'week', every: 2, from: 'done' }, WED)).toBe('2 weeks after each completion');
     expect(describe({ ...presetRule('daily', WED), count: 5 }, WED)).toBe('Every day, 5 times');
     expect(describeShort({ preset: 'custom', unit: 'week', every: 2, from: 'due' })).toBe('Every 2 weeks');
+  });
+});
+
+group('upcomingOccurrences', () => {
+  it('projects a fixed schedule ahead, respecting how many times it runs', () => {
+    const until = new Date(2026, 10, 15);
+    expect(upcomingOccurrences(presetRule('weekly', WED), due, until).map(key)).toEqual([
+      '2026-10-28',
+      '2026-11-04',
+      '2026-11-11',
+    ]);
+    expect(upcomingOccurrences({ ...presetRule('weekly', WED), count: 3, done: 0 }, due, until).map(key)).toEqual([
+      '2026-10-28',
+      '2026-11-04',
+    ]);
+  });
+
+  it('has nothing to project when counted from completion', () => {
+    expect(upcomingOccurrences({ preset: 'custom', unit: 'day', every: 1, from: 'done' }, due, new Date(2026, 11, 1))).toEqual([]);
   });
 });
