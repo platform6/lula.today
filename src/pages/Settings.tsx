@@ -147,6 +147,37 @@ function ClaudeGuide() {
           </ul>
         </div>
         <div>
+          <h3 className="font-bold text-fg">Slash commands</h3>
+          <p>Type these in the Claude session (on the computer or from the phone).</p>
+          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-2">
+            <dt>
+              <code className={code}>/remote-control</code>
+            </dt>
+            <dd>Connects the session to the Claude app so you can carry on from your phone. Built into Claude Code.</dd>
+            <dt>
+              <code className={code}>/next-card</code>
+            </dt>
+            <dd>
+              Takes the top card in To Do: reads its notes and steps, moves it to Doing, builds it and runs the checks, then
+              asks before committing.
+            </dd>
+            <dt>
+              <code className={code}>/next-card &lt;id&gt;</code>
+            </dt>
+            <dd>The same, for one particular card (it must be in To Do).</dd>
+            <dt>
+              <code className={code}>/cp</code>
+            </dt>
+            <dd>
+              Commit and push. Runs the checks first, then moves the finished cards from Doing to UAT. Typing it is your
+              go-ahead.
+            </dd>
+          </dl>
+          <p className="mt-2">
+            The commands live in <code className={code}>.claude/commands/</code>; edit those files to change what they do.
+          </p>
+        </div>
+        <div>
           <h3 className="font-bold text-fg">Behind the scenes</h3>
           <ul className="mt-1 flex list-disc flex-col gap-1 pl-5">
             <li>
