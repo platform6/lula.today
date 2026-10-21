@@ -8,6 +8,7 @@ import {
   TouchSensor,
   closestCorners,
   pointerWithin,
+  useDndContext,
   useDroppable,
   useSensor,
   useSensors,
@@ -311,10 +312,13 @@ function Column({
   stepCounts: Map<string, [number, number]> | undefined;
   labelsFor: (taskId: string) => Label[];
 }) {
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef } = useDroppable({
     id: `col:${column.id}`,
     data: { type: 'column', columnId: column.id } satisfies DragData,
   });
+  // Highlight whenever the drop will land in this column: over the column itself or any card in it.
+  const { over } = useDndContext();
+  const isOver = (over?.data.current as DragData | undefined)?.columnId === column.id;
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState('');
 

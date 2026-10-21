@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { CONFLICT_TARGET, SYNC_TABLES, db, dexieKey, getMeta, rowKey, setMeta, syncTable } from '../db/db';
 import { setOnWrite } from '../db/mutate';
 import type { OutboxEntry, SyncTable, TableRows } from '../db/types';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 // Offline-first sync:
@@ -14,6 +15,7 @@ const PAGE_SIZE = 1000;
 const PUSH_CHUNK = 500;
 const PUSH_DEBOUNCE_MS = 1_500;
 const INTERVAL_MS = 60_000;
+const LIVE_DEBOUNCE_MS = 400; // a burst of changes (a board move touches several rows) becomes one pull
 const EPOCH = '1970-01-01T00:00:00Z';
 
 export interface SyncStatus {
@@ -154,6 +156,8 @@ async function applyPulled(table: SyncTable, rows: TableRows[SyncTable][]) {
 
 let debounce: ReturnType<typeof setTimeout> | undefined;
 let interval: ReturnType<typeof setInterval> | undefined;
+let liveDebounce: ReturnType<typeof setTimeout> | undefined;
+let live: RealtimeChannel | undefined;
 
 function scheduleSoon() {
   clearTimeout(debounce);
@@ -166,12 +170,22 @@ const onVisible = () => {
 const onOnline = () => void syncNow();
 const onOffline = () => setStatus({ state: 'offline' });
 
+// Live updates: any change to a synced table (from another device, or Claude's
+// board script) triggers a normal pull. The event's payload is not applied
+// directly, so the updated_at cursor stays the one source of truth.
+function pullSoon() {
+  clearTimeout(liveDebounce);
+  liveDebounce = setTimeout(() => void syncNow(), LIVE_DEBOUNCE_MS);
+}
+
 /**
  * iOS has no Background Sync API, so sync runs on launch, on returning to the
- * foreground, on reconnect, shortly after local writes, and every minute while open.
+ * foreground, on reconnect, shortly after local writes, on live change events,
+ * and every minute while open (in case the live connection drops).
  */
 export function startSync() {
   setOnWrite(scheduleSoon);
+  live = supabase.channel('lula-sync').on('postgres_changes', { event: '*', schema: 'public' }, pullSoon).subscribe();
   document.addEventListener('visibilitychange', onVisible);
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
@@ -184,6 +198,9 @@ export function startSync() {
 export function stopSync() {
   setOnWrite(() => {});
   clearTimeout(debounce);
+  clearTimeout(liveDebounce);
+  if (live) void supabase.removeChannel(live);
+  live = undefined;
   clearInterval(interval);
   document.removeEventListener('visibilitychange', onVisible);
   window.removeEventListener('online', onOnline);
