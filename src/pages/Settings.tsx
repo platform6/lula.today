@@ -344,6 +344,15 @@ function SyncPanel() {
           {__APP_VERSION__}
         </span>
       </div>
+      <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
+        <span className="text-muted">Last build</span>
+        <time dateTime={__BUILD_TIME__}>
+          {new Date(__BUILD_TIME__).toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+          })}
+        </time>
+      </div>
       {status.error && <p className="text-danger">{status.error}</p>}
       <button className="btn-primary mt-1" onClick={() => void syncNow()} disabled={status.state === 'syncing'}>
         Sync now
