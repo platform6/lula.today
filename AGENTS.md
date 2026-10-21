@@ -59,5 +59,8 @@ Saying this is the owner's go-ahead to commit and push what's in the working tre
 
 ## Database changes
 
-Schema changes are SQL files in `supabase/migrations/` (numbered `0001_…`). A new column must be
+Schema changes are SQL files in `supabase/migrations/` named `<YYYYMMDDHHMMSS>_<name>.sql`.
+The timestamp must match the version recorded in `supabase_migrations.schema_migrations`.
+Preserve existing migration versions. If SQL is applied manually, reconcile its migration
+history before pushing app code so the deployment does not try to apply it again. A new column must be
 live on Supabase before app code that writes it is deployed, or every sync of that table fails.

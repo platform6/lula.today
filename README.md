@@ -38,6 +38,8 @@ with optional dates, ratings, notes, links, and category-specific details. Entri
 from tasks and can be searched within their list. Lists can be renamed; their category stays
 fixed to preserve the entry fields. Deleting a list also soft-deletes its entries.
 
-Before deploying this feature, apply `supabase/migrations/0009_experience_lists.sql` in the
-Supabase SQL editor. It creates owner-protected `lists` and `list_items` tables with realtime
-sync. Deploying first would cause sync errors because the tables would not exist yet.
+The Lists migration is `supabase/migrations/20261021143600_experience_lists.sql`. It creates
+owner-protected `lists` and `list_items` tables with realtime sync. Apply it through the
+Supabase migration workflow before deploying app code that uses the tables. If the SQL was
+already applied manually, mark this version as applied in migration history instead of
+executing its table-creation SQL again. Local filename versions must match remote history.
