@@ -147,6 +147,12 @@ export async function moveArea(id: string, dir: -1 | 1): Promise<void> {
   await moveInList('areas', areas, id, dir);
 }
 
+/** Put a realm at `index` in the realm order (index counts realms excluding this one). */
+export async function moveAreaTo(id: string, index: number): Promise<void> {
+  const others = (await db.areas.toArray()).filter((a) => alive(a) && a.id !== id).sort(byPosition);
+  await patch('areas', id, { position: keyAtIndex(others, index) });
+}
+
 // ---------------------------------------------------------------------------
 // Projects
 // ---------------------------------------------------------------------------

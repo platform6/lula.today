@@ -25,7 +25,9 @@ import {
   setColumnDone,
   setTaskCompleted,
   skipOccurrence,
+  moveAreaTo,
 } from './actions';
+import { byPosition } from '../lib/position';
 import { presetRule } from '../lib/recurrence';
 import { dayKey } from '../lib/dates';
 
@@ -257,6 +259,22 @@ describe('completion event', () => {
     } finally {
       off();
     }
+  });
+});
+
+describe('reordering realms', () => {
+  it('puts a dragged realm at the drop position', async () => {
+    const a = await createArea('A');
+    await createArea('B');
+    const c = await createArea('C');
+    const order = async () => (await db.areas.toArray()).sort(byPosition).map((r) => r.name);
+
+    await moveAreaTo(c.id, 0);
+    expect(await order()).toEqual(['C', 'A', 'B']);
+    await moveAreaTo(c.id, 2);
+    expect(await order()).toEqual(['A', 'B', 'C']);
+    await moveAreaTo(a.id, 1);
+    expect(await order()).toEqual(['B', 'A', 'C']);
   });
 });
 
