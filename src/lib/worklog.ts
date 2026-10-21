@@ -9,7 +9,6 @@ export const WORK_STATUSES: { key: WorkStatus; label: string; short: string; col
   { key: 'remote', label: 'Remote', short: 'Remote', color: 'var(--prio-1)' },
   { key: 'off', label: 'Off', short: 'Off', color: 'var(--muted)' },
   { key: 'holiday', label: 'Holiday', short: 'Holiday', color: 'var(--ok)' },
-  { key: 'jury', label: 'Jury duty / NH / Off', short: 'Jury/NH', color: 'var(--warn)' },
 ];
 
 export const statusInfo = (s: WorkStatus) => WORK_STATUSES.find((w) => w.key === s)!;
@@ -31,7 +30,7 @@ export interface YearSummary {
 }
 
 export function summarize(days: WorkDay[], year: number): YearSummary {
-  const counts: Record<WorkStatus, number> = { office: 0, remote: 0, off: 0, holiday: 0, jury: 0 };
+  const counts: Record<WorkStatus, number> = { office: 0, remote: 0, off: 0, holiday: 0 };
   for (const d of days) if (!d.deleted_at && d.day.startsWith(`${year}-`)) counts[d.status]++;
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const working = counts.office + counts.remote;

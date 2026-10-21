@@ -8,7 +8,7 @@ import { WORK_STATUSES, summarize } from '../lib/worklog';
 // months across. Rendered outside the app shell, in black on white, and sized
 // for one landscape page (see the print rules in index.css).
 
-const CODE: Record<WorkStatus, string> = { office: 'O', remote: 'R', off: '–', holiday: 'H', jury: 'J' };
+const CODE: Record<WorkStatus, string> = { office: 'O', remote: 'R', off: '–', holiday: 'H' };
 const MONTHS = Array.from({ length: 12 }, (_, m) => new Date(2000, m, 1).toLocaleDateString(undefined, { month: 'short' }));
 
 export function WorkLogPrint() {

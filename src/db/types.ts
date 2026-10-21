@@ -110,7 +110,7 @@ export interface Settings extends SyncMeta {
   theme: 'dark' | 'light';
 }
 
-export type WorkStatus = 'office' | 'remote' | 'off' | 'holiday' | 'jury';
+export type WorkStatus = 'office' | 'remote' | 'off' | 'holiday';
 
 /** One day of the work log (date as YYYY-MM-DD); its id is derived from the date. */
 export interface WorkDay extends Row {

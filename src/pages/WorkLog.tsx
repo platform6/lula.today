@@ -56,7 +56,7 @@ export function WorkLog() {
 
         <section>
           <h2 className="section-title">{month.y}</h2>
-          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
             {WORK_STATUSES.map((s) => (
               <div key={s.key} className="card px-3 py-2">
                 <div className="text-xs text-fg-2">{s.short}</div>
@@ -120,7 +120,7 @@ export function WorkLog() {
 
 function StatusPicker({ value, onPick }: { value: WorkStatus | undefined; onPick: (s: WorkStatus | null) => void }) {
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
       {WORK_STATUSES.map((s) => {
         const on = value === s.key;
         return (

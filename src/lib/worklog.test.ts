@@ -17,7 +17,7 @@ describe('summarize', () => {
       day('2025-12-31', 'office'), // other year
     ];
     const s = summarize(days, 2026);
-    expect(s.counts).toEqual({ office: 1, remote: 2, off: 1, holiday: 1, jury: 0 });
+    expect(s.counts).toEqual({ office: 1, remote: 2, off: 1, holiday: 1 });
     expect(s.total).toBe(5);
     expect(s.inOfficePct).toBeCloseTo(33.33, 1);
     expect(summarize([], 2026).inOfficePct).toBeNull();

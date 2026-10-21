@@ -21,7 +21,6 @@ const STATUS: Record<string, WorkStatus> = {
   remote: 'remote',
   off: 'off',
   holiday: 'holiday',
-  'jury duty/nh/off': 'jury',
 };
 
 const args = process.argv.slice(2);
@@ -48,7 +47,7 @@ const remote = count('remote');
 const lastOffice = days.filter((d) => d.status === 'office').at(-1)?.day;
 const startOn = lastOffice ? addDays(lastOffice, 1) : days[0]?.day;
 console.log(`${days.length} days, ${days[0]?.day} to ${days.at(-1)?.day}`);
-console.log(`office ${office} · remote ${remote} · off ${count('off')} · holiday ${count('holiday')} · jury ${count('jury')}`);
+console.log(`office ${office} · remote ${remote} · off ${count('off')} · holiday ${count('holiday')}`);
 console.log(`in office ${((office / (office + remote)) * 100).toFixed(2)}%`);
 console.log(`ticket count starts ${startOn}${tickets === null ? '' : ` with ${tickets}`}`);
 
