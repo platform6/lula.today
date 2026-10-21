@@ -213,7 +213,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
                 </span>
               )}
               <span className="truncate">
-                {project.is_inbox ? 'Inbox board' : project.is_area_default ? (area?.name ?? project.name) : project.name}
+                {project.is_inbox ? 'Sorting board' : project.is_area_default ? (area?.name ?? project.name) : project.name}
               </span>
               {project.completed_at && <span className="chip text-ok">Completed</span>}
             </span>

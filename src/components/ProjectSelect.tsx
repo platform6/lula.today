@@ -29,7 +29,7 @@ export function ProjectSelect({
   return (
     <select className={className} value={value} onChange={(e) => onChange(e.target.value)} aria-label={ariaLabel}>
       {allLabel && <option value="">{allLabel}</option>}
-      {includeInbox && inbox && <option value={inbox.id}>Inbox</option>}
+      {includeInbox && inbox && <option value={inbox.id}>Sorting</option>}
       {areas.map((area) => {
         const own = projects.find((p) => p.is_area_default && p.area_id === area.id);
         const list = projects.filter((p) => p.area_id === area.id && !p.is_area_default).sort(byPosition);

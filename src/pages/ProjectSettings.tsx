@@ -33,7 +33,7 @@ export function ProjectSettings() {
 
   const area = areas.find((a) => a.id === project.area_id);
   const builtIn = project.is_inbox || project.is_area_default;
-  const title = project.is_inbox ? 'Inbox' : project.is_area_default ? `${area?.name ?? project.name} tasks` : project.name;
+  const title = project.is_inbox ? 'Sorting' : project.is_area_default ? `${area?.name ?? project.name} tasks` : project.name;
 
   // Archived tasks still sit in a column, so count every non-deleted task.
   const counts = new Map<string, number>();

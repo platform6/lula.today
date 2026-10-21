@@ -4,7 +4,7 @@ import { useProjects } from '../db/hooks';
 import type { Priority } from '../db/types';
 import { toDueAt } from '../lib/dates';
 import { PRIORITY_LABELS } from '../lib/tasks';
-import { InboxIcon } from './icons';
+import { WitchHatIcon } from './icons';
 import { Sheet } from './Sheet';
 import { DateField } from './DateField';
 
@@ -47,7 +47,7 @@ export function QuickAdd({
     <Sheet
       title={
         <span className="flex items-center gap-2">
-          <InboxIcon /> Add to Inbox
+          <WitchHatIcon /> Add to Sorting
         </span>
       }
       onClose={onClose}

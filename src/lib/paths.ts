@@ -16,7 +16,7 @@ export interface Place {
 
 export function placeOf(project: Project | undefined, areas: Map<string, Area>): Place | undefined {
   if (!project) return undefined;
-  if (project.is_inbox) return { kind: 'inbox', project, label: 'Inbox', color: null, href: '/inbox' };
+  if (project.is_inbox) return { kind: 'inbox', project, label: 'Sorting', color: null, href: '/inbox' };
   const area = project.area_id ? areas.get(project.area_id) : undefined;
   if (project.is_area_default) {
     return {

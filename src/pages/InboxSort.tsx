@@ -37,9 +37,9 @@ export function InboxSort() {
 
   const header = (
     <PageHeader
-      title="Sort Inbox"
+      title="Sorting"
       back={
-        <Link to="/inbox" className="btn-ghost -ml-2 px-2" aria-label="Back to Inbox">
+        <Link to="/inbox" className="btn-ghost -ml-2 px-2" aria-label="Back to Sorting">
           <BackIcon />
         </Link>
       }
@@ -62,10 +62,10 @@ export function InboxSort() {
         {header}
         <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
           <h2 className="text-2xl font-bold">You skipped the rest</h2>
-          <p className="text-base text-fg-2">{open.length} task{open.length === 1 ? '' : 's'} still in the Inbox.</p>
+          <p className="text-base text-fg-2">{open.length} task{open.length === 1 ? '' : 's'} still in Sorting.</p>
           <div className="flex gap-2">
             <button className="btn-primary" onClick={() => setSkipped(new Set())}>Go round again</button>
-            <Link to="/inbox" className="btn-outline">Back to Inbox</Link>
+            <Link to="/inbox" className="btn-outline">Back to Sorting</Link>
           </div>
         </div>
       </div>
@@ -116,7 +116,7 @@ export function InboxSort() {
           )}
         </div>
         <p className="px-4 pb-4 text-sm text-fg-2">
-          “Do today” gives it today’s due date and leaves it in the Inbox so it shows up on Today.
+          “Do today” gives it today’s due date and leaves it in Sorting so it shows up on Today.
         </p>
       </div>
     </div>

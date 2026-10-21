@@ -20,7 +20,7 @@ import type { Area } from '../db/types';
 import { onNotice } from '../lib/celebrate';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
-import { ArchiveIcon, BriefcaseIcon, CalendarIcon, InboxIcon, ListIcon, NodesIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
+import { ArchiveIcon, BriefcaseIcon, CalendarIcon, WitchHatIcon, ListIcon, NodesIcon, PencilIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
 import { BrandLockup } from './Brand';
 import { Celebration } from './Celebration';
 import { ConfirmCompleteProvider } from './ConfirmComplete';
@@ -242,7 +242,7 @@ function Sidebar() {
         <NavLink to="/calendar" className={navClass}><CalendarIcon /> Calendar</NavLink>
         <NavLink to="/work" className={navClass}><BriefcaseIcon /> Work log</NavLink>
         <NavLink to="/inbox" className={navClass}>
-          <InboxIcon /> <span className="flex-1">Inbox</span>
+          <WitchHatIcon /> <span className="flex-1">Sorting</span>
           <CountBadge count={inboxCount} />
         </NavLink>
         <NavLink to="/tasks" className={navClass}><ListIcon /> All tasks</NavLink>
@@ -294,7 +294,7 @@ function Sidebar() {
             );
           })}
         </Children>
-        <NavLink to="/lists" className={({ isActive }) => `mt-4 border-t border-line pt-3 ${navClass({ isActive })}`}><ListIcon /> Lists</NavLink>
+        <NavLink to="/lists" className={({ isActive }) => `mt-4 border-t border-line pt-3 ${navClass({ isActive })}`}><PencilIcon /> Lists</NavLink>
         {orphans.length > 0 && (
           <NavLink to="/realms" className="mt-3 block rounded-sm border-2 border-warn px-3 py-2 text-sm font-semibold text-warn">
             {orphans.length} project{orphans.length === 1 ? ' needs' : 's need'} a realm
@@ -360,15 +360,15 @@ function BottomNav() {
       <NavLink to="/" end className={() => tabClass(inToday)}><SunIcon {...tabIcon} /> Today</NavLink>
       <NavLink to="/inbox" className={({ isActive }) => tabClass(isActive)}>
         <span className="relative">
-          <InboxIcon {...tabIcon} />
+          <WitchHatIcon {...tabIcon} />
           <span className="absolute -top-2 -right-4">
             <CountBadge count={inboxCount} />
           </span>
         </span>
-        Inbox
+        Sorting
       </NavLink>
       <NavLink to="/realms" className={() => tabClass(inRealms)}><NodesIcon {...tabIcon} /> Realms</NavLink>
-      <NavLink to="/lists" className={({ isActive }) => tabClass(isActive)}><ListIcon {...tabIcon} /> Lists</NavLink>
+      <NavLink to="/lists" className={({ isActive }) => tabClass(isActive)}><PencilIcon {...tabIcon} /> Lists</NavLink>
       <NavLink to="/search" className={({ isActive }) => tabClass(isActive)}><SearchIcon {...tabIcon} /> Search</NavLink>
       <NavLink to="/settings" className={({ isActive }) => tabClass(isActive)}><SlidersIcon {...tabIcon} /> Settings</NavLink>
     </nav>

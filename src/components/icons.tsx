@@ -23,9 +23,10 @@ function Icon({ children, ...props }: P) {
 
 export const PlusIcon = (p: P) => <Icon {...p}><path d="M12 5v14M5 12h14" /></Icon>;
 export const SunIcon = (p: P) => <Icon {...p}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></Icon>;
-export const InboxIcon = (p: P) => <Icon {...p}><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z" /></Icon>;
+export const WitchHatIcon = (p: P) => <Icon {...p}><path d="m6 17 5-12 6-3-2 6 3 9M8 13c2.5 1.3 5.5 1.3 8 0" /><path d="M6 17c-2.5.4-4 1.1-4 2 0 1.7 4.5 3 10 3s10-1.3 10-3c0-.9-1.5-1.6-4-2-4 1.3-8 1.3-12 0z" /></Icon>;
 export const FolderIcon = (p: P) => <Icon {...p}><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z" /></Icon>;
 export const ListIcon = (p: P) => <Icon {...p}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></Icon>;
+export const PencilIcon = (p: P) => <Icon {...p}><path d="m16 3 5 5L8 21H3v-5L16 3zM13 6l5 5M3 16l5 5" /></Icon>;
 export const SearchIcon = (p: P) => <Icon {...p}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></Icon>;
 export const ArchiveIcon = (p: P) => <Icon {...p}><rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4" /></Icon>;
 export const RepeatIcon = (p: P) => <Icon {...p}><path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3" /></Icon>;

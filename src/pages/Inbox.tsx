@@ -13,14 +13,14 @@ export function Inbox() {
   const tasks = useProjectTasks(inbox?.id);
 
   if (!projects || !tasks) return null;
-  if (!inbox) return <p className="p-4 text-base text-muted">Setting up your Inbox… this needs one sync while online.</p>;
+  if (!inbox) return <p className="p-4 text-base text-muted">Setting up Sorting… this needs one sync while online.</p>;
 
   const open = tasks.filter((t) => isLive(t) && !t.completed_at).sort(byPosition);
 
   return (
     <div>
       <PageHeader
-        title="Inbox"
+        title="Sorting"
         actions={
           open.length > 0 && (
             <Link to="/inbox/sort" className="btn-primary">

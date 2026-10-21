@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Place } from '../lib/paths';
-import { InboxIcon } from './icons';
+import { WitchHatIcon } from './icons';
 
 /** Breadcrumb for where a task lives: Inbox · Home · Home › Kitchen reno. */
 export function PlaceTag({ place, link = false }: { place: Place | undefined; link?: boolean }) {
@@ -8,7 +8,7 @@ export function PlaceTag({ place, link = false }: { place: Place | undefined; li
   const body = (
     <>
       {place.kind === 'inbox' ? (
-        <InboxIcon width={16} height={16} />
+        <WitchHatIcon width={16} height={16} />
       ) : (
         <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: place.color ?? 'var(--line-strong)' }} />
       )}

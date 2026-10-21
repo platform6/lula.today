@@ -72,7 +72,7 @@ export function Search() {
           url: t.url ?? '',
           steps: (stepsByTask.get(t.id) ?? []).join(' '),
           labels: (labelsByTask.get(t.id) ?? []).join(' '),
-          project: project?.name ?? '',
+          project: project?.is_inbox ? 'Sorting' : project?.name ?? '',
           area: (project?.area_id && data.areas.get(project.area_id)) || '',
         };
       }),

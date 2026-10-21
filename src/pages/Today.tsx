@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAllTasks, useBusPurchases, useInboxCount, useWorkDays } from '../db/hooks';
-import { BriefcaseIcon, CalendarIcon, InboxIcon } from '../components/icons';
+import { BriefcaseIcon, CalendarIcon, WitchHatIcon } from '../components/icons';
 import { LOW_TICKETS, statusInfo, ticketsLeft } from '../lib/worklog';
 import { BrandLockup } from '../components/Brand';
 import type { Task } from '../db/types';
@@ -50,9 +50,9 @@ export function Today() {
       <WorkToday />
       {inboxCount > 0 && (
         <Link to="/inbox" className="card mx-4 mt-4 flex min-h-14 items-center gap-3 border-2 border-accent px-4 py-3 hover:bg-surface-2">
-          <InboxIcon />
+          <WitchHatIcon />
           <span className="flex-1 text-base font-semibold">
-            {inboxCount} task{inboxCount === 1 ? '' : 's'} in your Inbox to sort
+            {inboxCount} task{inboxCount === 1 ? '' : 's'} waiting in Sorting
           </span>
           <span className="kicker">Sort ›</span>
         </Link>

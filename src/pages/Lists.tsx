@@ -13,13 +13,11 @@ export function Lists() {
   const [adding, setAdding] = useState(false);
   return (
     <div>
-      <PageHeader title="Lists" actions={<button className="btn-primary" onClick={() => setAdding(true)}><PlusIcon /> New list</button>} />
+      <PageHeader title="Lists" actions={!!lists?.length && <button className="btn-primary" onClick={() => setAdding(true)}><PlusIcon /> New list</button>} />
       <div className="mx-auto max-w-2xl space-y-4 p-4">
-        <p className="text-fg-2">Keep a record of the things you’ve experienced — games, concerts, shows, and anything else worth remembering.</p>
         {!lists ? <p>Loading…</p> : lists.length === 0 ? (
           <div className="card p-6 text-center">
-            <h2 className="text-lg font-bold">Your memories start here</h2>
-            <p className="mt-2 text-fg-2">Create your first list when something comes to mind.</p>
+            <p className="text-fg-2">Create your first list when something comes to mind.</p>
             <button className="btn-outline mt-4" onClick={() => setAdding(true)}>Create a list</button>
           </div>
         ) : <ul className="space-y-3">{lists.map((list) => (
