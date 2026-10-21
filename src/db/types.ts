@@ -1,4 +1,5 @@
-// Mirrors the Postgres schema in supabase/migrations/ and its subsequent migrations.
+// Mirrors the Postgres schema built by supabase/migrations/ (applied in order, starting with
+// 20261020142431_init.sql).
 
 export interface SyncMeta {
   user_id: string;

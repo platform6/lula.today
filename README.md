@@ -39,7 +39,7 @@ from tasks and can be searched within their list. Lists can be renamed; their ca
 fixed to preserve the entry fields. Deleting a list also soft-deletes its entries.
 
 The Lists migration is `supabase/migrations/20261021143600_experience_lists.sql`. It creates
-owner-protected `lists` and `list_items` tables with realtime sync. Apply it through the
-Supabase migration workflow before deploying app code that uses the tables. If the SQL was
-already applied manually, mark this version as applied in migration history instead of
-executing its table-creation SQL again. Local filename versions must match remote history.
+owner-protected `lists` and `list_items` tables with realtime sync. It is already applied to
+the production project. In a new environment, apply the files in `supabase/migrations/` in
+order (see "Database changes" in AGENTS.md); they are not safe to re-run on a database that
+already has them.

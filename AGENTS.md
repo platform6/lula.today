@@ -61,6 +61,11 @@ Saying this is the owner's go-ahead to commit and push what's in the working tre
 
 Schema changes are SQL files in `supabase/migrations/` named `<YYYYMMDDHHMMSS>_<name>.sql`.
 The timestamp must match the version recorded in `supabase_migrations.schema_migrations`.
-Preserve existing migration versions. If SQL is applied manually, reconcile its migration
-history before pushing app code so the deployment does not try to apply it again. A new column must be
-live on Supabase before app code that writes it is deployed, or every sync of that table fails.
+Preserve existing migration versions.
+
+Deploying does not apply migrations: Netlify only runs `npm run build`, and the repo has no
+linked Supabase CLI project. Apply each new migration yourself, either with the Supabase MCP
+`apply_migration` tool (which records the version) or by running the SQL in the dashboard and
+inserting its version and name into `supabase_migrations.schema_migrations`. Then rename the
+local file if needed so its timestamp matches the recorded version. A new column must be live on
+Supabase before app code that writes it is deployed, or every sync of that table fails.
