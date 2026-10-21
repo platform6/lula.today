@@ -32,7 +32,7 @@ export function TaskSheet({ id, onClose }: { id: string; onClose: () => void }) 
   if (task === undefined) return null; // loading
   if (task === null) {
     return (
-      <Sheet title="Task" onClose={onClose}>
+      <Sheet title="Task" onClose={onClose} side="modal">
         <p className="p-4 text-muted">This task no longer exists.</p>
       </Sheet>
     );
@@ -74,6 +74,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
     <Sheet
       title={archived ? 'Archived task' : 'Task'}
       onClose={onClose}
+      side="modal"
       footer={
         <div className="mb-2 flex gap-2">
           {!task.completed_at && !archived && (

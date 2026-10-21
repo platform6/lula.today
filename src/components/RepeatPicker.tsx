@@ -99,6 +99,7 @@ function RepeatPicker({ task, onClose }: { task: Task; onClose: () => void }) {
     <Sheet
       title="Repeat"
       onClose={onClose}
+      side="modal"
       footer={
         <button type="button" className="btn-primary mb-2 min-h-11 px-10 text-sm" onClick={save}>
           Done
