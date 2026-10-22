@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { currentUserId } from './mutate';
-import type { Area, BoardColumn, BusPurchase, Label, Project, Settings, Step, Task, WorkDay } from './types';
+import type { Area, Attachment, BoardColumn, BusPurchase, Label, Project, Settings, Step, Task, WorkDay } from './types';
 import { byPosition } from '../lib/position';
 
 // Live views over the local database. They re-render whenever the underlying
@@ -62,6 +62,13 @@ export function useSteps(taskId: string | null): Step[] | undefined {
     if (!taskId) return [];
     return (await db.steps.where('task_id').equals(taskId).toArray()).filter(alive).sort(byPosition);
   }, [taskId]);
+}
+
+export function useAttachments(taskId: string): Attachment[] | undefined {
+  return useLiveQuery(
+    async () => (await db.attachments.where('task_id').equals(taskId).toArray()).filter(alive).sort((a, b) => a.created_at.localeCompare(b.created_at)),
+    [taskId],
+  );
 }
 
 /** Step progress per task id: [done, total]. */

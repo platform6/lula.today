@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type {
   Area,
+  Attachment,
   ExperienceList,
   ListItem,
   BoardColumn,
@@ -25,6 +26,7 @@ export class LulaDB extends Dexie {
   board_columns!: Table<BoardColumn, string>;
   tasks!: Table<Task, string>;
   steps!: Table<Step, string>;
+  attachments!: Table<Attachment, string>;
   labels!: Table<Label, string>;
   task_labels!: Table<TaskLabel, [string, string]>;
   settings!: Table<Settings, string>;
@@ -55,6 +57,9 @@ export class LulaDB extends Dexie {
       lists: 'id',
       list_items: 'id, list_id',
     });
+    this.version(4).stores({
+      attachments: 'id, task_id',
+    });
   }
 }
 
@@ -68,6 +73,7 @@ export const SYNC_TABLES: SyncTable[] = [
   'board_columns',
   'tasks',
   'steps',
+  'attachments',
   'labels',
   'task_labels',
   'work_days',
@@ -85,6 +91,7 @@ export const CONFLICT_TARGET: Record<SyncTable, string> = {
   board_columns: 'id',
   tasks: 'id',
   steps: 'id',
+  attachments: 'id',
   labels: 'id',
   task_labels: 'task_id,label_id',
   settings: 'user_id',

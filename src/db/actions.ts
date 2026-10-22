@@ -496,6 +496,8 @@ export async function restoreTask(task: Task): Promise<void> {
 async function deleteTaskTree(task: Task, t: string) {
   const steps = await db.steps.where('task_id').equals(task.id).toArray();
   await putMany('steps', steps.filter(alive).map((s) => ({ ...s, deleted_at: t })));
+  const files = await db.attachments.where('task_id').equals(task.id).toArray();
+  await putMany('attachments', files.filter(alive).map((a) => ({ ...a, deleted_at: t })));
   const links = await db.task_labels.where('task_id').equals(task.id).toArray();
   await putMany('task_labels', links.filter(alive).map((l) => ({ ...l, deleted_at: t })));
   await patch('tasks', task.id, { deleted_at: t });

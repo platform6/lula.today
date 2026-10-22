@@ -90,6 +90,15 @@ export interface Step extends Row {
   position: string;
 }
 
+/** A file attached to a task; the file itself is in the private "attachments" storage bucket at `path`. */
+export interface Attachment extends Row {
+  task_id: string;
+  name: string;
+  mime_type: string | null;
+  size: number;
+  path: string;
+}
+
 export interface Label extends Row {
   name: string;
   color: string | null;
@@ -133,6 +142,7 @@ export interface TableRows {
   board_columns: BoardColumn;
   tasks: Task;
   steps: Step;
+  attachments: Attachment;
   labels: Label;
   task_labels: TaskLabel;
   settings: Settings;
