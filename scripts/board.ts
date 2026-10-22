@@ -7,10 +7,13 @@
 // Signs in through scripts/session.ts (credentials in .env.local).
 
 import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { byPosition, keyAtEnd } from '../src/lib/position';
 import { nextDue } from '../src/lib/recurrence';
 import { titleCase } from '../src/lib/titleCase';
-import type { Area, BoardColumn, Label, Project, Step, Task } from '../src/db/types';
+import type { Area, Attachment, BoardColumn, Label, Project, Step, Task } from '../src/db/types';
 import { fail, signIn, supabase } from './session';
 
 async function rows<T>(table: string, build?: (q: any) => any): Promise<T[]> {
@@ -122,7 +125,33 @@ async function show(idPrefix: string) {
     console.log('steps');
     for (const s of steps) console.log(`  [${s.is_done ? 'x' : ' '}] ${s.text}`);
   }
+  const files = await attachmentsOf(t.id);
+  if (files.length) {
+    console.log('files');
+    for (const f of files) console.log(`  ${f.name} (${f.mime_type ?? 'unknown type'}, ${Math.round(f.size / 1024)} KB)`);
+  }
   if (t.notes) console.log(`notes\n${t.notes}`);
+}
+
+async function attachmentsOf(taskId: string) {
+  return (await rows<Attachment>('attachments', (q) => q.eq('task_id', taskId))).sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+/** Download a card's attached files into a folder (a temp folder by default). */
+async function files(idPrefix: string, dir?: string) {
+  const t = await findTask(idPrefix);
+  const list = await attachmentsOf(t.id);
+  if (list.length === 0) return console.log(`"${t.title}" has no files.`);
+  const out = dir ?? join(tmpdir(), 'lula-files', short(t.id));
+  await mkdir(out, { recursive: true });
+  for (const [i, f] of list.entries()) {
+    const { data, error } = await supabase.storage.from('attachments').download(f.path);
+    if (error || !data) fail(`Downloading ${f.name} failed: ${error?.message}`);
+    // Numbered so files with the same name don't overwrite each other.
+    const file = join(out, `${String(i + 1).padStart(2, '0')}-${f.path.split('/').pop()}`);
+    await writeFile(file, Buffer.from(await data.arrayBuffer()));
+    console.log(file);
+  }
 }
 
 async function move(idPrefix: string, columnName: string) {
@@ -189,7 +218,8 @@ const HELP = `lula board
 
   boards                          realms and their projects
   list <board> [column]           cards by column, with their ids
-  show <id>                       one card: notes, steps, details
+  show <id>                       one card: notes, steps, files, details
+  files <id> [folder]             download a card's files (to a temp folder by default)
   move <id> <column>              move a card (Done completes it)
   note <id> "<text>" [--by name]  append a note to a card (signed Claude unless --by)
   add <board> "<title>" [column]  add a card (first open column by default)
@@ -209,6 +239,7 @@ if (!cmd || cmd === 'help') {
   if (cmd === 'boards') await boards();
   else if (cmd === 'list') (need(1), await list(args[0], args[1]));
   else if (cmd === 'show') (need(1), await show(args[0]));
+  else if (cmd === 'files') (need(1), await files(args[0], args[1]));
   else if (cmd === 'move') (need(2), await move(args[0], args.slice(1).join(' ')));
   else if (cmd === 'note') {
     // An optional trailing "--by <name>" signs the note for another agent.

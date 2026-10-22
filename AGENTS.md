@@ -13,7 +13,8 @@ script to read and update them (it signs in as the owner; see `scripts/session.t
 
 ```
 npm run board -- list lula            # cards by column, with ids
-npm run board -- show <id>            # notes, steps, details
+npm run board -- show <id>            # notes, steps, files, details
+npm run board -- files <id> [folder]  # download the card's attached files (temp folder by default)
 npm run board -- move <id> Doing
 npm run board -- note <id> "<text>"   # add --by <name> to sign the note, e.g. --by Codex
 ```
