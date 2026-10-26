@@ -3,8 +3,8 @@ import { useTimeEntries } from '../db/hooks';
 import { continueEntry, deleteEntry, restoreEntry } from '../db/time';
 import type { TimeEntry } from '../db/types';
 import { dayKey, todayKey, addDays } from '../lib/dates';
-import { PERIOD_LABELS, entrySeconds, formatHours, periodStart, totalsBy, weekOf, type Period } from '../lib/time';
-import { ClockIcon, PlayIcon, PlusIcon } from './icons';
+import { PERIOD_LABELS, entrySeconds, formatDuration, formatHours, periodStart, stackEntries, totalsBy, weekOf, type Period } from '../lib/time';
+import { ClockIcon, DownIcon, PlayIcon, PlusIcon, TagIcon } from './icons';
 import { TimeEntrySheet } from './TimeEntrySheet';
 import { TimerPicker, useNow } from './Timer';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
@@ -141,10 +141,10 @@ export function TimeReport({
               {newWeek && (
                 <h2 className="flex items-baseline gap-2 border-b-2 border-line-strong pb-1 text-lg font-bold">
                   <span className="flex-1">{weekLabel(week)}</span>
-                  <span className="text-base tabular-nums text-fg-2">{formatHours(weekTotals.get(week) ?? 0)}</span>
+                  <span className="text-base tabular-nums text-fg-2">{formatDuration(weekTotals.get(week) ?? 0)}</span>
                 </h2>
               )}
-              <DayGroup day={day} entries={list} now={now} lookup={lookup} showProject={by === 'project'} onOpen={setEditing} onDelete={remove} />
+              <DayGroup day={day} entries={list} now={now} lookup={lookup} onOpen={setEditing} onDelete={remove} />
             </div>
           );
         })}
@@ -198,7 +198,6 @@ function DayGroup({
   entries,
   now,
   lookup,
-  showProject,
   onOpen,
   onDelete,
 }: {
@@ -206,23 +205,94 @@ function DayGroup({
   entries: TimeEntry[];
   now: number;
   lookup: TimeLookup;
-  showProject: boolean;
   onOpen: (e: TimeEntry) => void;
   onDelete: (e: TimeEntry) => void;
 }) {
   const total = entries.reduce((sum, e) => sum + entrySeconds(e, now), 0);
   return (
     <div>
-      <h3 className="section-title">
+      <h3 className="mb-2 flex items-baseline gap-2 px-1 text-base font-semibold text-fg-2">
         <span className="flex-1">{dayLabel(day)}</span>
-        <span className="text-sm font-semibold tabular-nums text-fg-2">{formatHours(total)}</span>
+        <span className="tabular-nums">{formatDuration(total)}</span>
       </h3>
-      <ul className="divide-y divide-line">
-        {entries.map((e) => (
-          <EntryRow key={e.id} entry={e} now={now} lookup={lookup} showProject={showProject} onOpen={onOpen} onDelete={onDelete} />
-        ))}
+      <ul className="flex flex-col gap-2">
+        {stackEntries(entries).map((stack) =>
+          stack.length === 1 ? (
+            <EntryRow key={stack[0].id} entry={stack[0]} now={now} lookup={lookup} onOpen={onOpen} onDelete={onDelete} />
+          ) : (
+            <EntryStack key={stack[0].id} entries={stack} now={now} lookup={lookup} onOpen={onOpen} onDelete={onDelete} />
+          ),
+        )}
       </ul>
     </div>
+  );
+}
+
+/**
+ * An entry card as in Clockify: description, then project and task, then tags;
+ * duration and times on the right.
+ */
+function EntryBody({
+  entry: e,
+  seconds,
+  from,
+  to,
+  lookup,
+  showDay,
+  badge,
+}: {
+  entry: TimeEntry;
+  seconds: number;
+  from: string;
+  to: string | null;
+  lookup: TimeLookup;
+  showDay?: boolean;
+  badge?: ReactNode;
+}) {
+  const task = e.time_task_id ? lookup.tasks.get(e.time_task_id)?.name : null;
+  const tags = e.tag_ids.map((id) => lookup.tags.get(id)?.name).filter(Boolean).join(', ');
+  return (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className={`block truncate text-base ${e.description ? 'font-semibold' : 'text-muted'}`}>
+          {e.description || 'No description'}
+        </span>
+        <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: lookup.projectColor(e.project_id) ?? 'var(--line-strong)' }} />
+          <span className="truncate">
+            <span className="font-semibold">{lookup.projectLabel(e.project_id)}{task ? ':' : ''}</span>
+            {task && <span className="text-fg-2"> {task}</span>}
+          </span>
+        </span>
+        {tags && (
+          <span className="mt-1 flex min-w-0 items-center gap-1 text-xs text-fg-2">
+            <TagIcon width={14} height={14} className="shrink-0" />
+            <span className="truncate">{tags}</span>
+          </span>
+        )}
+      </span>
+      <span className="flex shrink-0 flex-col items-end">
+        <span className={`text-base font-bold tabular-nums ${e.ended_at ? '' : 'text-accent'}`}>
+          {e.ended_at ? formatDuration(seconds) : 'Running'}
+        </span>
+        <span className="text-xs text-fg-2">
+          {showDay && `${dayLabel(dayKey(new Date(from)))}, `}
+          {clock(from)}
+          {to ? ` – ${clock(to)}` : ''}
+        </span>
+        {badge}
+      </span>
+    </>
+  );
+}
+
+const cardClass = 'flex items-start gap-1 rounded-md border border-line bg-surface py-3 pr-1 pl-3';
+
+function PlayAgain({ entry, lookup }: { entry: TimeEntry; lookup: TimeLookup }) {
+  return (
+    <button className="btn-ghost shrink-0 self-center px-2" aria-label={`Start ${lookup.entryTitle(entry)} again`} onClick={() => void continueEntry(entry)}>
+      <PlayIcon width={18} height={18} />
+    </button>
   );
 }
 
@@ -231,7 +301,6 @@ export function EntryRow({
   entry: e,
   now,
   lookup,
-  showProject,
   showDay,
   onOpen,
   onDelete,
@@ -239,44 +308,74 @@ export function EntryRow({
   entry: TimeEntry;
   now: number;
   lookup: TimeLookup;
-  showProject: boolean;
   /** Show the day with the times, for lists that aren't grouped by day. */
   showDay?: boolean;
   onOpen: (e: TimeEntry) => void;
   onDelete: (e: TimeEntry) => void;
 }) {
-  const sub = [
-    showProject && e.time_task_id ? lookup.projectLabel(e.project_id) : null,
-    e.description,
-    e.tag_ids.map((id) => lookup.tags.get(id)?.name).filter(Boolean).join(', ') || null,
-  ].filter(Boolean);
-  const row = (
-    <div className="flex items-center gap-2 bg-bg">
-      <button className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left" onClick={() => onOpen(e)}>
-        <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ background: lookup.projectColor(e.project_id) ?? 'var(--line-strong)' }} />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-base font-semibold">{lookup.entryTitle(e)}</span>
-          {sub.length > 0 && <span className="block truncate text-sm text-fg-2">{sub.join(' · ')}</span>}
-        </span>
-        <span className="shrink-0 text-right">
-          <span className={`block text-base font-semibold tabular-nums ${e.ended_at ? '' : 'text-accent'}`}>
-            {e.ended_at ? formatHours(entrySeconds(e, now)) : 'Running'}
-          </span>
-          <span className="block text-xs text-fg-2">
-            {showDay && `${dayLabel(dayKey(new Date(e.started_at)))}, `}
-            {clock(e.started_at)}
-            {e.ended_at ? `–${clock(e.ended_at)}` : ''}
-          </span>
-        </span>
+  const card = (
+    <div className={cardClass}>
+      <button className="flex min-w-0 flex-1 items-start gap-3 text-left" onClick={() => onOpen(e)}>
+        <EntryBody entry={e} seconds={entrySeconds(e, now)} from={e.started_at} to={e.ended_at} lookup={lookup} showDay={showDay} />
       </button>
-      {e.ended_at && (
-        <button className="btn-ghost shrink-0 px-2" aria-label={`Start ${lookup.entryTitle(e)} again`} onClick={() => void continueEntry(e)}>
-          <PlayIcon width={18} height={18} />
-        </button>
-      )}
+      {e.ended_at && <PlayAgain entry={e} lookup={lookup} />}
     </div>
   );
-  return <li>{e.ended_at ? <SwipeToDelete onDelete={() => onDelete(e)}>{row}</SwipeToDelete> : row}</li>;
+  return <li>{e.ended_at ? <SwipeToDelete onDelete={() => onDelete(e)}>{card}</SwipeToDelete> : card}</li>;
+}
+
+/** Repeats of one entry on a day, stacked behind a count; tap to show each. */
+function EntryStack({
+  entries,
+  now,
+  lookup,
+  onOpen,
+  onDelete,
+}: {
+  entries: TimeEntry[];
+  now: number;
+  lookup: TimeLookup;
+  onOpen: (e: TimeEntry) => void;
+  onDelete: (e: TimeEntry) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const latest = entries[0];
+  const seconds = entries.reduce((sum, e) => sum + entrySeconds(e, now), 0);
+  const from = entries.reduce((min, e) => (e.started_at < min ? e.started_at : min), latest.started_at);
+  const to = entries.reduce((max, e) => (e.ended_at && e.ended_at > max ? e.ended_at : max), latest.ended_at ?? '');
+
+  return (
+    <li>
+      <div className={`relative ${cardClass}`}>
+        <button className="flex min-w-0 flex-1 items-start gap-3 text-left" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+          <EntryBody
+            entry={latest}
+            seconds={seconds}
+            from={from}
+            to={to || null}
+            lookup={lookup}
+            badge={
+              <span className="mt-1.5 flex min-h-8 items-center gap-1.5 rounded-sm bg-surface-2 px-2.5 text-sm font-semibold">
+                {entries.length}
+                <DownIcon width={16} height={16} className={open ? 'rotate-180' : ''} />
+              </span>
+            }
+          />
+        </button>
+        <PlayAgain entry={latest} lookup={lookup} />
+      </div>
+      {open ? (
+        <ul className="mt-2 ml-3 flex flex-col gap-2 border-l-2 border-line pl-3">
+          {entries.map((e) => (
+            <EntryRow key={e.id} entry={e} now={now} lookup={lookup} onOpen={onOpen} onDelete={onDelete} />
+          ))}
+        </ul>
+      ) : (
+        // The edge of the cards stacked underneath.
+        <div className="mx-2 h-1.5 rounded-b-md border border-t-0 border-line bg-surface-2" aria-hidden />
+      )}
+    </li>
+  );
 }
 
 const SWIPE_DELETE = 96;
@@ -296,7 +395,7 @@ function SwipeToDelete({ onDelete, children }: { onDelete: () => void; children:
 
   return (
     <div
-      className="relative overflow-hidden"
+      className="relative overflow-hidden rounded-md"
       style={{ touchAction: 'pan-y' }}
       onPointerDown={(ev) => {
         if (ev.pointerType !== 'touch') return;

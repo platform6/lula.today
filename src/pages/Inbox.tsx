@@ -61,9 +61,9 @@ function UnsortedTime({ entries }: { entries: TimeEntry[] }) {
     <section className="px-4 pt-6">
       <h2 className="section-title">Time with no project</h2>
       <p className="pb-2 text-base text-fg-2">Tap an entry to pick its project.</p>
-      <ul className="divide-y divide-line">
+      <ul className="flex flex-col gap-2">
         {entries.map((e) => (
-          <EntryRow key={e.id} entry={e} now={Date.now()} lookup={lookup} showProject={false} showDay onOpen={setEditing} onDelete={remove} />
+          <EntryRow key={e.id} entry={e} now={Date.now()} lookup={lookup} showDay onOpen={setEditing} onDelete={remove} />
         ))}
       </ul>
       {editing && <TimeEntrySheet entry={editing} onDelete={remove} onClose={() => setEditing(null)} />}

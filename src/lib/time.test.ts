@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entrySeconds, formatClock, formatDuration, formatHours, nameKey, parseDuration, periodStart, totalsBy, weekOf, zonedToUtc } from './time';
+import { entrySeconds, formatClock, formatDuration, formatHours, nameKey, parseDuration, periodStart, stackEntries, totalsBy, weekOf, zonedToUtc } from './time';
 import { planImport, type OldEntry } from './timeImport';
 
 describe('zonedToUtc', () => {
@@ -82,10 +82,45 @@ describe('durations', () => {
     expect(parseDuration('1:75')).toBeNull();
   });
 
-  it('formats for the entry form', () => {
-    expect(formatDuration(5400)).toBe('1:30');
-    expect(formatDuration(300)).toBe('0:05');
-    expect(formatDuration(parseDuration('1h 5m')!)).toBe('1:05');
+  it('reads hours, minutes and seconds', () => {
+    expect(parseDuration('1:27:29')).toBe(5249);
+    expect(parseDuration('00:00:30')).toBe(30);
+  });
+
+  it('formats as Clockify does', () => {
+    expect(formatDuration(5249)).toBe('01:27:29');
+    expect(formatDuration(300)).toBe('00:05:00');
+    expect(formatDuration(45 * 3600)).toBe('45:00:00');
+    expect(formatDuration(parseDuration('1h 5m')!)).toBe('01:05:00');
+  });
+});
+
+describe('stackEntries', () => {
+  const e = (o: Partial<Parameters<typeof stackEntries>[0][number]>) => ({
+    started_at: '2026-10-26T10:00:00Z',
+    ended_at: '2026-10-26T11:00:00Z',
+    project_id: 'p1',
+    time_task_id: null,
+    description: null,
+    tag_ids: [],
+    ...o,
+  });
+
+  it('stacks repeats and keeps the order they first appear in', () => {
+    const a1 = e({});
+    const b = e({ project_id: 'p2' });
+    const a2 = e({ started_at: '2026-10-26T08:00:00Z' });
+    expect(stackEntries([a1, b, a2])).toEqual([[a1, a2], [b]]);
+  });
+
+  it('keeps entries apart when the task, description or tags differ', () => {
+    const list = [e({}), e({ time_task_id: 't' }), e({ description: 'x' }), e({ tag_ids: ['a'] })];
+    expect(stackEntries(list)).toHaveLength(4);
+    expect(stackEntries([e({ tag_ids: ['a', 'b'] }), e({ tag_ids: ['b', 'a'] })])).toHaveLength(1);
+  });
+
+  it('never stacks a running entry', () => {
+    expect(stackEntries([e({ ended_at: null }), e({})])).toHaveLength(2);
   });
 });
 

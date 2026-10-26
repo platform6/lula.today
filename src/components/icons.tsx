@@ -44,6 +44,7 @@ export const ExpandAllIcon = (p: P) => <Icon {...p}><path d="m7 7 5-5 5 5M7 17l5
 export const CollapseAllIcon = (p: P) => <Icon {...p}><path d="m7 2 5 5 5-5M7 22l5-5 5 5M5 12h14" /></Icon>;
 export const BackIcon = (p: P) => <Icon {...p}><path d="m15 18-6-6 6-6" /></Icon>;
 export const ChevronRightIcon = (p: P) => <Icon {...p}><path d="m9 18 6-6-6-6" /></Icon>;
+export const TagIcon = (p: P) => <Icon {...p}><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z" /><circle cx="7.5" cy="7.5" r="1.5" /></Icon>;
 export const MinusIcon = (p: P) => <Icon {...p}><path d="M5 12h14" /></Icon>;
 /** Realms: a root node branching to child nodes. */
 export const NodesIcon = (p: P) => <Icon {...p}><circle cx="6" cy="5" r="2.5" /><circle cx="18" cy="12" r="2.5" /><circle cx="18" cy="20" r="2" /><path d="M6 7.5V18a2 2 0 0 0 2 2h8M6 12h9.5" /></Icon>;
