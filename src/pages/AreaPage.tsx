@@ -11,10 +11,11 @@ import {
 } from '../db/actions';
 import { useAreas, useProjectProgress, useProjectTasks, useProjects } from '../db/hooks';
 import type { Area, Project } from '../db/types';
-import { isRealProject } from '../lib/paths';
+import { isRealProject, showsBoard } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { isLive } from '../lib/tasks';
 import { ColorPicker } from '../components/ColorPicker';
+import { ShowsEditor } from '../components/ShowsEditor';
 import { Branch, Children, NODE_SIZE, Stem, TreeNode } from '../components/NodeTree';
 import { PageHeader } from '../components/PageHeader';
 import { TaskList } from '../components/TaskList';
@@ -61,26 +62,34 @@ export function AreaPage() {
         }
         toolbar={
           <Link to={`/realms/${area.id}`} className="btn-outline min-h-10 px-3 text-sm">
-            Board
+            {!own || showsBoard(own) ? 'Board' : 'Time'}
           </Link>
         }
       />
       <div className="mx-auto flex max-w-2xl flex-col gap-8 py-4">
         <AreaEditor area={area} first={index === 0} last={index === areas.length - 1} />
 
-        <section>
-          <div className="section-title mx-4">
-            <span className="flex-1">{area.name} tasks</span>
-            {own && (
-              <Link to={`/projects/${own.id}/settings`} className="text-sm font-semibold text-accent">
-                Board columns
-              </Link>
-            )}
+        {own && (
+          <div className="mx-4">
+            <ShowsEditor project={own} name={area.name} />
           </div>
-          <p className="mx-4 mt-2 text-sm text-fg-2">Tasks that belong to {area.name} but not to a project.</p>
-          {own && <AddAreaTask projectId={own.id} areaName={area.name} />}
-          <TaskList tasks={open} showPlace={false} empty={`No open ${area.name} tasks.`} />
-        </section>
+        )}
+
+        {(!own || showsBoard(own)) && (
+          <section>
+            <div className="section-title mx-4">
+              <span className="flex-1">{area.name} tasks</span>
+              {own && (
+                <Link to={`/projects/${own.id}/settings`} className="text-sm font-semibold text-accent">
+                  Board columns
+                </Link>
+              )}
+            </div>
+            <p className="mx-4 mt-2 text-sm text-fg-2">Tasks that belong to {area.name} but not to a project.</p>
+            {own && <AddAreaTask projectId={own.id} areaName={area.name} />}
+            <TaskList tasks={open} showPlace={false} empty={`No open ${area.name} tasks.`} />
+          </section>
+        )}
 
         <section>
           <h2 className="section-title mx-4">
@@ -145,12 +154,14 @@ function ProjectRow({ project, progress }: { project: Project; progress?: [numbe
         <span className="flex items-center gap-3">
           <span className="min-w-0 flex-1 truncate text-lg font-bold">{project.name}</span>
           <span className="shrink-0 text-sm font-semibold text-fg-2">
-            {done} of {total} done
+            {showsBoard(project) ? `${done} of ${total} done` : 'Time tracking'}
           </span>
         </span>
-        <span className="block h-2.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-          <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: project.color ?? 'var(--accent)' }} />
-        </span>
+        {showsBoard(project) && (
+          <span className="block h-2.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+            <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: project.color ?? 'var(--accent)' }} />
+          </span>
+        )}
       </span>
     </Link>
   );

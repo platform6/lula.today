@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { moveTaskToProject } from '../db/actions';
 import { useAreas, useProjects } from '../db/hooks';
 import type { Area } from '../db/types';
+import { showsBoard } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { BackIcon } from './icons';
 import { TreeNode } from './NodeTree';
@@ -18,7 +19,8 @@ export function MoveToSheet({ taskId, title, onClose }: { taskId: string; title:
 
 export function MoveToPicker({ taskId, onMoved }: { taskId: string; onMoved: () => void }) {
   const areas = useAreas() ?? [];
-  const projects = (useProjects() ?? []).filter((p) => !p.archived_at);
+  // Time-only projects have no board to put a task on.
+  const projects = (useProjects() ?? []).filter((p) => !p.archived_at && showsBoard(p));
   const [area, setArea] = useState<Area | null>(null);
 
   const move = async (projectId: string) => {

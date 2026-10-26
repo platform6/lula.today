@@ -15,6 +15,10 @@ import type {
   TableRows,
   Task,
   TaskLabel,
+  TimeEntry,
+  TimeField,
+  TimeTag,
+  TimeTask,
   WorkDay,
 } from './types';
 
@@ -32,6 +36,10 @@ export class LulaDB extends Dexie {
   settings!: Table<Settings, string>;
   work_days!: Table<WorkDay, string>;
   bus_purchases!: Table<BusPurchase, string>;
+  time_tags!: Table<TimeTag, string>;
+  time_fields!: Table<TimeField, string>;
+  time_tasks!: Table<TimeTask, string>;
+  time_entries!: Table<TimeEntry, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<{ key: string; value: unknown }, string>;
 
@@ -60,6 +68,12 @@ export class LulaDB extends Dexie {
     this.version(4).stores({
       attachments: 'id, task_id',
     });
+    this.version(5).stores({
+      time_tags: 'id',
+      time_fields: 'id',
+      time_tasks: 'id, project_id',
+      time_entries: 'id, started_at, project_id, time_task_id, *tag_ids',
+    });
   }
 }
 
@@ -80,6 +94,10 @@ export const SYNC_TABLES: SyncTable[] = [
   'bus_purchases',
   'lists',
   'list_items',
+  'time_tags',
+  'time_fields',
+  'time_tasks',
+  'time_entries',
 ];
 
 /** Server-side conflict target for upserts. */
@@ -97,6 +115,10 @@ export const CONFLICT_TARGET: Record<SyncTable, string> = {
   settings: 'user_id',
   work_days: 'id',
   bus_purchases: 'id',
+  time_tags: 'id',
+  time_fields: 'id',
+  time_tasks: 'id',
+  time_entries: 'id',
 };
 
 /** Stable string key for a row, used by the outbox. */

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   DndContext,
   DragOverlay,
@@ -19,8 +19,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { createTask, moveTask } from '../db/actions';
 import { useAreas, useColumns, useLabels, useProject, useProjectTasks, useProjects, useStepCounts, useTaskLabelMap } from '../db/hooks';
 import { TreeNode } from '../components/NodeTree';
-import type { BoardColumn, Label, Task } from '../db/types';
+import type { Area, BoardColumn, Label, Project, Task } from '../db/types';
+import { showsBoard, tracksTime } from '../lib/paths';
 import { PRIORITY_BARS, isLive } from '../lib/tasks';
+import { TimeReport } from '../components/TimeReport';
 import { PageHeader } from '../components/PageHeader';
 import { TaskMeta } from '../components/TaskMeta';
 import { BackIcon, PlusIcon, SlidersIcon } from '../components/icons';
@@ -61,10 +63,107 @@ export function RealmBoard() {
   return <ProjectBoard projectId={own.id} />;
 }
 
+/**
+ * A project (or a realm's own list) shows its kanban board, its time tracking, or
+ * both behind a Board | Time switch, as ticked in its options.
+ */
 export function ProjectBoard({ projectId }: { projectId: string }) {
   const project = useProject(projectId);
   const areas = useAreas();
-  const area = project?.area_id ? areas?.find((a) => a.id === project.area_id) : undefined;
+  const projects = useProjects();
+  const [params, setParams] = useSearchParams();
+
+  if (project === undefined || !areas || !projects) return null;
+  if (project === null) return <p className="p-4 text-muted">Project not found.</p>;
+
+  const area = project.area_id ? areas.find((a) => a.id === project.area_id) : undefined;
+  const board = showsBoard(project);
+  const time = tracksTime(project);
+  const view = board && time ? (params.get('view') === 'time' ? 'time' : 'board') : time ? 'time' : 'board';
+  const viewSwitch = board && time && (
+    <div className="flex rounded-md border-2 border-line-strong p-0.5" role="tablist" aria-label="View">
+      {(['board', 'time'] as const).map((v) => (
+        <button
+          key={v}
+          role="tab"
+          aria-selected={view === v}
+          className={`min-h-9 rounded-sm px-3 text-sm font-semibold ${view === v ? 'bg-accent text-accent-fg' : 'text-fg-2'}`}
+          onClick={() => setParams(v === 'time' ? { view: 'time' } : {}, { replace: true })}
+        >
+          {v === 'board' ? 'Board' : 'Time'}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (view === 'board') return <Kanban project={project} area={area} viewSwitch={viewSwitch} />;
+
+  // A realm's time includes its projects'.
+  const ids = project.is_area_default ? projects.filter((p) => p.area_id === project.area_id).map((p) => p.id) : [project.id];
+  return (
+    <div>
+      <ProjectHeader project={project} area={area} toolbar={viewSwitch} />
+      <TimeReport projectIds={ids} groupBy={project.is_area_default ? 'auto' : 'task'} startProjectId={project.id} />
+    </div>
+  );
+}
+
+function ProjectHeader({ project, area, toolbar }: { project: Project; area: Area | undefined; toolbar?: ReactNode }) {
+  return (
+    <PageHeader
+      back={
+        area && (
+          // a realm's board goes back to all realms; a project's board goes back to its realm
+          <Link
+            to={project.is_area_default ? '/realms' : `/realms/${area.id}`}
+            className="btn-ghost -ml-2 px-2"
+            aria-label={project.is_area_default ? 'All realms' : `Back to ${area.name}`}
+          >
+            <BackIcon />
+          </Link>
+        )
+      }
+      title={
+        <span className="flex min-w-0 flex-col leading-tight">
+          {area && !project.is_area_default && (
+            <Link to={`/realms/${area.id}`} className="flex items-center gap-1.5 text-sm font-semibold text-fg-2">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: area.color ?? 'var(--line-strong)' }} />
+              {area.name} ›
+            </Link>
+          )}
+          <span className="flex min-w-0 items-center gap-2">
+            {project.is_area_default && (
+              <span className="flex shrink-0 p-1">
+                <TreeNode kind="realm" color={area?.color} compact />
+              </span>
+            )}
+            <span className="truncate">
+              {project.is_inbox ? 'Sorting board' : project.is_area_default ? (area?.name ?? project.name) : project.name}
+            </span>
+            {project.completed_at && <span className="chip text-ok">Completed</span>}
+          </span>
+        </span>
+      }
+      toolbar={
+        <>
+          {toolbar}
+          {project.is_area_default && area ? (
+            <Link to={`/realms/${area.id}/options`} className="btn-outline min-h-10 px-3 text-sm">
+              <SlidersIcon width={18} height={18} /> Options
+            </Link>
+          ) : (
+            <Link to={`/projects/${project.id}/settings`} className="btn-outline min-h-10 px-3 text-sm">
+              <SlidersIcon width={18} height={18} /> Settings
+            </Link>
+          )}
+        </>
+      }
+    />
+  );
+}
+
+function Kanban({ project, area, viewSwitch }: { project: Project; area: Area | undefined; viewSwitch: ReactNode }) {
+  const projectId = project.id;
   const columns = useColumns(projectId);
   const tasks = useProjectTasks(projectId);
   const stepCounts = useStepCounts();
@@ -110,8 +209,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
     return map;
   }, [columns, tasks, hideDone]);
 
-  if (project === undefined || columns === undefined) return null;
-  if (project === null) return <p className="p-4 text-muted">Project not found.</p>;
+  if (columns === undefined) return null;
 
   const labelsFor = (taskId: string) =>
     (labelMap?.get(taskId) ?? []).map((lid) => labels.find((l) => l.id === lid)).filter((l): l is Label => !!l);
@@ -185,54 +283,15 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-      <PageHeader
-        back={
-          area && (
-            // a realm's board goes back to all realms; a project's board goes back to its realm
-            <Link
-              to={project.is_area_default ? '/realms' : `/realms/${area.id}`}
-              className="btn-ghost -ml-2 px-2"
-              aria-label={project.is_area_default ? 'All realms' : `Back to ${area.name}`}
-            >
-              <BackIcon />
-            </Link>
-          )
-        }
-        title={
-          <span className="flex min-w-0 flex-col leading-tight">
-            {area && !project.is_area_default && (
-              <Link to={`/realms/${area.id}`} className="flex items-center gap-1.5 text-sm font-semibold text-fg-2">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: area.color ?? 'var(--line-strong)' }} />
-                {area.name} ›
-              </Link>
-            )}
-            <span className="flex min-w-0 items-center gap-2">
-              {project.is_area_default && (
-                <span className="flex shrink-0 p-1">
-                  <TreeNode kind="realm" color={area?.color} compact />
-                </span>
-              )}
-              <span className="truncate">
-                {project.is_inbox ? 'Sorting board' : project.is_area_default ? (area?.name ?? project.name) : project.name}
-              </span>
-              {project.completed_at && <span className="chip text-ok">Completed</span>}
-            </span>
-          </span>
-        }
+      <ProjectHeader
+        project={project}
+        area={area}
         toolbar={
           <>
+            {viewSwitch}
             <button className="btn-outline min-h-10 px-3 text-sm" onClick={toggleHideDone} aria-pressed={hideDone}>
               {hideDone ? 'Show done' : 'Hide done'}
             </button>
-            {project.is_area_default && area ? (
-              <Link to={`/realms/${area.id}/options`} className="btn-outline min-h-10 px-3 text-sm">
-                <SlidersIcon width={18} height={18} /> Options
-              </Link>
-            ) : (
-              <Link to={`/projects/${project.id}/settings`} className="btn-outline min-h-10 px-3 text-sm">
-                <SlidersIcon width={18} height={18} /> Settings
-              </Link>
-            )}
           </>
         }
       />

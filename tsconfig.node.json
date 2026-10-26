@@ -21,6 +21,7 @@
     "pwa-assets.config.ts",
     "scripts/board.ts",
     "scripts/session.ts",
-    "scripts/import-worklog.ts"
+    "scripts/import-worklog.ts",
+    "scripts/import-time.ts"
   ]
 }

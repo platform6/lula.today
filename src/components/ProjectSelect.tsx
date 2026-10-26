@@ -1,4 +1,5 @@
 import { useAreas, useProjects } from '../db/hooks';
+import { showsBoard } from '../lib/paths';
 import { byPosition } from '../lib/position';
 
 /**
@@ -22,7 +23,8 @@ export function ProjectSelect({
   ariaLabel?: string;
 }) {
   const areas = useAreas() ?? [];
-  const projects = (useProjects() ?? []).filter((p) => !p.archived_at || p.id === value);
+  // Time-only projects have no board to put a task on.
+  const projects = (useProjects() ?? []).filter((p) => (!p.archived_at && showsBoard(p)) || p.id === value);
   const inbox = projects.find((p) => p.is_inbox);
   const orphans = projects.filter((p) => !p.is_inbox && !p.is_area_default && !areas.some((a) => a.id === p.area_id));
 

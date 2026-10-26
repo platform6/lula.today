@@ -168,6 +168,8 @@ export async function createProject(input: {
   is_area_default?: boolean;
   position?: string;
   id?: string;
+  show_board?: boolean;
+  track_time?: boolean;
   /** Derive column ids from the project id (for rows every device may create). */
   stableColumnIds?: boolean;
 }): Promise<Project> {
@@ -191,6 +193,8 @@ export async function createProject(input: {
     position: input.position ?? keyAtEnd(siblings),
     completed_at: null,
     archived_at: null,
+    show_board: input.show_board ?? true,
+    track_time: input.track_time ?? false,
   };
   const columnIds = input.stableColumnIds
     ? await Promise.all(templates.map((_, i) => stableUuid(`${project.id}:column:${i}`)))
@@ -210,6 +214,15 @@ export async function createProject(input: {
 }
 
 export const updateProject = (id: string, changes: Partial<Project>) => patch('projects', id, changes);
+
+/** Turn the board or time tracking on or off; at least one stays on. */
+export async function setProjectShows(id: string, changes: { show_board?: boolean; track_time?: boolean }): Promise<void> {
+  const p = await db.projects.get(id);
+  if (!p) return;
+  const next = { show_board: p.show_board !== false, track_time: p.track_time === true, ...changes };
+  if (!next.show_board && !next.track_time) throw new Error('A project shows its board, time tracking, or both.');
+  await patch('projects', id, next);
+}
 
 export async function archiveProject(id: string, archived: boolean): Promise<void> {
   await patch('projects', id, { archived_at: archived ? now() : null });

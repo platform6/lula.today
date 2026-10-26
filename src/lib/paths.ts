@@ -40,3 +40,9 @@ export function placeOf(project: Project | undefined, areas: Map<string, Area>):
 
 /** Projects that people see as projects (not the Inbox or an area's own list). */
 export const isRealProject = (p: Project) => !p.is_inbox && !p.is_area_default && !p.deleted_at;
+
+/** A project shows its kanban board unless it was switched to time tracking only. */
+export const showsBoard = (p: Project) => p.show_board !== false;
+
+/** The project can be picked for time tracking and shows a time report. */
+export const tracksTime = (p: Project) => p.track_time === true && !p.is_inbox;

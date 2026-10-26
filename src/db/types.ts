@@ -32,6 +32,10 @@ export interface Project extends Row {
   position: string;
   completed_at: string | null;
   archived_at: string | null;
+  /** Shows a kanban board. Rows synced before this existed lack it; read with showsBoard(). */
+  show_board?: boolean;
+  /** Can be picked for time tracking and shows a time report. Read with tracksTime(). */
+  track_time?: boolean;
 }
 
 export interface BoardColumn extends Row {
@@ -134,6 +138,44 @@ export interface BusPurchase extends Row {
   tickets: number;
 }
 
+/** A tag for time entries (separate from task labels). */
+export interface TimeTag extends Row {
+  name: string;
+  archived_at: string | null;
+}
+
+/** An extra field for time entries, defined in settings (e.g. Client). */
+export interface TimeField extends Row {
+  name: string;
+  kind: 'text' | 'choice';
+  choices: string[];
+  position: string;
+  archived_at: string | null;
+}
+
+/** What a time entry was spent on within a project: a plain name, optionally tied to a card. */
+export interface TimeTask extends Row {
+  project_id: string | null;
+  name: string;
+  task_id: string | null;
+  archived_at: string | null;
+}
+
+/** Tracked time against a project (a realm's own list counts); no project means it's unsorted. */
+export interface TimeEntry extends Row {
+  started_at: string;
+  /** Null while the timer is running. */
+  ended_at: string | null;
+  project_id: string | null;
+  time_task_id: string | null;
+  tag_ids: string[];
+  description: string | null;
+  /** Extra field values by TimeField id. */
+  fields: Record<string, string>;
+  /** Where the entry came from when it wasn't made in lula (e.g. 'import'). */
+  source: string | null;
+}
+
 export interface TableRows {
   lists: ExperienceList;
   list_items: ListItem;
@@ -148,6 +190,10 @@ export interface TableRows {
   settings: Settings;
   work_days: WorkDay;
   bus_purchases: BusPurchase;
+  time_tags: TimeTag;
+  time_fields: TimeField;
+  time_tasks: TimeTask;
+  time_entries: TimeEntry;
 }
 
 export type ListKind = 'general' | 'games' | 'concerts' | 'television';

@@ -11,7 +11,8 @@
     "test": "vitest run",
     "icons": "pwa-assets-generator && node scripts/generate-favicon.mjs && node scripts/generate-brand-assets.mjs",
     "board": "tsx scripts/board.ts",
-    "import-worklog": "tsx scripts/import-worklog.ts"
+    "import-worklog": "tsx scripts/import-worklog.ts",
+    "import-time": "tsx scripts/import-time.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { currentUserId } from './mutate';
-import type { Area, Attachment, BoardColumn, BusPurchase, Label, Project, Settings, Step, Task, WorkDay } from './types';
+import type { Area, Attachment, BoardColumn, BusPurchase, Label, Project, Settings, Step, Task, TimeEntry, TimeTag, TimeTask, WorkDay } from './types';
 import { byPosition } from '../lib/position';
 
 // Live views over the local database. They re-render whenever the underlying
@@ -152,4 +152,22 @@ export function useWorkDays(): WorkDay[] | undefined {
 
 export function useBusPurchases(): BusPurchase[] | undefined {
   return useLiveQuery(async () => (await db.bus_purchases.toArray()).filter(alive));
+}
+
+/** Every time entry, newest first. */
+export function useTimeEntries(): TimeEntry[] | undefined {
+  return useLiveQuery(async () => (await db.time_entries.orderBy('started_at').reverse().toArray()).filter(alive));
+}
+
+/** The timer that is running, or null. */
+export function useRunningEntry(): TimeEntry | null | undefined {
+  return useLiveQuery(async () => (await db.time_entries.toArray()).find((e) => alive(e) && !e.ended_at) ?? null);
+}
+
+export function useTimeTasks(): TimeTask[] | undefined {
+  return useLiveQuery(async () => (await db.time_tasks.toArray()).filter(alive).sort((a, b) => a.name.localeCompare(b.name)));
+}
+
+export function useTimeTags(): TimeTag[] | undefined {
+  return useLiveQuery(async () => (await db.time_tags.toArray()).filter(alive).sort((a, b) => a.name.localeCompare(b.name)));
 }

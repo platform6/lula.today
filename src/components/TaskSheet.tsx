@@ -28,6 +28,7 @@ import { PRIORITY_LABELS, isArchived, normalizeUrl } from '../lib/tasks';
 import { CheckIcon, CopyIcon, DownIcon, LinkIcon, PaperclipIcon, PlusIcon, UpIcon, XIcon } from './icons';
 import { RepeatField } from './RepeatPicker';
 import { Sheet } from './Sheet';
+import { CardTimer } from './Timer';
 
 export function TaskSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const task = useTask(id);
@@ -103,6 +104,8 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
           }}
           aria-label="Title"
         />
+
+        {!archived && <CardTimer task={task} />}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">

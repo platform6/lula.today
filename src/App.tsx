@@ -15,6 +15,7 @@ import { Search } from './pages/Search';
 import { Calendar } from './pages/Calendar';
 import { WorkLog } from './pages/WorkLog';
 import { WorkLogPrint } from './pages/WorkLogPrint';
+import { Time } from './pages/Time';
 import { Archive } from './pages/Archive';
 import { Settings } from './pages/Settings';
 import { Lists, ListPage } from './pages/Lists';
@@ -53,6 +54,7 @@ export function App() {
         <Route path="search" element={<Search />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="work" element={<WorkLog />} />
+        <Route path="time" element={<Time />} />
         <Route path="archive" element={<Archive />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

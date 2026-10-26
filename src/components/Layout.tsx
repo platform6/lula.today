@@ -20,7 +20,7 @@ import type { Area } from '../db/types';
 import { onNotice } from '../lib/celebrate';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
-import { ArchiveIcon, BriefcaseIcon, CalendarIcon, WitchHatIcon, ListIcon, NodesIcon, PencilIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
+import { ArchiveIcon, BriefcaseIcon, CalendarIcon, ClockIcon, WitchHatIcon, ListIcon, NodesIcon, PencilIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
 import { BrandLockup } from './Brand';
 import { Celebration } from './Celebration';
 import { ConfirmCompleteProvider } from './ConfirmComplete';
@@ -28,6 +28,7 @@ import { Branch, Children, NODE_SIZE, Stem, TreeNode } from './NodeTree';
 import { QuickAdd } from './QuickAdd';
 import { SyncBadge } from './SyncBadge';
 import { TaskSheet } from './TaskSheet';
+import { TimerBar } from './Timer';
 import { useOpenTask } from './useOpenTask';
 import { RealmExpansionAll, RealmExpansionProvider, RealmToggle, useRealmExpansion } from './RealmExpansion';
 
@@ -126,15 +127,16 @@ export function Layout() {
         <div className="flex h-full">
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
-            <main className="pt-safe min-h-0 flex-1 overflow-y-auto pb-40 md:pb-8">
+            <main className="pt-safe min-h-0 flex-1 overflow-y-auto pb-56 md:pb-8">
               <Outlet />
             </main>
+            <TimerBar variant="dock" />
             <BottomNav />
           </div>
 
           {!dragging && !onListsPage && (
             <button
-              className="fixed right-4 bottom-[calc(5.125rem+var(--tab-safe))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
+              className="fixed right-4 bottom-[calc(8.875rem+var(--tab-safe))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
               onClick={() => setQuickAdd(true)}
               aria-label="Add task"
             >
@@ -237,10 +239,12 @@ function Sidebar() {
         </NavLink>
         <SyncBadge />
       </div>
-      <nav className="flex flex-col gap-0.5 px-2">
+      <TimerBar variant="side" />
+      <nav className="mt-2 flex flex-col gap-0.5 px-2">
         <NavLink to="/" end className={navClass}><SunIcon /> Today</NavLink>
         <NavLink to="/calendar" className={navClass}><CalendarIcon /> Calendar</NavLink>
         <NavLink to="/work" className={navClass}><BriefcaseIcon /> Work log</NavLink>
+        <NavLink to="/time" className={navClass}><ClockIcon /> Time</NavLink>
         <NavLink to="/inbox" className={navClass}>
           <WitchHatIcon /> <span className="flex-1">Sorting</span>
           <CountBadge count={inboxCount} />
@@ -353,8 +357,8 @@ function BottomNav() {
   const { pathname } = useLocation();
   // Realm pages and the boards inside them all belong to the Realms tab.
   const inRealms = pathname.startsWith('/realms') || pathname.startsWith('/projects');
-  // On phones the calendar and work log are reached from Today, so they belong to that tab.
-  const inToday = pathname === '/' || pathname.startsWith('/calendar') || pathname.startsWith('/work');
+  // On phones the calendar, work log and time are reached from Today (time also from the timer), so they belong to that tab.
+  const inToday = pathname === '/' || ['/calendar', '/work', '/time'].some((p) => pathname.startsWith(p));
   return (
     <nav className="pb-tabbar fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
       <NavLink to="/" end className={() => tabClass(inToday)}><SunIcon {...tabIcon} /> Today</NavLink>

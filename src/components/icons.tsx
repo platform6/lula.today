@@ -52,3 +52,4 @@ export const CalendarIcon = (p: P) => <Icon {...p}><rect x="3" y="4" width="18" 
 export const ClockIcon = (p: P) => <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Icon>;
 export const FlagIcon = (p: P) => <Icon {...p}><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 5 2 5H5" /></Icon>;
 export const PaperclipIcon = (p: P) => <Icon {...p}><path d="m21 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9" /></Icon>;
+export const PlayIcon = (p: P) => <Icon {...p}><path d="M7 4v16l13-8z" /></Icon>;
