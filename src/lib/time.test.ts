@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entrySeconds, formatClock, formatHours, nameKey, periodStart, totalsBy, zonedToUtc } from './time';
+import { entrySeconds, formatClock, formatDuration, formatHours, nameKey, parseDuration, periodStart, totalsBy, weekOf, zonedToUtc } from './time';
 import { planImport, type OldEntry } from './timeImport';
 
 describe('zonedToUtc', () => {
@@ -62,6 +62,39 @@ describe('totalsBy', () => {
 describe('nameKey', () => {
   it('ignores case and extra spaces', () => {
     expect(nameKey('  Game   Art ')).toBe(nameKey('game art'));
+  });
+});
+
+describe('durations', () => {
+  it('reads the ways a duration is typed', () => {
+    expect(parseDuration('1:30')).toBe(5400);
+    expect(parseDuration('0:05')).toBe(300);
+    expect(parseDuration('1h 30m')).toBe(5400);
+    expect(parseDuration('2h')).toBe(7200);
+    expect(parseDuration('1.5h')).toBe(5400);
+    expect(parseDuration('45m')).toBe(2700);
+    expect(parseDuration(' 45 ')).toBe(2700);
+  });
+
+  it('rejects what it cannot read', () => {
+    expect(parseDuration('')).toBeNull();
+    expect(parseDuration('abc')).toBeNull();
+    expect(parseDuration('1:75')).toBeNull();
+  });
+
+  it('formats for the entry form', () => {
+    expect(formatDuration(5400)).toBe('1:30');
+    expect(formatDuration(300)).toBe('0:05');
+    expect(formatDuration(parseDuration('1h 5m')!)).toBe('1:05');
+  });
+});
+
+describe('weekOf', () => {
+  it('is the Monday of the week', () => {
+    expect(weekOf('2026-10-26')).toBe('2026-10-26'); // Monday
+    expect(weekOf('2026-10-28')).toBe('2026-10-26');
+    expect(weekOf('2026-11-01')).toBe('2026-10-26'); // Sunday
+    expect(weekOf('2026-01-01')).toBe('2025-12-29'); // across a year
   });
 });
 

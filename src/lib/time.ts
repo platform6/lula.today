@@ -1,3 +1,5 @@
+import { addDays } from './dates';
+
 // Time tracking helpers that don't touch the database.
 
 /** Offset of `zone` from UTC at `utc` (ms), e.g. -4h for New York in summer. */
@@ -83,4 +85,31 @@ export function totalsBy<E extends { started_at: string; ended_at: string | null
     if (key !== undefined) totals.set(key, (totals.get(key) ?? 0) + entrySeconds(e, now));
   }
   return [...totals].map(([key, seconds]) => ({ key, seconds })).sort((a, b) => b.seconds - a.seconds);
+}
+
+/** A duration for the entry form: 1:05, 0:45. */
+export function formatDuration(seconds: number): string {
+  const minutes = Math.round(seconds / 60);
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/**
+ * A typed duration in seconds, or null if it can't be read: 1:30, 1h 30m, 1h,
+ * 45m, 1.5h, or a bare number of minutes.
+ */
+export function parseDuration(text: string): number | null {
+  const s = text.trim().toLowerCase();
+  let m = /^(\d+):([0-5]?\d)$/.exec(s);
+  if (m) return (Number(m[1]) * 60 + Number(m[2])) * 60;
+  m = /^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/.exec(s);
+  if (m && (m[1] || m[2])) return Math.round((Number(m[1] ?? 0) * 60 + Number(m[2] ?? 0)) * 60);
+  if (/^\d+$/.test(s)) return Number(s) * 60;
+  return null;
+}
+
+/** The Monday (YYYY-MM-DD) of the week a day (YYYY-MM-DD) falls in. */
+export function weekOf(day: string): string {
+  const [y, m, d] = day.split('-').map(Number);
+  const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+  return addDays(day, -weekday);
 }

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { currentUserId } from './mutate';
-import type { Area, Attachment, BoardColumn, BusPurchase, Label, Project, Settings, Step, Task, TimeEntry, TimeTag, TimeTask, WorkDay } from './types';
+import type { Area, Attachment, BoardColumn, BusPurchase, Label, Project, Settings, Step, Task, TimeEntry, TimeField, TimeTag, TimeTask, WorkDay } from './types';
 import { byPosition } from '../lib/position';
 
 // Live views over the local database. They re-render whenever the underlying
@@ -118,10 +118,12 @@ export function useInboxCount(): number {
   return (
     useLiveQuery(async () => {
       const inbox = (await db.projects.toArray()).find((p) => p.is_inbox && !p.deleted_at);
-      if (!inbox) return 0;
-      return (await db.tasks.where('project_id').equals(inbox.id).toArray()).filter(
-        (t) => !t.deleted_at && !t.archived_at && !t.completed_at,
-      ).length;
+      const tasks = inbox
+        ? (await db.tasks.where('project_id').equals(inbox.id).toArray()).filter(
+            (t) => !t.deleted_at && !t.archived_at && !t.completed_at,
+          ).length
+        : 0;
+      return tasks + (await unsortedEntries()).length;
     }) ?? 0
   );
 }
@@ -170,4 +172,17 @@ export function useTimeTasks(): TimeTask[] | undefined {
 
 export function useTimeTags(): TimeTag[] | undefined {
   return useLiveQuery(async () => (await db.time_tags.toArray()).filter(alive).sort((a, b) => a.name.localeCompare(b.name)));
+}
+
+/** Finished time entries with no project, which wait in Sorting to be given one. */
+const unsortedEntries = async () =>
+  (await db.time_entries.toArray()).filter((e) => alive(e) && e.ended_at && !e.project_id).sort((a, b) => b.started_at.localeCompare(a.started_at));
+
+export function useUnsortedEntries(): TimeEntry[] | undefined {
+  return useLiveQuery(unsortedEntries);
+}
+
+/** Extra fields for time entries, in order. */
+export function useTimeFields(): TimeField[] | undefined {
+  return useLiveQuery(async () => (await db.time_fields.toArray()).filter(alive).sort(byPosition));
 }

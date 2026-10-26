@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAllTasks, useBusPurchases, useInboxCount, useWorkDays } from '../db/hooks';
-import { BriefcaseIcon, CalendarIcon, WitchHatIcon } from '../components/icons';
+import { BriefcaseIcon, CalendarIcon, SlidersIcon, WitchHatIcon } from '../components/icons';
 import { LOW_TICKETS, statusInfo, ticketsLeft } from '../lib/worklog';
 import { BrandLockup } from '../components/Brand';
 import type { Task } from '../db/types';
@@ -31,10 +31,15 @@ export function Today() {
     <div>
       <PageHeader
         actions={
-          // Phones reach the calendar from here; desktop has it in the sidebar.
-          <Link to="/calendar" className="btn-outline min-h-10 px-3 text-sm md:hidden">
-            <CalendarIcon width={18} height={18} /> Calendar
-          </Link>
+          // Phones reach the calendar and settings from here; desktop has them in the sidebar.
+          <span className="flex gap-2 md:hidden">
+            <Link to="/calendar" className="btn-outline min-h-10 px-3 text-sm">
+              <CalendarIcon width={18} height={18} /> Calendar
+            </Link>
+            <Link to="/settings" className="btn-outline min-h-10 px-2.5" aria-label="Settings">
+              <SlidersIcon width={20} height={20} />
+            </Link>
+          </span>
         }
         title={
           <>
@@ -52,7 +57,7 @@ export function Today() {
         <Link to="/inbox" className="card mx-4 mt-4 flex min-h-14 items-center gap-3 border-2 border-accent px-4 py-3 hover:bg-surface-2">
           <WitchHatIcon />
           <span className="flex-1 text-base font-semibold">
-            {inboxCount} task{inboxCount === 1 ? '' : 's'} waiting in Sorting
+            {inboxCount} waiting in Sorting
           </span>
           <span className="kicker">Sort ›</span>
         </Link>

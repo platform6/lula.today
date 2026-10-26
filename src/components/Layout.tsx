@@ -357,8 +357,8 @@ function BottomNav() {
   const { pathname } = useLocation();
   // Realm pages and the boards inside them all belong to the Realms tab.
   const inRealms = pathname.startsWith('/realms') || pathname.startsWith('/projects');
-  // On phones the calendar, work log and time are reached from Today (time also from the timer), so they belong to that tab.
-  const inToday = pathname === '/' || ['/calendar', '/work', '/time'].some((p) => pathname.startsWith(p));
+  // On phones the calendar, work log and settings are reached from Today, so they belong to that tab.
+  const inToday = pathname === '/' || ['/calendar', '/work', '/settings'].some((p) => pathname.startsWith(p));
   return (
     <nav className="pb-tabbar fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
       <NavLink to="/" end className={() => tabClass(inToday)}><SunIcon {...tabIcon} /> Today</NavLink>
@@ -374,7 +374,7 @@ function BottomNav() {
       <NavLink to="/realms" className={() => tabClass(inRealms)}><NodesIcon {...tabIcon} /> Realms</NavLink>
       <NavLink to="/lists" className={({ isActive }) => tabClass(isActive)}><PencilIcon {...tabIcon} /> Lists</NavLink>
       <NavLink to="/search" className={({ isActive }) => tabClass(isActive)}><SearchIcon {...tabIcon} /> Search</NavLink>
-      <NavLink to="/settings" className={({ isActive }) => tabClass(isActive)}><SlidersIcon {...tabIcon} /> Settings</NavLink>
+      <NavLink to="/time" className={({ isActive }) => tabClass(isActive)}><ClockIcon {...tabIcon} /> Time</NavLink>
     </nav>
   );
 }

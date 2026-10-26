@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useTimeFields } from '../db/hooks';
 import { addEntry, deleteEntry, ensureTimeTag, ensureTimeTask, stopTimer, updateEntry } from '../db/time';
 import type { TimeEntry } from '../db/types';
 import { addDays, dayKey, todayKey } from '../lib/dates';
-import { entrySeconds, formatHours, nameKey } from '../lib/time';
+import { entrySeconds, formatDuration, nameKey, parseDuration } from '../lib/time';
 import { Sheet } from './Sheet';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
@@ -19,6 +20,8 @@ export function TimeEntrySheet(props: {
   entry?: TimeEntry;
   /** Project for a new entry. */
   projectId?: string | null;
+  /** Delete with Undo instead of asking first. */
+  onDelete?: (e: TimeEntry) => void;
   onClose: () => void;
 }) {
   const lookup = useTimeLookup();
@@ -29,11 +32,13 @@ export function TimeEntrySheet(props: {
 function EntryForm({
   entry,
   projectId,
+  onDelete,
   onClose,
   lookup,
 }: {
   entry?: TimeEntry;
   projectId?: string | null;
+  onDelete?: (e: TimeEntry) => void;
   onClose: () => void;
   lookup: TimeLookup;
 }) {
@@ -52,8 +57,12 @@ function EntryForm({
   const [endTime, setEndTime] = useState(initial.endTime);
   const [tagIds, setTagIds] = useState<string[]>(entry?.tag_ids ?? []);
   const [newTag, setNewTag] = useState('');
+  const [extra, setExtra] = useState<Record<string, string>>(entry?.fields ?? {});
+  // What's typed in Duration, until it's left; otherwise it shows start to end.
+  const [durationText, setDurationText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const extraFields = (useTimeFields() ?? []).filter((f) => !f.archived_at || extra[f.id]);
 
   const running = !!entry && !entry.ended_at;
   const options = lookup.timeProjects.filter((p) => p.id !== entry?.project_id);
@@ -73,17 +82,18 @@ function EntryForm({
       const task = name
         ? (lookup.tasksOf(projectIdOrNull).find((t) => nameKey(t.name) === nameKey(name)) ?? (await ensureTimeTask(projectIdOrNull, name)))
         : null;
-      const fields = {
+      const values = {
         project_id: projectIdOrNull,
         time_task_id: task?.id ?? null,
         description: description.trim() || null,
         tag_ids: tagIds,
+        fields: Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v)),
       };
       if (!entry) {
         if (!endIso) throw new Error('Add an end time.');
-        await addEntry({ ...fields, started_at: startIso, ended_at: endIso });
+        await addEntry({ ...values, started_at: startIso, ended_at: endIso });
       } else {
-        const changes: Partial<TimeEntry> = { ...fields };
+        const changes: Partial<TimeEntry> = { ...values };
         const timesChanged = date !== initial.date || startTime !== initial.startTime || endTime !== initial.endTime;
         if (timesChanged) {
           changes.started_at = startIso;
@@ -108,7 +118,15 @@ function EntryForm({
     setNewTag('');
   }
 
-  const preview = endIso ? entrySeconds({ started_at: startIso, ended_at: endIso }) : null;
+  const seconds = endIso ? entrySeconds({ started_at: startIso, ended_at: endIso }) : null;
+
+  // A typed duration moves the end time; start and end stay the source of truth.
+  function typeDuration(text: string) {
+    setDurationText(text);
+    const s = parseDuration(text);
+    if (s === null || s >= 86_400) return;
+    setEndTime(timeInput(new Date(Date.parse(startIso) + s * 1000)));
+  }
 
   return (
     <Sheet
@@ -117,7 +135,10 @@ function EntryForm({
       side="center"
       footer={
         <div className="flex w-full items-center gap-2 pb-2">
-          {entry && !confirmDelete && (
+          {entry && onDelete && !running && (
+            <button className="btn-danger" onClick={() => { onDelete(entry); onClose(); }}>Delete</button>
+          )}
+          {entry && (!onDelete || running) && !confirmDelete && (
             <button className="btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
           )}
           {entry && confirmDelete && (
@@ -167,25 +188,87 @@ function EntryForm({
           <label className="field-label" htmlFor="time-desc">Description</label>
           <input id="time-desc" className="input" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="field-label" htmlFor="time-date">Date</label>
             <input id="time-date" type="date" className="input" value={date} max={todayKey()} onChange={(e) => e.target.value && setDate(e.target.value)} />
           </div>
           <div>
-            <label className="field-label" htmlFor="time-start">Start</label>
-            <input id="time-start" type="time" className="input" value={startTime} onChange={(e) => e.target.value && setStartTime(e.target.value)} />
-          </div>
-          <div>
-            <label className="field-label" htmlFor="time-end">End</label>
+            <label className="field-label" htmlFor="time-duration">Duration</label>
             {running ? (
               <p className="flex min-h-12 items-center text-base font-semibold text-accent">Running</p>
             ) : (
-              <input id="time-end" type="time" className="input" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+              <input
+                id="time-duration"
+                className="input tabular-nums"
+                inputMode="text"
+                placeholder="1:30"
+                value={durationText ?? (seconds === null ? '' : formatDuration(seconds))}
+                onChange={(e) => typeDuration(e.target.value)}
+                onBlur={() => setDurationText(null)}
+              />
             )}
           </div>
+          <div>
+            <label className="field-label" htmlFor="time-start">Start</label>
+            <input
+              id="time-start"
+              type="time"
+              className="input"
+              value={startTime}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                setStartTime(e.target.value);
+                setDurationText(null);
+              }}
+            />
+          </div>
+          {!running && (
+            <div>
+              <label className="field-label" htmlFor="time-end">End</label>
+              <input
+                id="time-end"
+                type="time"
+                className="input"
+                value={endTime}
+                onChange={(e) => {
+                  setEndTime(e.target.value);
+                  setDurationText(null);
+                }}
+              />
+            </div>
+          )}
         </div>
-        {preview !== null && <p className="-mt-2 text-sm text-fg-2">{formatHours(preview)}{endTime < startTime ? ', ending the next day' : ''}</p>}
+        {durationText !== null && durationText.trim() && (parseDuration(durationText) ?? 86_400) >= 86_400 ? (
+          <p className="-mt-2 text-sm text-warn">Type a duration under 24 hours, like 1:30, 1h 30m or 45m.</p>
+        ) : (
+          !running && endTime && endTime < startTime && <p className="-mt-2 text-sm text-fg-2">Ends the next day.</p>
+        )}
+        {extraFields.map((f) => (
+          <div key={f.id}>
+            <label className="field-label" htmlFor={`time-field-${f.id}`}>{f.name}</label>
+            {f.kind === 'choice' ? (
+              <select
+                id={`time-field-${f.id}`}
+                className="input"
+                value={extra[f.id] ?? ''}
+                onChange={(e) => setExtra((x) => ({ ...x, [f.id]: e.target.value }))}
+              >
+                <option value="">None</option>
+                {[...new Set([...f.choices, ...(extra[f.id] ? [extra[f.id]] : [])])].map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id={`time-field-${f.id}`}
+                className="input"
+                value={extra[f.id] ?? ''}
+                onChange={(e) => setExtra((x) => ({ ...x, [f.id]: e.target.value }))}
+              />
+            )}
+          </div>
+        ))}
         <div>
           <span className="field-label">Tags</span>
           <div className="flex flex-wrap gap-2">
