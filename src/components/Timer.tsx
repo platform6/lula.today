@@ -26,7 +26,7 @@ export function useNow(active: boolean, ms = 1000): number {
 /**
  * One tap to start, see or stop the timer. Docked above the tabs on phones, in the
  * sidebar on wide screens, and at the top of the Time page on phones ('inline',
- * shown only while a timer runs, since that page has its own Start timer).
+ * shown only while a timer runs; + starts one).
  */
 export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
   const running = useRunningEntry();

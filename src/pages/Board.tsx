@@ -103,7 +103,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   return (
     <div>
       <ProjectHeader project={project} area={area} toolbar={viewSwitch} />
-      <TimeReport projectIds={ids} groupBy={project.is_area_default ? 'auto' : 'task'} startProjectId={project.id} />
+      <TimeReport projectIds={ids} groupBy={project.is_area_default ? 'auto' : 'task'} />
     </div>
   );
 }

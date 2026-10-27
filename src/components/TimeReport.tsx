@@ -4,10 +4,10 @@ import { continueEntry, deleteEntry, restoreEntry, stopTimer } from '../db/time'
 import type { TimeEntry } from '../db/types';
 import { dayKey, todayKey, addDays } from '../lib/dates';
 import { entrySeconds, formatDuration, stackEntries, totalsBy, weekOf } from '../lib/time';
-import { ClockIcon, DownIcon, PlayIcon, PlusIcon, TagIcon } from './icons';
+import { DownIcon, PlayIcon, TagIcon } from './icons';
 import { Report, remember, remembered } from './Report';
 import { TimeEntrySheet } from './TimeEntrySheet';
-import { TimerPicker, useNow } from './Timer';
+import { useNow } from './Timer';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
 const VIEW_KEY = 'lula.time.view';
@@ -22,20 +22,15 @@ const DAYS_PAGE = 14;
 export function TimeReport({
   projectIds,
   groupBy,
-  startProjectId,
 }: {
   /** Projects to include; omit for every entry. */
   projectIds?: string[];
   /** 'auto' groups by project when the period has more than one, else by task. */
   groupBy: 'project' | 'task' | 'auto';
-  /** Project the Start and Add buttons use. */
-  startProjectId?: string;
 }) {
   const all = useTimeEntries();
   const lookup = useTimeLookup();
   const [view, setView] = useState<View>(() => remembered<View>(VIEW_KEY, 'entries'));
-  const [picking, setPicking] = useState(false);
-  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<TimeEntry | null>(null);
   const [days, setDays] = useState(DAYS_PAGE);
   const { remove, undoBar } = useUndoDelete(lookup);
@@ -67,15 +62,6 @@ export function TimeReport({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 p-4">
-      <div className="flex flex-wrap gap-2">
-        <button className="btn-primary" onClick={() => setPicking(true)}>
-          <ClockIcon /> Start timer
-        </button>
-        <button className="btn-outline" onClick={() => setAdding(true)}>
-          <PlusIcon /> Add time
-        </button>
-      </div>
-
       <div className="flex gap-1 rounded-md border border-line bg-surface-2 p-1" role="tablist" aria-label="Show">
         <button role="tab" aria-selected={view === 'entries'} className={tab(view === 'entries')} onClick={() => show('entries')}>
           Entries
@@ -104,7 +90,7 @@ export function TimeReport({
               </div>
             );
           })}
-          {entries.length === 0 && <p className="text-base text-muted">No time tracked yet. Start a timer or add time.</p>}
+          {entries.length === 0 && <p className="text-base text-muted">No time tracked yet. Tap + to start a timer or add time.</p>}
           {byDay.size > days && (
             <button className="btn-outline self-start" onClick={() => setDays((d) => d + DAYS_PAGE)}>
               Show more days
@@ -113,8 +99,6 @@ export function TimeReport({
         </section>
       )}
 
-      {picking && <TimerPicker lookup={lookup} projectId={startProjectId} onClose={() => setPicking(false)} />}
-      {adding && <TimeEntrySheet projectId={startProjectId ?? null} onClose={() => setAdding(false)} />}
       {editing && <TimeEntrySheet entry={editing} onDelete={remove} onClose={() => setEditing(null)} />}
       {undoBar}
     </div>
