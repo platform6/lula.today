@@ -3,37 +3,21 @@ import { useTimeEntries } from '../db/hooks';
 import { continueEntry, deleteEntry, restoreEntry, stopTimer } from '../db/time';
 import type { TimeEntry } from '../db/types';
 import { dayKey, todayKey, addDays } from '../lib/dates';
-import { PERIOD_LABELS, entrySeconds, formatDuration, periodStart, stackEntries, totalsBy, weekOf, type Period } from '../lib/time';
+import { entrySeconds, formatDuration, stackEntries, totalsBy, weekOf } from '../lib/time';
 import { ClockIcon, DownIcon, PlayIcon, PlusIcon, TagIcon } from './icons';
+import { Report, remember, remembered } from './Report';
 import { TimeEntrySheet } from './TimeEntrySheet';
 import { TimerPicker, useNow } from './Timer';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
-const PERIOD_KEY = 'lula.time.period';
 const VIEW_KEY = 'lula.time.view';
 
 type View = 'entries' | 'report';
-
-function remembered<T extends string>(key: string, fallback: T): T {
-  try {
-    return (localStorage.getItem(key) as T | null) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function remember(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // per-viewer convenience only
-  }
-}
 const DAYS_PAGE = 14;
 
 /**
  * Tracked time for some projects (or all of them). Entries: every entry, week by
- * week and day by day. Report: a period's total and a breakdown by task or project.
+ * week and day by day. Report: a period's totals, charts and export.
  */
 export function TimeReport({
   projectIds,
@@ -50,7 +34,6 @@ export function TimeReport({
   const all = useTimeEntries();
   const lookup = useTimeLookup();
   const [view, setView] = useState<View>(() => remembered<View>(VIEW_KEY, 'entries'));
-  const [period, setPeriod] = useState<Period>(() => remembered<Period>(PERIOD_KEY, 'week'));
   const [picking, setPicking] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<TimeEntry | null>(null);
@@ -67,16 +50,6 @@ export function TimeReport({
 
   if (!all || !lookup.loaded) return null;
 
-  const from = periodStart(period)?.toISOString();
-  // An entry counts toward the day and period it started in, as in Clockify.
-  const inPeriod = from ? entries.filter((e) => e.started_at >= from) : entries;
-  const total = inPeriod.reduce((sum, e) => sum + entrySeconds(e, now), 0);
-  const by = groupBy === 'auto' ? (new Set(inPeriod.map((e) => e.project_id)).size > 1 ? 'project' : 'task') : groupBy;
-  const breakdown = totalsBy(inPeriod, (e) => (by === 'task' ? (e.time_task_id ?? '') : (e.project_id ?? '')), now);
-  const nameOf = (key: string) =>
-    by === 'task' ? (key ? (lookup.tasks.get(key)?.name ?? 'Unknown task') : 'No task') : lookup.projectLabel(key || null);
-  const colorOf = (key: string) => (by === 'project' ? lookup.projectColor(key || null) : lookup.projectColor(startProjectId ?? null));
-
   const byDay = new Map<string, TimeEntry[]>();
   for (const e of entries) {
     const day = dayKey(new Date(e.started_at));
@@ -85,10 +58,6 @@ export function TimeReport({
   const dayList = [...byDay].slice(0, days);
   const weekTotals = new Map(totalsBy(entries, (e) => weekOf(dayKey(new Date(e.started_at))), now).map((w) => [w.key, w.seconds]));
 
-  const pick = (p: Period) => {
-    setPeriod(p);
-    remember(PERIOD_KEY, p);
-  };
   const show = (v: View) => {
     setView(v);
     remember(VIEW_KEY, v);
@@ -116,49 +85,7 @@ export function TimeReport({
         </button>
       </div>
 
-      {view === 'report' && (
-        <>
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Period">
-            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
-              <button
-                key={p}
-                role="tab"
-                aria-selected={p === period}
-                className={`min-h-11 rounded-sm border-2 px-3 text-sm font-semibold ${p === period ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
-                onClick={() => pick(p)}
-              >
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
-          </div>
-
-          <section>
-            <p className="text-4xl font-bold tabular-nums">{formatDuration(total)}</p>
-            <p className="text-sm text-fg-2">
-              {PERIOD_LABELS[period].toLowerCase()} · {inPeriod.length} entr{inPeriod.length === 1 ? 'y' : 'ies'}
-            </p>
-            {breakdown.length > 1 && (
-              <ul className="mt-4 flex flex-col gap-2.5">
-                {breakdown.map((b) => (
-                  <li key={b.key}>
-                    <div className="flex items-baseline gap-2 text-base">
-                      <span className="min-w-0 flex-1 truncate font-semibold">{nameOf(b.key)}</span>
-                      <span className="shrink-0 tabular-nums text-fg-2">{formatDuration(b.seconds)}</span>
-                    </div>
-                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${Math.max(2, (b.seconds / breakdown[0].seconds) * 100)}%`, background: colorOf(b.key) ?? 'var(--accent)' }}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {inPeriod.length === 0 && <p className="mt-2 text-base text-muted">No time tracked {PERIOD_LABELS[period].toLowerCase()}.</p>}
-          </section>
-        </>
-      )}
+      {view === 'report' && <Report entries={entries} lookup={lookup} now={now} groupBy={groupBy} scoped={!!projectIds} />}
 
       {view === 'entries' && (
         <section className="flex flex-col gap-5">

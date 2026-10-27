@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entrySeconds, formatDuration, nameKey, parseDuration, periodStart, runningLong, stackEntries, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
+import { entrySeconds, formatDuration, nameKey, parseDuration, rangeDays, rangeFor, rangeLabel, runningLong, stackEntries, stepRange, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
 import { planImport, type OldEntry } from './timeImport';
 
 describe('zonedToUtc', () => {
@@ -22,14 +22,27 @@ describe('entrySeconds', () => {
   });
 });
 
-describe('periodStart', () => {
-  it('starts weeks on Monday and months and years on the 1st', () => {
-    const sun = new Date(2026, 9, 25, 15, 30); // Sunday Oct 25
-    expect(periodStart('week', sun)).toEqual(new Date(2026, 9, 19));
-    expect(periodStart('week', new Date(2026, 9, 19, 8))).toEqual(new Date(2026, 9, 19));
-    expect(periodStart('month', sun)).toEqual(new Date(2026, 9, 1));
-    expect(periodStart('year', sun)).toEqual(new Date(2026, 0, 1));
-    expect(periodStart('all', sun)).toBeNull();
+describe('report ranges', () => {
+  const sun = '2026-10-25'; // a Sunday
+
+  it('names weeks from Monday, the past 14 days, and whole months', () => {
+    expect(rangeFor('week', sun)).toEqual({ kind: 'week', from: '2026-10-19', to: '2026-10-25' });
+    expect(rangeFor('lastWeek', sun)).toEqual({ kind: 'lastWeek', from: '2026-10-12', to: '2026-10-18' });
+    expect(rangeFor('twoWeeks', sun)).toEqual({ kind: 'twoWeeks', from: '2026-10-12', to: '2026-10-25' });
+    expect(rangeFor('month', sun)).toEqual({ kind: 'month', from: '2026-10-01', to: '2026-10-31' });
+    expect(rangeFor('lastMonth', '2026-01-10')).toEqual({ kind: 'lastMonth', from: '2025-12-01', to: '2025-12-31' });
+    expect(rangeDays(rangeFor('twoWeeks', sun))).toHaveLength(14);
+  });
+
+  it('steps by a month or by the range length', () => {
+    expect(stepRange(rangeFor('month', '2026-03-15'), -1)).toEqual({ kind: 'month', from: '2026-02-01', to: '2026-02-28' });
+    expect(stepRange(rangeFor('week', sun), 1)).toEqual({ kind: 'week', from: '2026-10-26', to: '2026-11-01' });
+    expect(stepRange({ kind: 'custom', from: '2026-10-01', to: '2026-10-03' }, -1)).toEqual({ kind: 'custom', from: '2026-09-28', to: '2026-09-30' });
+  });
+
+  it('labels the current range by name and others by date', () => {
+    expect(rangeLabel(rangeFor('week', sun), sun)).toBe('This week');
+    expect(rangeLabel(stepRange(rangeFor('week', sun), -1), sun)).not.toBe('This week');
   });
 });
 

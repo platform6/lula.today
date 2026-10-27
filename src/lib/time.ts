@@ -1,4 +1,4 @@
-import { addDays } from './dates';
+import { addDays, dayKey, todayKey } from './dates';
 
 // Time tracking helpers that don't touch the database.
 
@@ -56,21 +56,81 @@ export function timesProblem(startedAt: string, endedAt: string | null, now = Da
 /** Name used to match tasks and tags: trimmed, spaces collapsed, case ignored. */
 export const nameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
 
-export type Period = 'week' | 'month' | 'year' | 'all';
+export type RangeKind = 'week' | 'lastWeek' | 'twoWeeks' | 'month' | 'lastMonth' | 'custom';
 
-export const PERIOD_LABELS: Record<Period, string> = {
+export const RANGE_LABELS: Record<RangeKind, string> = {
   week: 'This week',
+  lastWeek: 'Last week',
+  twoWeeks: 'Past two weeks',
   month: 'This month',
-  year: 'This year',
-  all: 'All time',
+  lastMonth: 'Last month',
+  custom: 'Custom',
 };
 
-/** Local start of the period containing `now` (weeks start Monday), or null for all time. */
-export function periodStart(period: Period, now = new Date()): Date | null {
-  if (period === 'all') return null;
-  const d = new Date(now.getFullYear(), period === 'year' ? 0 : now.getMonth(), period === 'week' ? now.getDate() : 1);
-  if (period === 'week') d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d;
+/** Days from `from` to `to` (YYYY-MM-DD), both included. */
+export interface DayRange {
+  kind: RangeKind;
+  from: string;
+  to: string;
+}
+
+const toDate = (key: string) => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+function monthRange(kind: RangeKind, year: number, month: number): DayRange {
+  return { kind, from: dayKey(new Date(year, month, 1)), to: dayKey(new Date(year, month + 1, 0)) };
+}
+
+/** The range a kind names, as of `today` (weeks start Monday). Custom starts as this week. */
+export function rangeFor(kind: RangeKind, today = todayKey()): DayRange {
+  const monday = weekOf(today);
+  const t = toDate(today);
+  switch (kind) {
+    case 'lastWeek':
+      return { kind, from: addDays(monday, -7), to: addDays(monday, -1) };
+    case 'twoWeeks':
+      return { kind, from: addDays(today, -13), to: today };
+    case 'month':
+      return monthRange(kind, t.getFullYear(), t.getMonth());
+    case 'lastMonth':
+      return monthRange(kind, t.getFullYear(), t.getMonth() - 1);
+    default:
+      return { kind, from: monday, to: addDays(monday, 6) };
+  }
+}
+
+/** Every day in a range, oldest first. */
+export function rangeDays(r: DayRange): string[] {
+  const days: string[] = [];
+  for (let d = r.from; d <= r.to; d = addDays(d, 1)) days.push(d);
+  return days;
+}
+
+/** The range before (-1) or after (1): a month for month ranges, else the same number of days. */
+export function stepRange(r: DayRange, dir: 1 | -1): DayRange {
+  if (r.kind === 'month' || r.kind === 'lastMonth') {
+    const f = toDate(r.from);
+    return monthRange(r.kind, f.getFullYear(), f.getMonth() + dir);
+  }
+  const length = rangeDays(r).length;
+  return { kind: r.kind, from: addDays(r.from, dir * length), to: addDays(r.to, dir * length) };
+}
+
+/** "This week" when the range is the current one, else its dates: "Sep 2026", "Oct 13 – Oct 19". */
+export function rangeLabel(r: DayRange, today = todayKey()): string {
+  const now = rangeFor(r.kind, today);
+  if (r.kind !== 'custom' && now.from === r.from && now.to === r.to) return RANGE_LABELS[r.kind];
+  const year = toDate(today).getFullYear();
+  const from = toDate(r.from);
+  const to = toDate(r.to);
+  if (r.kind === 'month' || r.kind === 'lastMonth') {
+    return from.toLocaleDateString(undefined, { month: 'long', ...(from.getFullYear() !== year ? { year: 'numeric' } : {}) });
+  }
+  const fmt = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(d.getFullYear() !== year ? { year: 'numeric' } : {}) });
+  return r.from === r.to ? fmt(from) : `${fmt(from)} – ${fmt(to)}`;
 }
 
 /** Total seconds per key, largest first. Entries whose key is undefined are skipped. */
