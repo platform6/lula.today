@@ -340,7 +340,7 @@ function EntryForm({
 
 const fieldClass = 'input w-auto min-w-0 text-right';
 
-function Group({ children }: { children: ReactNode }) {
+export function Group({ children }: { children: ReactNode }) {
   return <div className="divide-y divide-line rounded-md border border-line bg-surface-2">{children}</div>;
 }
 
@@ -353,7 +353,7 @@ function Row({ label, htmlFor, children }: { label: string; htmlFor: string; chi
   );
 }
 
-function PickRow({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+export function PickRow({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
     <button type="button" className="flex min-h-14 w-full items-center gap-3 px-4 text-left hover:bg-surface" onClick={onClick}>
       <span className="shrink-0 text-base">{label}</span>
@@ -363,7 +363,7 @@ function PickRow({ label, onClick, children }: { label: string; onClick: () => v
   );
 }
 
-function Dot({ color }: { color: string | null }) {
+export function Dot({ color }: { color: string | null }) {
   return <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color ?? 'var(--line-strong)' }} />;
 }
 
@@ -445,7 +445,7 @@ function Picker({
   );
 }
 
-function ProjectPicker({ lookup, selected, onPick }: { lookup: TimeLookup; selected: string; onPick: (id: string) => void }) {
+export function ProjectPicker({ lookup, selected, onPick }: { lookup: TimeLookup; selected: string; onPick: (id: string) => void }) {
   const projects = [...lookup.timeProjects];
   // Keep an entry's project pickable even if it no longer tracks time.
   const current = selected ? lookup.projects.get(selected) : undefined;
@@ -478,7 +478,7 @@ function ProjectPicker({ lookup, selected, onPick }: { lookup: TimeLookup; selec
   );
 }
 
-function TaskPicker({
+export function TaskPicker({
   lookup,
   projectId,
   selected,
@@ -509,7 +509,7 @@ function TaskPicker({
   );
 }
 
-function TagPicker({ lookup, selected, onToggle }: { lookup: TimeLookup; selected: string[]; onToggle: (id: string) => void }) {
+export function TagPicker({ lookup, selected, onToggle }: { lookup: TimeLookup; selected: string[]; onToggle: (id: string) => void }) {
   const [archived, setArchived] = useState(false);
   const tags = [...lookup.tags.values()].filter((t) => !!t.archived_at === archived);
   const tab = (on: boolean) =>

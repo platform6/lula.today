@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProject, useRunningEntry, useTimeEntries } from '../db/hooks';
-import { continueEntry, ensureTimeTask, startCardTimer, startTimer, stopTimer, updateEntry } from '../db/time';
+import { continueEntry, startCardTimer, startTimer, stopTimer, updateEntry } from '../db/time';
 import type { Task, TimeEntry } from '../db/types';
 import { tracksTime } from '../lib/paths';
 import { dayKey } from '../lib/dates';
-import { entrySeconds, formatClock, formatHours, nameKey, runningLong, timesProblem } from '../lib/time';
-import { ClockIcon, PlusIcon } from './icons';
+import { entrySeconds, formatClock, formatHours, runningLong, timesProblem } from '../lib/time';
+import { BackIcon, ClockIcon, PlayIcon } from './icons';
 import { Sheet } from './Sheet';
-import { TimeEntrySheet } from './TimeEntrySheet';
+import { Dot, Group, PickRow, ProjectPicker, TagPicker, TaskPicker, TimeEntrySheet } from './TimeEntrySheet';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
 /** The current time, updated every `ms` while `active`. */
@@ -180,134 +180,165 @@ function StopAtSheet({ entry, onClose }: { entry: TimeEntry; onClose: () => void
   );
 }
 
-type Recent = { project_id: string | null; time_task_id: string | null; entry: TimeEntry };
-
-/** Recent project and task pairs, newest first. */
-function recentPairs(entries: TimeEntry[], limit: number): Recent[] {
+/** Recent things tracked, newest first: one per project, task and description. */
+function recentEntries(entries: TimeEntry[], limit: number): TimeEntry[] {
   const seen = new Set<string>();
-  const out: Recent[] = [];
+  const out: TimeEntry[] = [];
   for (const e of entries) {
-    const key = `${e.project_id}|${e.time_task_id}`;
+    const key = `${e.project_id}|${e.time_task_id}|${e.description ?? ''}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ project_id: e.project_id, time_task_id: e.time_task_id, entry: e });
+    out.push(e);
     if (out.length === limit) break;
   }
   return out;
 }
 
-/** Pick what to track: a recent pair, a task, a project, or a new task typed in. */
+type StartView = 'form' | 'project' | 'task' | 'tags';
+
+/**
+ * Start a timer: what you're working on, then project, task and tags with the
+ * same pickers as the entry form. Recent entries start again in one tap.
+ */
 export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup; onClose: () => void; projectId?: string }) {
   const entries = useTimeEntries();
-  const [query, setQuery] = useState('');
-  const [newIn, setNewIn] = useState(projectId ?? lookup.timeProjects[0]?.id ?? '');
-  const key = nameKey(query);
+  const [view, setView] = useState<StartView>('form');
+  const [description, setDescription] = useState('');
+  const [project, setProject] = useState(projectId ?? '');
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [tagIds, setTagIds] = useState<string[]>([]);
 
   const recent = useMemo(
-    () => recentPairs((entries ?? []).filter((e) => !projectId || e.project_id === projectId), 6),
+    () => recentEntries((entries ?? []).filter((e) => !projectId || e.project_id === projectId), 6),
     [entries, projectId],
   );
-  const projects = lookup.timeProjects.filter((p) => !projectId || p.id === projectId);
-  const matchingProjects = key ? projects.filter((p) => nameKey(lookup.projectLabel(p.id)).includes(key)) : projects;
-  const matchingTasks = key
-    ? projects.flatMap((p) => lookup.tasksOf(p.id).filter((t) => nameKey(t.name).includes(key)))
-    : [];
-  const exact = matchingTasks.some((t) => t.project_id === newIn && nameKey(t.name) === key);
+  const task = taskId ? lookup.tasks.get(taskId) : undefined;
+  const tagNames = tagIds.map((id) => lookup.tags.get(id)?.name).filter(Boolean).join(', ');
 
-  const start = async (input: { project_id: string | null; time_task_id?: string | null }) => {
-    await startTimer(input);
+  const start = async () => {
+    await startTimer({ project_id: project || null, time_task_id: taskId, tag_ids: tagIds, description });
     onClose();
   };
-  const startNew = async () => {
-    const task = await ensureTimeTask(newIn || null, query);
-    await start({ project_id: newIn || null, time_task_id: task.id });
+  const pickProject = (id: string) => {
+    setProject(id);
+    // A task belongs to one project, so a new project drops it.
+    if (task && task.project_id !== (id || null)) setTaskId(null);
+    setView('form');
   };
 
-  const row = 'flex min-h-12 w-full items-center gap-3 rounded-sm px-3 text-left hover:bg-surface-2';
-  const dot = (projectId: string | null) => (
-    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: lookup.projectColor(projectId) ?? 'var(--line-strong)' }} />
-  );
+  if (view !== 'form') {
+    return (
+      <Sheet
+        side="center"
+        onClose={onClose}
+        title={
+          <span className="flex items-center gap-1">
+            <button className="btn-ghost -ml-2 px-2" onClick={() => setView('form')} aria-label="Back to the timer">
+              <BackIcon width={24} height={24} />
+            </button>
+            {view === 'project' ? 'Projects' : view === 'task' ? 'Tasks' : 'Tags'}
+          </span>
+        }
+      >
+        {view === 'project' && <ProjectPicker lookup={lookup} selected={project} onPick={pickProject} />}
+        {view === 'task' && (
+          <TaskPicker
+            lookup={lookup}
+            projectId={project || null}
+            selected={taskId}
+            onPick={(id) => {
+              setTaskId(id);
+              setView('form');
+            }}
+          />
+        )}
+        {view === 'tags' && (
+          <TagPicker
+            lookup={lookup}
+            selected={tagIds}
+            onToggle={(id) => setTagIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))}
+          />
+        )}
+      </Sheet>
+    );
+  }
 
   return (
-    <Sheet title="Start timer" onClose={onClose} side="center">
-      <div className="flex flex-col gap-4 p-4">
-        <input
-          autoFocus
-          className="input"
-          placeholder="Search or type a new task"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          enterKeyHint="go"
-        />
-
-        {!key && recent.length > 0 && (
-          <section>
-            <h2 className="kicker mb-1">Recent</h2>
-            {recent.map((r) => (
-              <button key={r.entry.id} className={row} onClick={() => void continueEntry(r.entry).then(onClose)}>
-                {dot(r.project_id)}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-base font-semibold">{lookup.entryTitle(r.entry)}</span>
-                  {r.time_task_id && <span className="block truncate text-sm text-fg-2">{lookup.projectLabel(r.project_id)}</span>}
-                </span>
-              </button>
-            ))}
-          </section>
-        )}
-
-        {matchingTasks.length > 0 && (
-          <section>
-            <h2 className="kicker mb-1">Tasks</h2>
-            {matchingTasks.slice(0, 30).map((t) => (
-              <button key={t.id} className={row} onClick={() => void start({ project_id: t.project_id, time_task_id: t.id })}>
-                {dot(t.project_id)}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-base font-semibold">{t.name}</span>
-                  <span className="block truncate text-sm text-fg-2">{lookup.projectLabel(t.project_id)}</span>
-                </span>
-              </button>
-            ))}
-          </section>
-        )}
-
-        {matchingProjects.length > 0 && (
-          <section>
-            <h2 className="kicker mb-1">Projects</h2>
-            {matchingProjects.map((p) => (
-              <button key={p.id} className={row} onClick={() => void start({ project_id: p.id })}>
-                {dot(p.id)}
-                <span className="truncate text-base font-semibold">{lookup.projectLabel(p.id)}</span>
-              </button>
-            ))}
-          </section>
-        )}
-
-        {key && !exact && (
-          <section className="card flex flex-col gap-2 p-3">
-            <p className="text-base">
-              New task <b>“{query.trim()}”</b> in
-            </p>
-            <select className="input" value={newIn} onChange={(e) => setNewIn(e.target.value)} aria-label="Project for the new task">
-              <option value="">No project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{lookup.projectLabel(p.id)}</option>
-              ))}
-            </select>
-            <button className="btn-primary" onClick={() => void startNew()}>
-              <PlusIcon /> Start
-            </button>
-          </section>
-        )}
-
-        {lookup.timeProjects.length === 0 && (
-          <p className="text-base text-fg-2">
-            No project tracks time yet. Tick <b>Time tracking</b> in a realm’s or project’s options to pick it here.
-          </p>
-        )}
-        {!key && (
-          <button className="btn-ghost self-start" onClick={() => void start({ project_id: projectId ?? null })}>
-            Start without {projectId ? 'a task' : 'a project'}
+    <Sheet
+      title="Start timer"
+      onClose={onClose}
+      side="center"
+      footer={
+        <div className="flex w-full justify-end gap-2 pb-2">
+          <button className="btn-primary" onClick={() => void start()}>
+            <PlayIcon width={18} height={18} /> Start
           </button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4 p-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void start();
+          }}
+        >
+          <label className="sr-only" htmlFor="timer-desc">What are you working on?</label>
+          <input
+            id="timer-desc"
+            autoFocus
+            className="input"
+            placeholder="What are you working on?"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            enterKeyHint="go"
+          />
+        </form>
+
+        <Group>
+          <PickRow label="Project" onClick={() => setView('project')}>
+            {project ? (
+              <span className="flex min-w-0 items-center gap-2">
+                <Dot color={lookup.projectColor(project)} />
+                <span className="truncate text-fg">{lookup.projectLabel(project)}</span>
+              </span>
+            ) : (
+              'Select project'
+            )}
+          </PickRow>
+          <PickRow label="Task" onClick={() => setView('task')}>
+            {task ? <span className="truncate text-fg">{task.name}</span> : 'Select task'}
+          </PickRow>
+          <PickRow label="Tags" onClick={() => setView('tags')}>
+            {tagNames ? <span className="truncate text-fg">{tagNames}</span> : 'Select tags'}
+          </PickRow>
+        </Group>
+
+        {recent.length > 0 && (
+          <section>
+            <h2 className="kicker mb-1">Start again</h2>
+            <div className="divide-y divide-line rounded-md border border-line">
+              {recent.map((e) => (
+                <button
+                  key={e.id}
+                  className="flex min-h-14 w-full items-center gap-3 px-3 text-left hover:bg-surface-2"
+                  onClick={() => void continueEntry(e).then(onClose)}
+                >
+                  <Dot color={lookup.projectColor(e.project_id)} />
+                  <span className="min-w-0 flex-1">
+                    <span className={`block truncate text-base ${e.description ? 'font-semibold' : 'text-muted'}`}>
+                      {e.description || 'No description'}
+                    </span>
+                    <span className="block truncate text-sm text-fg-2">
+                      {lookup.projectLabel(e.project_id)}
+                      {e.time_task_id ? `: ${lookup.tasks.get(e.time_task_id)?.name ?? ''}` : ''}
+                    </span>
+                  </span>
+                  <PlayIcon width={18} height={18} className="shrink-0 text-fg-2" />
+                </button>
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </Sheet>
