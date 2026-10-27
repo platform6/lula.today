@@ -36,6 +36,17 @@ export function entrySeconds(e: { started_at: string; ended_at: string | null },
   return Math.max(0, Math.round((end - Date.parse(e.started_at)) / 1000));
 }
 
+/** What's wrong with an entry's times, or null if they're fine. A running entry has no end. */
+export function timesProblem(startedAt: string, endedAt: string | null, now = Date.now()): string | null {
+  const start = Date.parse(startedAt);
+  if (start > now) return "The start can't be in the future.";
+  if (endedAt === null) return null;
+  const end = Date.parse(endedAt);
+  if (end > now) return "The end can't be in the future.";
+  if (end <= start) return 'The end must be after the start.';
+  return null;
+}
+
 /** Name used to match tasks and tags: trimmed, spaces collapsed, case ignored. */
 export const nameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
 

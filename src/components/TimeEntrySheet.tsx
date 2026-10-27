@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { useTimeFields } from '../db/hooks';
-import { addEntry, deleteEntry, ensureTimeTag, ensureTimeTask, stopTimer, updateEntry } from '../db/time';
+import { addEntry, deleteEntry, ensureTimeTag, ensureTimeTask, updateEntry } from '../db/time';
 import type { TimeEntry } from '../db/types';
 import { addDays, dayKey, todayKey } from '../lib/dates';
-import { entrySeconds, formatDuration, nameKey, parseDuration } from '../lib/time';
+import { entrySeconds, formatDuration, nameKey, parseDuration, timesProblem } from '../lib/time';
 import { BackIcon, CheckIcon, ChevronRightIcon, PlusIcon, SearchIcon } from './icons';
 import { Sheet } from './Sheet';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
@@ -67,6 +67,7 @@ function EntryForm({
   const [durationText, setDurationText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const extraFields = (useTimeFields() ?? []).filter((f) => !f.archived_at || extra[f.id]);
 
   const running = !!entry && !entry.ended_at;
@@ -78,9 +79,28 @@ function EntryForm({
   const endIso = endTime ? fromInputs(endTime < startTime ? addDays(date, 1) : date, endTime) : null;
   // Untouched times keep the entry's seconds; the inputs only hold minutes.
   const seconds = entry?.ended_at && !timesChanged ? entrySeconds(entry) : endIso ? entrySeconds({ started_at: startIso, ended_at: endIso }) : null;
+  const cleanFields = () => Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
+  const sameTags = [...tagIds].sort().join() === [...(entry?.tag_ids ?? [])].sort().join();
+  const dirty =
+    timesChanged ||
+    !sameTags ||
+    project !== (entry?.project_id ?? projectId ?? '') ||
+    taskId !== (entry?.time_task_id ?? null) ||
+    description.trim() !== (entry?.description ?? '') ||
+    JSON.stringify(cleanFields()) !== JSON.stringify(entry?.fields ?? {});
+
+  /** Close, asking first if there are changes that would be lost. */
+  function requestClose() {
+    if (!dirty) return onClose();
+    setView('form');
+    setConfirmDelete(false);
+    setConfirmDiscard(true);
+  }
+
   const badDuration = durationText !== null && durationText.trim() !== '' && (parseDuration(durationText) ?? 86_400) >= 86_400;
 
-  async function save() {
+  /** Save the form; `stop` also stops a running timer now, keeping the edits. */
+  async function save(stop = false) {
     setError(null);
     try {
       const values = {
@@ -88,10 +108,12 @@ function EntryForm({
         time_task_id: taskId,
         description: description.trim() || null,
         tag_ids: tagIds,
-        fields: Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v)),
+        fields: cleanFields(),
       };
       if (!entry) {
         if (!endIso) throw new Error('Add an end time.');
+        const problem = timesProblem(startIso, endIso);
+        if (problem) throw new Error(problem);
         await addEntry({ ...values, started_at: startIso, ended_at: endIso });
       } else {
         const changes: Partial<TimeEntry> = { ...values };
@@ -101,6 +123,11 @@ function EntryForm({
             if (!endIso) throw new Error('Add an end time.');
             changes.ended_at = endIso;
           }
+        }
+        if (running && stop) changes.ended_at = new Date().toISOString();
+        if (timesChanged || stop) {
+          const problem = timesProblem(changes.started_at ?? entry.started_at, changes.ended_at ?? (running ? null : entry.ended_at));
+          if (problem) throw new Error(problem);
         }
         await updateEntry(entry.id, changes);
       }
@@ -129,7 +156,7 @@ function EntryForm({
     return (
       <Sheet
         side="center"
-        onClose={onClose}
+        onClose={requestClose}
         title={
           <span className="flex items-center gap-1">
             <button className="btn-ghost -ml-2 px-2" onClick={() => setView('form')} aria-label="Back to the entry">
@@ -167,30 +194,38 @@ function EntryForm({
   return (
     <Sheet
       title={entry ? (running ? 'Running timer' : 'Edit entry') : 'New time entry'}
-      onClose={onClose}
+      onClose={requestClose}
       side="center"
       footer={
-        <div className="flex w-full items-center gap-2 pb-2">
-          {entry && onDelete && !running && (
-            <button className="btn-danger" onClick={() => { onDelete(entry); onClose(); }}>Delete</button>
-          )}
-          {entry && (!onDelete || running) && !confirmDelete && (
-            <button className="btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
-          )}
-          {entry && confirmDelete && (
-            <>
-              <button className="btn-ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>
-              <button className="btn-danger border-2 border-danger" onClick={() => void deleteEntry(entry.id).then(onClose)}>
-                Delete entry
-              </button>
-            </>
-          )}
-          <div className="flex-1" />
-          {running && (
-            <button className="btn-outline" onClick={() => void stopTimer(entry.id).then(onClose)}>Stop</button>
-          )}
-          <button className="btn-primary" onClick={() => void save()}>{entry ? 'Save' : 'Add'}</button>
-        </div>
+        confirmDiscard ? (
+          <div className="flex w-full flex-wrap items-center gap-2 pb-2" role="alert">
+            <span className="flex-1 text-base font-semibold">Discard your changes?</span>
+            <button className="btn-ghost" onClick={() => setConfirmDiscard(false)}>Keep editing</button>
+            <button className="btn-danger border-2 border-danger" onClick={onClose}>Discard</button>
+          </div>
+        ) : (
+          <div className="flex w-full items-center gap-2 pb-2">
+            {entry && onDelete && !running && (
+              <button className="btn-danger" onClick={() => { onDelete(entry); onClose(); }}>Delete</button>
+            )}
+            {entry && (!onDelete || running) && !confirmDelete && (
+              <button className="btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
+            )}
+            {entry && confirmDelete && (
+              <>
+                <button className="btn-ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>
+                <button className="btn-danger border-2 border-danger" onClick={() => void deleteEntry(entry.id).then(onClose)}>
+                  Delete entry
+                </button>
+              </>
+            )}
+            <div className="flex-1" />
+            {running && (
+              <button className="btn-outline" onClick={() => void save(true)}>Stop</button>
+            )}
+            <button className="btn-primary" onClick={() => void save()}>{entry ? 'Save' : 'Add'}</button>
+          </div>
+        )
       }
     >
       <div className="flex flex-col gap-4 p-4">

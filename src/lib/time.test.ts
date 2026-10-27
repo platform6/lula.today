@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entrySeconds, formatClock, formatDuration, formatHours, nameKey, parseDuration, periodStart, stackEntries, totalsBy, weekOf, zonedToUtc } from './time';
+import { entrySeconds, formatClock, formatDuration, formatHours, nameKey, parseDuration, periodStart, stackEntries, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
 import { planImport, type OldEntry } from './timeImport';
 
 describe('zonedToUtc', () => {
@@ -121,6 +121,22 @@ describe('stackEntries', () => {
 
   it('never stacks a running entry', () => {
     expect(stackEntries([e({ ended_at: null }), e({})])).toHaveLength(2);
+  });
+});
+
+describe('timesProblem', () => {
+  const now = Date.parse('2026-10-27T12:00:00Z');
+  it('accepts past entries and running timers', () => {
+    expect(timesProblem('2026-10-27T10:00:00Z', '2026-10-27T11:00:00Z', now)).toBeNull();
+    expect(timesProblem('2026-10-27T10:00:00Z', '2026-10-27T12:00:00Z', now)).toBeNull();
+    expect(timesProblem('2026-10-27T10:00:00Z', null, now)).toBeNull();
+  });
+
+  it('rejects future, empty and backwards times', () => {
+    expect(timesProblem('2026-10-27T13:00:00Z', null, now)).toMatch(/start/);
+    expect(timesProblem('2026-10-27T11:00:00Z', '2026-10-27T12:30:00Z', now)).toMatch(/end can't/);
+    expect(timesProblem('2026-10-27T11:00:00Z', '2026-10-27T11:00:00Z', now)).toMatch(/after the start/);
+    expect(timesProblem('2026-10-27T11:00:00Z', '2026-10-27T10:00:00Z', now)).toMatch(/after the start/);
   });
 });
 
