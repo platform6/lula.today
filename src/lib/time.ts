@@ -56,23 +56,6 @@ export function timesProblem(startedAt: string, endedAt: string | null, now = Da
 /** Name used to match tasks and tags: trimmed, spaces collapsed, case ignored. */
 export const nameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
 
-/** A running timer's clock: 5:03, 1:05:03. */
-export function formatClock(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  const mm = h ? String(m).padStart(2, '0') : String(m);
-  return `${h ? `${h}:` : ''}${mm}:${String(s).padStart(2, '0')}`;
-}
-
-/** A total, to the minute: 45m, 2h 05m. */
-export function formatHours(seconds: number): string {
-  const minutes = Math.round(seconds / 60);
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
-}
-
 export type Period = 'week' | 'month' | 'year' | 'all';
 
 export const PERIOD_LABELS: Record<Period, string> = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entrySeconds, formatClock, formatDuration, formatHours, nameKey, parseDuration, periodStart, runningLong, stackEntries, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
+import { entrySeconds, formatDuration, nameKey, parseDuration, periodStart, runningLong, stackEntries, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
 import { planImport, type OldEntry } from './timeImport';
 
 describe('zonedToUtc', () => {
@@ -19,16 +19,6 @@ describe('entrySeconds', () => {
   it('measures finished and running entries', () => {
     expect(entrySeconds({ started_at: '2026-10-22T10:00:00Z', ended_at: '2026-10-22T11:30:05Z' })).toBe(5405);
     expect(entrySeconds({ started_at: '2026-10-22T10:00:00Z', ended_at: null }, Date.parse('2026-10-22T10:00:42Z'))).toBe(42);
-  });
-});
-
-describe('formatting', () => {
-  it('shows a running clock and rounded totals', () => {
-    expect(formatClock(303)).toBe('5:03');
-    expect(formatClock(3903)).toBe('1:05:03');
-    expect(formatHours(2700)).toBe('45m');
-    expect(formatHours(7500)).toBe('2h 05m');
-    expect(formatHours(20)).toBe('0m');
   });
 });
 

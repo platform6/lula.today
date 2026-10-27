@@ -3,7 +3,7 @@ import { useTimeEntries } from '../db/hooks';
 import { continueEntry, deleteEntry, restoreEntry, stopTimer } from '../db/time';
 import type { TimeEntry } from '../db/types';
 import { dayKey, todayKey, addDays } from '../lib/dates';
-import { PERIOD_LABELS, entrySeconds, formatDuration, formatHours, periodStart, stackEntries, totalsBy, weekOf, type Period } from '../lib/time';
+import { PERIOD_LABELS, entrySeconds, formatDuration, periodStart, stackEntries, totalsBy, weekOf, type Period } from '../lib/time';
 import { ClockIcon, DownIcon, PlayIcon, PlusIcon, TagIcon } from './icons';
 import { TimeEntrySheet } from './TimeEntrySheet';
 import { TimerPicker, useNow } from './Timer';
@@ -124,7 +124,7 @@ export function TimeReport({
                 key={p}
                 role="tab"
                 aria-selected={p === period}
-                className={`min-h-10 rounded-sm border-2 px-3 text-sm font-semibold ${p === period ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
+                className={`min-h-11 rounded-sm border-2 px-3 text-sm font-semibold ${p === period ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
                 onClick={() => pick(p)}
               >
                 {PERIOD_LABELS[p]}
@@ -133,7 +133,7 @@ export function TimeReport({
           </div>
 
           <section>
-            <p className="text-4xl font-bold tabular-nums">{formatHours(total)}</p>
+            <p className="text-4xl font-bold tabular-nums">{formatDuration(total)}</p>
             <p className="text-sm text-fg-2">
               {PERIOD_LABELS[period].toLowerCase()} · {inPeriod.length} entr{inPeriod.length === 1 ? 'y' : 'ies'}
             </p>
@@ -143,7 +143,7 @@ export function TimeReport({
                   <li key={b.key}>
                     <div className="flex items-baseline gap-2 text-base">
                       <span className="min-w-0 flex-1 truncate font-semibold">{nameOf(b.key)}</span>
-                      <span className="shrink-0 tabular-nums text-fg-2">{formatHours(b.seconds)}</span>
+                      <span className="shrink-0 tabular-nums text-fg-2">{formatDuration(b.seconds)}</span>
                     </div>
                     <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2">
                       <div
@@ -506,7 +506,7 @@ export function useUndoDelete(lookup: TimeLookup) {
       className="fixed right-24 bottom-[calc(8.25rem+var(--tab-safe))] left-4 z-40 flex items-center gap-3 rounded-md border-2 border-line-strong bg-surface py-2 pr-2 pl-4 shadow-2xl md:right-28 md:bottom-6 md:left-auto md:w-96"
     >
       <span className="min-w-0 flex-1 truncate text-base font-semibold">Deleted {lookup.entryTitle(last)}</span>
-      <button className="btn-outline min-h-10 shrink-0 px-3" onClick={undo}>Undo</button>
+      <button className="btn-outline min-h-11 shrink-0 px-3" onClick={undo}>Undo</button>
     </div>
   );
   return { remove, undoBar };

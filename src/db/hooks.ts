@@ -123,7 +123,7 @@ export function useInboxCount(): number {
             (t) => !t.deleted_at && !t.archived_at && !t.completed_at,
           ).length
         : 0;
-      return tasks + (await unsortedEntries()).length;
+      return tasks;
     }) ?? 0
   );
 }
@@ -174,7 +174,7 @@ export function useTimeTags(): TimeTag[] | undefined {
   return useLiveQuery(async () => (await db.time_tags.toArray()).filter(alive).sort((a, b) => a.name.localeCompare(b.name)));
 }
 
-/** Finished time entries with no project, which wait in Sorting to be given one. */
+/** Finished time entries with no project, shown on the Time page to be given one. */
 const unsortedEntries = async () =>
   (await db.time_entries.toArray()).filter((e) => alive(e) && e.ended_at && !e.project_id).sort((a, b) => b.started_at.localeCompare(a.started_at));
 

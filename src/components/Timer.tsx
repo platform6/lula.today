@@ -5,7 +5,7 @@ import { continueEntry, startCardTimer, startTimer, stopTimer, updateEntry } fro
 import type { Task, TimeEntry } from '../db/types';
 import { tracksTime } from '../lib/paths';
 import { dayKey } from '../lib/dates';
-import { entrySeconds, formatClock, formatHours, runningLong, timesProblem } from '../lib/time';
+import { entrySeconds, formatDuration, runningLong, timesProblem } from '../lib/time';
 import { BackIcon, ClockIcon, PlayIcon } from './icons';
 import { Sheet } from './Sheet';
 import { Dot, Group, PickRow, ProjectPicker, TagPicker, TaskPicker, TimeEntrySheet } from './TimeEntrySheet';
@@ -66,7 +66,7 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
   );
   const clock = running && (
     <span className={`shrink-0 font-mono font-bold tabular-nums ${clockSize}`} role="timer">
-      {formatClock(entrySeconds(running, now))}
+      {formatDuration(entrySeconds(running, now))}
     </span>
   );
   // A timer left on offers Stop at… (when it really ended); otherwise Switch to something else.
@@ -103,10 +103,10 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
         )
       ) : (
         <div className={shell}>
-          <button className="btn-ghost min-h-10 flex-1 justify-start px-2 text-fg" onClick={() => setPicking(true)}>
+          <button className="btn-ghost min-h-11 flex-1 justify-start px-2 text-fg" onClick={() => setPicking(true)}>
             <ClockIcon /> Start timer
           </button>
-          <Link to="/" className="btn-ghost min-h-10 shrink-0 px-2 text-sm">
+          <Link to="/" className="btn-ghost min-h-11 shrink-0 px-2 text-sm">
             Time
           </Link>
         </div>
@@ -361,15 +361,15 @@ export function CardTimer({ task }: { task: Task }) {
   return (
     <div className="flex items-center gap-3">
       {mine ? (
-        <button type="button" className="btn-primary min-h-10 px-4 text-sm" onClick={() => void stopTimer(mine.id)}>
-          Stop <span className="font-mono tabular-nums">{formatClock(entrySeconds(mine, now))}</span>
+        <button type="button" className="btn-primary min-h-11 px-4 text-sm" onClick={() => void stopTimer(mine.id)}>
+          Stop <span className="font-mono tabular-nums">{formatDuration(entrySeconds(mine, now))}</span>
         </button>
       ) : (
-        <button type="button" className="btn-outline min-h-10 px-4 text-sm" onClick={() => void startCardTimer(task)}>
+        <button type="button" className="btn-outline min-h-11 px-4 text-sm" onClick={() => void startCardTimer(task)}>
           <ClockIcon width={18} height={18} /> Track time
         </button>
       )}
-      {total > 0 && <span className="text-sm font-semibold text-fg-2">{formatHours(total)} tracked</span>}
+      {total > 0 && <span className="text-sm font-semibold text-fg-2">{formatDuration(total)} tracked</span>}
     </div>
   );
 }

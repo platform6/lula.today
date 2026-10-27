@@ -87,7 +87,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
           key={v}
           role="tab"
           aria-selected={view === v}
-          className={`min-h-9 rounded-sm px-3 text-sm font-semibold ${view === v ? 'bg-accent text-accent-fg' : 'text-fg-2'}`}
+          className={`min-h-11 rounded-sm px-3 text-sm font-semibold ${view === v ? 'bg-accent text-accent-fg' : 'text-fg-2'}`}
           onClick={() => setParams(v === 'time' ? { view: 'time' } : {}, { replace: true })}
         >
           {v === 'board' ? 'Board' : 'Time'}
@@ -148,11 +148,11 @@ function ProjectHeader({ project, area, toolbar }: { project: Project; area: Are
         <>
           {toolbar}
           {project.is_area_default && area ? (
-            <Link to={`/realms/${area.id}/options`} className="btn-outline min-h-10 px-3 text-sm">
+            <Link to={`/realms/${area.id}/options`} className="btn-outline min-h-11 px-3 text-sm">
               <SlidersIcon width={18} height={18} /> Options
             </Link>
           ) : (
-            <Link to={`/projects/${project.id}/settings`} className="btn-outline min-h-10 px-3 text-sm">
+            <Link to={`/projects/${project.id}/settings`} className="btn-outline min-h-11 px-3 text-sm">
               <SlidersIcon width={18} height={18} /> Settings
             </Link>
           )}
@@ -289,7 +289,7 @@ function Kanban({ project, area, viewSwitch }: { project: Project; area: Area | 
         toolbar={
           <>
             {viewSwitch}
-            <button className="btn-outline min-h-10 px-3 text-sm" onClick={toggleHideDone} aria-pressed={hideDone}>
+            <button className="btn-outline min-h-11 px-3 text-sm" onClick={toggleHideDone} aria-pressed={hideDone}>
               {hideDone ? 'Show done' : 'Hide done'}
             </button>
           </>
