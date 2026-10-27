@@ -25,6 +25,7 @@ import { BrandLockup } from './Brand';
 import { Celebration } from './Celebration';
 import { ConfirmCompleteProvider } from './ConfirmComplete';
 import { Branch, Children, NODE_SIZE, Stem, TreeNode } from './NodeTree';
+import { AddMenu } from './AddMenu';
 import { QuickAdd } from './QuickAdd';
 import { SyncBadge } from './SyncBadge';
 import { TaskSheet } from './TaskSheet';
@@ -47,6 +48,7 @@ const collision: CollisionDetection = (args) => {
 
 export function Layout() {
   const [quickAdd, setQuickAdd] = useState(false);
+  const [addMenu, setAddMenu] = useState(false);
   const [params] = useSearchParams();
   const taskId = params.get('task');
   const openTask = useOpenTask();
@@ -140,8 +142,8 @@ export function Layout() {
           {!dragging && !onListsPage && (
             <button
               className={`fixed right-4 ${onTimePage ? 'bottom-[calc(5.25rem+var(--tab-safe))]' : 'bottom-[calc(8.875rem+var(--tab-safe))]'} z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6`}
-              onClick={() => setQuickAdd(true)}
-              aria-label="Add task"
+              onClick={() => setAddMenu(true)}
+              aria-label="Add time or a task"
             >
               <PlusIcon width={32} height={32} strokeWidth={2.75} />
             </button>
@@ -149,6 +151,15 @@ export function Layout() {
 
           {dragging && <RealmDropBar />}
 
+          {addMenu && (
+            <AddMenu
+              onClose={() => setAddMenu(false)}
+              onNewTask={() => {
+                setAddMenu(false);
+                setQuickAdd(true);
+              }}
+            />
+          )}
           {quickAdd && (
             <QuickAdd
               onClose={() => setQuickAdd(false)}
