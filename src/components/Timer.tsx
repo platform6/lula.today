@@ -22,20 +22,26 @@ export function useNow(active: boolean, ms = 1000): number {
   return now;
 }
 
-/** One tap to start, see or stop the timer. Docked above the tabs on phones, in the sidebar on wide screens. */
-export function TimerBar({ variant }: { variant: 'dock' | 'side' }) {
+/**
+ * One tap to start, see or stop the timer. Docked above the tabs on phones, in the
+ * sidebar on wide screens, and at the top of the Time page on phones ('inline',
+ * shown only while a timer runs, since that page has its own Start timer).
+ */
+export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
   const running = useRunningEntry();
   const lookup = useTimeLookup();
   const now = useNow(!!running);
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState(false);
 
-  if (running === undefined || !lookup.loaded) return null;
+  if (running === undefined || !lookup.loaded || (variant === 'inline' && !running)) return null;
 
   const shell =
     variant === 'dock'
       ? 'fixed inset-x-0 bottom-[calc(4rem+var(--tab-safe))] z-20 flex h-14 items-center gap-2 border-t border-line bg-surface px-3 md:hidden'
-      : 'mx-2 flex min-h-14 items-center gap-2 rounded-md border border-line bg-surface-2 px-2';
+      : variant === 'inline'
+        ? 'mx-4 mt-4 flex min-h-14 items-center gap-2 rounded-md border border-line bg-surface-2 px-2 md:hidden'
+        : 'mx-2 flex min-h-14 items-center gap-2 rounded-md border border-line bg-surface-2 px-2';
 
   return (
     <>
@@ -58,7 +64,7 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' }) {
           <button className="btn-ghost min-h-10 flex-1 justify-start px-2 text-fg" onClick={() => setPicking(true)}>
             <ClockIcon /> Start timer
           </button>
-          <Link to="/time" className="btn-ghost min-h-10 shrink-0 px-2 text-sm">
+          <Link to="/" className="btn-ghost min-h-10 shrink-0 px-2 text-sm">
             Time
           </Link>
         </div>

@@ -80,7 +80,7 @@ export function InboxZero() {
       </span>
       <p className="text-xl font-bold">Everything is sorted.</p>
       <p className="-mt-2 text-base text-fg-2">Tap + to capture something new.</p>
-      <Link to="/" className="btn-outline mt-2">Go to Today</Link>
+      <Link to="/today" className="btn-outline mt-2">Go to Today</Link>
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { Time } from './pages/Time';
 import { Archive } from './pages/Archive';
 import { Settings } from './pages/Settings';
 import { Lists, ListPage } from './pages/Lists';
+import { More } from './pages/More';
 
 /** Areas are shown as "Realms"; old /areas links keep working. */
 function AreasRedirect() {
@@ -38,7 +39,8 @@ export function App() {
       {/* paper layout, outside the app shell */}
       <Route path="work/print/:year" element={<WorkLogPrint />} />
       <Route element={<Layout />}>
-        <Route index element={<Today />} />
+        <Route index element={<Time />} />
+        <Route path="today" element={<Today />} />
         <Route path="inbox" element={<Inbox />} />
         <Route path="inbox/sort" element={<InboxSort />} />
         <Route path="realms" element={<Areas />} />
@@ -54,7 +56,8 @@ export function App() {
         <Route path="search" element={<Search />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="work" element={<WorkLog />} />
-        <Route path="time" element={<Time />} />
+        <Route path="time" element={<Navigate to="/" replace />} />
+        <Route path="more" element={<More />} />
         <Route path="archive" element={<Archive />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

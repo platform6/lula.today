@@ -20,7 +20,7 @@ import type { Area } from '../db/types';
 import { onNotice } from '../lib/celebrate';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
-import { ArchiveIcon, BriefcaseIcon, CalendarIcon, ClockIcon, WitchHatIcon, ListIcon, NodesIcon, PencilIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
+import { ArchiveIcon, BriefcaseIcon, CalendarIcon, ClockIcon, WitchHatIcon, ListIcon, MoreIcon, NodesIcon, PencilIcon, PlusIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
 import { BrandLockup } from './Brand';
 import { Celebration } from './Celebration';
 import { ConfirmCompleteProvider } from './ConfirmComplete';
@@ -51,7 +51,10 @@ export function Layout() {
   const taskId = params.get('task');
   const openTask = useOpenTask();
   const navigate = useNavigate();
-  const onListsPage = useLocation().pathname.startsWith('/lists');
+  const { pathname } = useLocation();
+  const onListsPage = pathname.startsWith('/lists');
+  // The Time page shows the running timer itself, so the docked bar is left off there.
+  const onTimePage = pathname === '/';
   const theme = useSettings()?.theme;
   const [dragging, setDragging] = useState<InboxDragData | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -130,13 +133,13 @@ export function Layout() {
             <main className="pt-safe min-h-0 flex-1 overflow-y-auto pb-56 md:pb-8">
               <Outlet />
             </main>
-            <TimerBar variant="dock" />
+            {!onTimePage && <TimerBar variant="dock" />}
             <BottomNav />
           </div>
 
           {!dragging && !onListsPage && (
             <button
-              className="fixed right-4 bottom-[calc(8.875rem+var(--tab-safe))] z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6"
+              className={`fixed right-4 ${onTimePage ? 'bottom-[calc(5.25rem+var(--tab-safe))]' : 'bottom-[calc(8.875rem+var(--tab-safe))]'} z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6`}
               onClick={() => setQuickAdd(true)}
               aria-label="Add task"
             >
@@ -234,17 +237,17 @@ function Sidebar() {
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-r border-line bg-surface md:flex">
       <div className="flex items-center justify-between px-4 py-4">
-        <NavLink to="/" aria-label="lula, go to Today">
+        <NavLink to="/" aria-label="lula, go to Time">
           <BrandLockup size={36} />
         </NavLink>
         <SyncBadge />
       </div>
       <TimerBar variant="side" />
       <nav className="mt-2 flex flex-col gap-0.5 px-2">
-        <NavLink to="/" end className={navClass}><SunIcon /> Today</NavLink>
+        <NavLink to="/" end className={navClass}><ClockIcon /> Time</NavLink>
+        <NavLink to="/today" className={navClass}><SunIcon /> Today</NavLink>
         <NavLink to="/calendar" className={navClass}><CalendarIcon /> Calendar</NavLink>
         <NavLink to="/work" className={navClass}><BriefcaseIcon /> Work log</NavLink>
-        <NavLink to="/time" className={navClass}><ClockIcon /> Time</NavLink>
         <NavLink to="/inbox" className={navClass}>
           <WitchHatIcon /> <span className="flex-1">Sorting</span>
           <CountBadge count={inboxCount} />
@@ -338,7 +341,7 @@ function SidebarRealm({ area, hasChildren, expanded, onToggle }: { area: Area; h
   );
 }
 
-function CountBadge({ count }: { count: number }) {
+export function CountBadge({ count }: { count: number }) {
   if (count === 0) return null;
   return (
     <span className="grid min-w-6 place-items-center rounded-full bg-accent px-1.5 text-xs font-bold text-accent-fg">
@@ -358,23 +361,24 @@ function BottomNav() {
   // Realm pages and the boards inside them all belong to the Realms tab.
   const inRealms = pathname.startsWith('/realms') || pathname.startsWith('/projects');
   // On phones the calendar, work log and settings are reached from Today, so they belong to that tab.
-  const inToday = pathname === '/' || ['/calendar', '/work', '/settings'].some((p) => pathname.startsWith(p));
+  const inToday = ['/today', '/calendar', '/work', '/settings'].some((p) => pathname.startsWith(p));
+  const inMore = ['/more', '/inbox', '/lists', '/tasks', '/archive'].some((p) => pathname.startsWith(p));
   return (
     <nav className="pb-tabbar fixed inset-x-0 bottom-0 z-20 flex border-t-2 border-line bg-surface md:hidden">
-      <NavLink to="/" end className={() => tabClass(inToday)}><SunIcon {...tabIcon} /> Today</NavLink>
-      <NavLink to="/inbox" className={({ isActive }) => tabClass(isActive)}>
+      <NavLink to="/" end className={({ isActive }) => tabClass(isActive)}><ClockIcon {...tabIcon} /> Time</NavLink>
+      <NavLink to="/today" className={() => tabClass(inToday)}><SunIcon {...tabIcon} /> Today</NavLink>
+      <NavLink to="/realms" className={() => tabClass(inRealms)}><NodesIcon {...tabIcon} /> Realms</NavLink>
+      <NavLink to="/search" className={({ isActive }) => tabClass(isActive)}><SearchIcon {...tabIcon} /> Search</NavLink>
+      <NavLink to="/more" className={() => tabClass(inMore)}>
         <span className="relative">
-          <WitchHatIcon {...tabIcon} />
+          <MoreIcon {...tabIcon} />
+          {/* Sorting lives under More, so its count shows here. */}
           <span className="absolute -top-2 -right-4">
             <CountBadge count={inboxCount} />
           </span>
         </span>
-        Sorting
+        More
       </NavLink>
-      <NavLink to="/realms" className={() => tabClass(inRealms)}><NodesIcon {...tabIcon} /> Realms</NavLink>
-      <NavLink to="/lists" className={({ isActive }) => tabClass(isActive)}><PencilIcon {...tabIcon} /> Lists</NavLink>
-      <NavLink to="/search" className={({ isActive }) => tabClass(isActive)}><SearchIcon {...tabIcon} /> Search</NavLink>
-      <NavLink to="/time" className={({ isActive }) => tabClass(isActive)}><ClockIcon {...tabIcon} /> Time</NavLink>
     </nav>
   );
 }
