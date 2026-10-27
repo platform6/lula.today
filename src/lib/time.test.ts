@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entrySeconds, formatDuration, nameKey, parseDuration, rangeDays, rangeFor, rangeLabel, runningLong, stackEntries, stepRange, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
+import { entrySeconds, formatDuration, nameKey, ordered, parseDuration, rangeBuckets, rangeDays, rangeFor, rangeLabel, runningLong, stackEntries, stepRange, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
 import { planImport, type OldEntry } from './timeImport';
 
 describe('zonedToUtc', () => {
@@ -38,6 +38,21 @@ describe('report ranges', () => {
     expect(stepRange(rangeFor('month', '2026-03-15'), -1)).toEqual({ kind: 'month', from: '2026-02-01', to: '2026-02-28' });
     expect(stepRange(rangeFor('week', sun), 1)).toEqual({ kind: 'week', from: '2026-10-26', to: '2026-11-01' });
     expect(stepRange({ kind: 'custom', from: '2026-10-01', to: '2026-10-03' }, -1)).toEqual({ kind: 'custom', from: '2026-09-28', to: '2026-09-30' });
+  });
+
+  it('charts long ranges by week or month', () => {
+    expect(rangeBuckets({ kind: 'custom', from: '2026-10-01', to: '2026-10-31' })).toMatchObject({ bucket: 'day' });
+    const half = rangeBuckets({ kind: 'custom', from: '2026-01-05', to: '2026-06-28' });
+    expect(half.bucket).toBe('week');
+    expect(half.keys).toHaveLength(25);
+    const long = rangeBuckets({ kind: 'custom', from: '1920-01-01', to: '2026-10-27' });
+    expect(long.bucket).toBe('month');
+    expect(long.keys[0]).toBe('1920-01-01');
+    expect(long.keys).toHaveLength(106 * 12 + 10);
+  });
+
+  it('puts a back-to-front range in order', () => {
+    expect(ordered({ kind: 'custom', from: '2026-10-09', to: '2026-10-01' })).toEqual({ kind: 'custom', from: '2026-10-01', to: '2026-10-09' });
   });
 
   it('labels the current range by name and others by date', () => {

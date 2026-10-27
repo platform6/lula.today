@@ -1,15 +1,18 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { TimeEntry } from '../db/types';
 import { dayKey, todayKey } from '../lib/dates';
 import {
   RANGE_LABELS,
+  bucketOf,
   entrySeconds,
   formatDuration,
-  rangeDays,
+  ordered,
+  rangeBuckets,
   rangeFor,
   rangeLabel,
   stepRange,
   totalsBy,
+  type Bucket,
   type DayRange,
   type RangeKind,
 } from '../lib/time';
@@ -60,13 +63,15 @@ export function Report({
   /** The entries are one project's: no realm filter or realm chart. */
   scoped: boolean;
 }) {
-  const [range, setRange] = useState<DayRange>(() => {
+  // Custom dates are kept as typed; `range` puts them in order.
+  const [typed, setRange] = useState<DayRange>(() => {
     const kind = remembered<RangeKind>(RANGE_KEY, 'week');
     return rangeFor(kind in RANGE_LABELS ? kind : 'week');
   });
   const [realm, setRealm] = useState('');
   const [taskId, setTaskId] = useState('');
   const [tagId, setTagId] = useState('');
+  const range = ordered(typed);
 
   const today = todayKey();
   const realmOf = (e: TimeEntry) => {
@@ -92,8 +97,8 @@ export function Report({
     .map((id) => ({ id, name: lookup.tags.get(id)?.name ?? 'Unknown tag' }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const days = rangeDays(range);
-  const perDay = new Map(totalsBy(list, (e) => dayKey(new Date(e.started_at)), now).map((t) => [t.key, t.seconds]));
+  const { bucket, keys } = rangeBuckets(range);
+  const perBucket = new Map(totalsBy(list, (e) => bucketOf(dayKey(new Date(e.started_at)), bucket), now).map((t) => [t.key, t.seconds]));
   const realms = totalsBy(list, realmOf, now).map((t) => ({
     ...t,
     name: realmName(t.key),
@@ -144,8 +149,8 @@ export function Report({
         </div>
         {range.kind === 'custom' && (
           <div className="flex flex-wrap gap-2">
-            <DateInput label="From" value={range.from} onChange={(from) => setRange({ ...range, from, to: from > range.to ? from : range.to })} />
-            <DateInput label="To" value={range.to} onChange={(to) => setRange({ ...range, to, from: to < range.from ? to : range.from })} />
+            <DateInput label="From" value={typed.from} onChange={(from) => setRange({ ...typed, from })} />
+            <DateInput label="To" value={typed.to} onChange={(to) => setRange({ ...typed, to })} />
           </div>
         )}
       </div>
@@ -187,7 +192,7 @@ export function Report({
           <p className="text-base text-muted">No time tracked in this period{filtered ? ' with these filters' : ''}.</p>
         ) : (
           <>
-            <DayBars days={days} seconds={perDay} />
+            <Bars bucket={bucket} keys={keys} seconds={perBucket} />
             {!scoped && <RealmDonut slices={realms} total={total} />}
             {breakdown.length > 1 && (
               <div>
@@ -220,11 +225,34 @@ export function Report({
   );
 }
 
+const MIN_YEAR = 1970;
+const MAX_YEAR = 2100;
+
+/**
+ * A date typed in a part at a time passes through years like 0002 and 0020; only a
+ * whole, likely date reaches the report, so typing a year isn't held up.
+ */
 function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
   return (
     <label className="flex flex-col gap-1 text-sm font-semibold">
       {label}
-      <input type="date" className="input w-auto" value={value} onChange={(e) => e.target.value && onChange(e.target.value)} />
+      <input
+        type="date"
+        className="input w-auto"
+        min={`${MIN_YEAR}-01-01`}
+        max={`${MAX_YEAR}-12-31`}
+        value={draft}
+        onChange={(e) => {
+          const v = e.target.value;
+          setDraft(v);
+          const year = Number(v.slice(0, 4));
+          if (v && year >= MIN_YEAR && year <= MAX_YEAR) onChange(v);
+        }}
+        // Leaving a half-typed date puts back the last whole one.
+        onBlur={() => setDraft(value)}
+      />
     </label>
   );
 }
@@ -253,34 +281,48 @@ function Filter({
   );
 }
 
-/** Hours per day: one bar a day; tap or hover a bar to read its total. */
-function DayBars({ days, seconds }: { days: string[]; seconds: Map<string, number> }) {
+const BUCKET_NAME: Record<Bucket, (key: string) => string> = {
+  day: (d) => dayName(d, { weekday: 'short', month: 'short', day: 'numeric' }),
+  week: (d) => `Week of ${dayName(d, { month: 'short', day: 'numeric', year: 'numeric' })}`,
+  month: (d) => dayName(d, { month: 'long', year: 'numeric' }),
+};
+
+/** Under each bar: weekdays for a week or two, else a label every few bars. */
+function tick(key: string, i: number, count: number, bucket: Bucket): string {
+  if (bucket === 'day' && count <= 14) return dayName(key, { weekday: 'narrow' });
+  if (i % Math.ceil(count / 8) !== 0) return '';
+  if (bucket === 'day') return dayName(key, { day: 'numeric' });
+  if (bucket === 'week') return dayName(key, { month: 'short', day: 'numeric' });
+  return dayName(key, { month: 'short', year: '2-digit' });
+}
+
+/** Hours per day (a week or a month for long ranges); tap or hover a bar to read its total. */
+function Bars({ bucket, keys, seconds }: { bucket: Bucket; keys: string[]; seconds: Map<string, number> }) {
   const [active, setActive] = useState<string | null>(null);
-  const max = Math.max(1, ...days.map((d) => seconds.get(d) ?? 0));
-  const peak = days.find((d) => (seconds.get(d) ?? 0) === max);
-  const short = days.length <= 14;
+  const max = Math.max(1, ...keys.map((d) => seconds.get(d) ?? 0));
+  const peak = keys.find((d) => (seconds.get(d) ?? 0) === max);
   const read = active ?? peak;
 
   return (
     <figure>
       <figcaption className="flex items-baseline gap-2">
-        <h3 className="section-title flex-1">Hours per day</h3>
+        <h3 className="section-title flex-1">Hours per {bucket}</h3>
         {read && (
           <span className="text-sm text-fg-2">
             {active ? '' : 'Most: '}
-            {dayName(read, { weekday: 'short', month: 'short', day: 'numeric' })} ·{' '}
+            {BUCKET_NAME[bucket](read)} ·{' '}
             <span className="font-semibold text-fg tabular-nums">{formatDuration(seconds.get(read) ?? 0)}</span>
           </span>
         )}
       </figcaption>
       <div className="mt-2 flex h-40 items-end gap-0.5 border-b border-line-strong" onMouseLeave={() => setActive(null)}>
-        {days.map((d) => {
+        {keys.map((d) => {
           const s = seconds.get(d) ?? 0;
           return (
             <button
               key={d}
               className="flex h-full min-w-0 flex-1 items-end"
-              aria-label={`${dayName(d, { weekday: 'long', month: 'long', day: 'numeric' })}: ${formatDuration(s)}`}
+              aria-label={`${BUCKET_NAME[bucket](d)}: ${formatDuration(s)}`}
               aria-pressed={active === d}
               onMouseEnter={() => setActive(d)}
               onFocus={() => setActive(d)}
@@ -296,9 +338,9 @@ function DayBars({ days, seconds }: { days: string[]; seconds: Map<string, numbe
         })}
       </div>
       <div className="mt-1 flex gap-0.5 text-xs text-fg-2" aria-hidden>
-        {days.map((d, i) => (
+        {keys.map((d, i) => (
           <span key={d} className="min-w-0 flex-1 overflow-visible text-center whitespace-nowrap">
-            {short ? dayName(d, { weekday: 'narrow' }) : i % 7 === 0 ? dayName(d, { day: 'numeric' }) : ''}
+            {tick(d, i, keys.length, bucket)}
           </span>
         ))}
       </div>

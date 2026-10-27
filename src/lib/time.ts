@@ -118,6 +118,24 @@ export function stepRange(r: DayRange, dir: 1 | -1): DayRange {
   return { kind: r.kind, from: addDays(r.from, dir * length), to: addDays(r.to, dir * length) };
 }
 
+/** The range with its ends in order, for a custom range typed back to front. */
+export const ordered = (r: DayRange): DayRange => (r.from <= r.to ? r : { ...r, from: r.to, to: r.from });
+
+/** A long range's chart shows a bar a week or a month rather than thousands of days. */
+export type Bucket = 'day' | 'week' | 'month';
+
+export const bucketFor = (days: number): Bucket => (days > 731 ? 'month' : days > 92 ? 'week' : 'day');
+
+/** The bucket a day (YYYY-MM-DD) falls in, keyed by its first day. */
+export const bucketOf = (day: string, b: Bucket) => (b === 'day' ? day : b === 'week' ? weekOf(day) : `${day.slice(0, 7)}-01`);
+
+/** The buckets a range covers, oldest first. */
+export function rangeBuckets(r: DayRange): { bucket: Bucket; keys: string[] } {
+  const days = rangeDays(r);
+  const bucket = bucketFor(days.length);
+  return { bucket, keys: [...new Set(days.map((d) => bucketOf(d, bucket)))] };
+}
+
 /** "This week" when the range is the current one, else its dates: "Sep 2026", "Oct 13 – Oct 19". */
 export function rangeLabel(r: DayRange, today = todayKey()): string {
   const now = rangeFor(r.kind, today);
