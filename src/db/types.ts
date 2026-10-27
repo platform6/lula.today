@@ -220,4 +220,6 @@ export interface OutboxEntry {
   seq?: number;
   table: SyncTable;
   key: string;
+  /** The columns this write changed; absent for a whole-row write (a new or replaced row). */
+  fields?: string[];
 }

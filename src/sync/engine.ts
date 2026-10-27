@@ -4,15 +4,20 @@ import { setOnWrite } from '../db/mutate';
 import type { OutboxEntry, SyncTable, TableRows } from '../db/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { planPush } from './plan';
 
 // Offline-first sync:
-//  push: flush the outbox by upserting the current local version of each queued row.
+//  push: flush the outbox. New rows are upserted whole; rows that only had some
+//        columns changed update just those columns, so a device with an older
+//        copy can't undo another device's changes (restart a stopped timer, or
+//        bring back something deleted).
 //  pull: fetch rows whose server-set updated_at is newer than the per-table cursor.
 // Rows with unpushed local changes are never overwritten by a pull.
 
 const PULL_OVERLAP_MS = 5_000; // re-read a small window to cover in-flight transactions
 const PAGE_SIZE = 1000;
 const PUSH_CHUNK = 500;
+const PATCH_PARALLEL = 10;
 const PUSH_DEBOUNCE_MS = 1_500;
 const INTERVAL_MS = 60_000;
 const LIVE_DEBOUNCE_MS = 400; // a burst of changes (a board move touches several rows) becomes one pull
@@ -102,9 +107,29 @@ async function push() {
   if (entries.length === 0) return;
 
   for (const table of SYNC_TABLES) {
-    const keys = [...new Set(entries.filter((e) => e.table === table).map((e) => e.key))];
-    if (keys.length === 0) continue;
-    const rows = (await syncTable(table).bulkGet(keys.map((k) => dexieKey(table, k)))).filter(Boolean);
+    const queued = entries.filter((e) => e.table === table);
+    if (queued.length === 0) continue;
+    const { whole, partial } = planPush(queued);
+    const local = async (keys: string[]) =>
+      (await syncTable(table).bulkGet(keys.map((k) => dexieKey(table, k)))).filter(Boolean) as unknown as Record<string, unknown>[];
+
+    // Rows that only had some columns changed update just those columns.
+    const missing: string[] = [];
+    const changed = await local([...partial.keys()]);
+    for (let i = 0; i < changed.length; i += PATCH_PARALLEL) {
+      await Promise.all(
+        changed.slice(i, i + PATCH_PARALLEL).map(async (row) => {
+          const key = rowKey(table, row as never);
+          const cols = Object.fromEntries(partial.get(key)!.map((f) => [f, row[f] ?? null]));
+          const match = Object.fromEntries(CONFLICT_TARGET[table].split(',').map((c) => [c, row[c]]));
+          const { error, count } = await supabase.from(table).update(cols, { count: 'exact' }).match(match);
+          if (error) throw new Error(`Push ${table}: ${error.message}`);
+          if (count === 0) missing.push(key); // never reached the server: send it whole
+        }),
+      );
+    }
+
+    const rows = await local([...whole, ...missing]);
     for (let i = 0; i < rows.length; i += PUSH_CHUNK) {
       const { error } = await supabase
         .from(table)

@@ -66,6 +66,8 @@ export async function patch<T extends SyncTable>(
     if (!existing) return;
     const next = { ...existing, ...changes, updated_at: now() } as TableRows[T];
     await syncTable(table).put(next);
-    await db.outbox.add({ table, key: rowKey(table, next) });
+    // Only the changed columns are pushed, so an older copy of the row on this
+    // device can't undo another device's changes to the rest of it.
+    await db.outbox.add({ table, key: rowKey(table, next), fields: Object.keys(changes) });
   });
 }

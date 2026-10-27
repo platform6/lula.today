@@ -43,7 +43,7 @@ export async function startTimer(input: EntryInput = {}): Promise<TimeEntry> {
     for (const r of running) {
       const stopped = { ...r, ended_at: t, updated_at: t };
       await db.time_entries.put(stopped);
-      await db.outbox.add({ table: 'time_entries', key: r.id });
+      await db.outbox.add({ table: 'time_entries', key: r.id, fields: ['ended_at'] });
     }
     await db.time_entries.put(started);
     await db.outbox.add({ table: 'time_entries', key: started.id });
