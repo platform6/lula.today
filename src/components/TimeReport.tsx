@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTimeEntries } from '../db/hooks';
-import { continueEntry, deleteEntry, restoreEntry } from '../db/time';
+import { continueEntry, deleteEntry, restoreEntry, stopTimer } from '../db/time';
 import type { TimeEntry } from '../db/types';
 import { dayKey, todayKey, addDays } from '../lib/dates';
 import { PERIOD_LABELS, entrySeconds, formatDuration, formatHours, periodStart, stackEntries, totalsBy, weekOf, type Period } from '../lib/time';
@@ -348,7 +348,13 @@ export function EntryRow({
       <button className="flex min-w-0 flex-1 items-start gap-3 text-left" onClick={() => onOpen(e)}>
         <EntryBody entry={e} seconds={entrySeconds(e, now)} from={e.started_at} to={e.ended_at} lookup={lookup} showDay={showDay} />
       </button>
-      {e.ended_at && <PlayAgain entry={e} lookup={lookup} />}
+      {e.ended_at ? (
+        <PlayAgain entry={e} lookup={lookup} />
+      ) : (
+        <button className="btn-primary min-h-11 shrink-0 self-center px-3" onClick={() => void stopTimer(e.id)}>
+          Stop
+        </button>
+      )}
     </div>
   );
   return <li>{e.ended_at ? <SwipeToDelete onDelete={() => onDelete(e)}>{card}</SwipeToDelete> : card}</li>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entrySeconds, formatClock, formatDuration, formatHours, nameKey, parseDuration, periodStart, stackEntries, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
+import { entrySeconds, formatClock, formatDuration, formatHours, nameKey, parseDuration, periodStart, runningLong, stackEntries, timesProblem, totalsBy, weekOf, zonedToUtc } from './time';
 import { planImport, type OldEntry } from './timeImport';
 
 describe('zonedToUtc', () => {
@@ -137,6 +137,15 @@ describe('timesProblem', () => {
     expect(timesProblem('2026-10-27T11:00:00Z', '2026-10-27T12:30:00Z', now)).toMatch(/end can't/);
     expect(timesProblem('2026-10-27T11:00:00Z', '2026-10-27T11:00:00Z', now)).toMatch(/after the start/);
     expect(timesProblem('2026-10-27T11:00:00Z', '2026-10-27T10:00:00Z', now)).toMatch(/after the start/);
+  });
+});
+
+describe('runningLong', () => {
+  it('flags a timer left running for 8 hours or more', () => {
+    const now = Date.parse('2026-10-27T12:00:00Z');
+    expect(runningLong({ started_at: '2026-10-27T04:00:00Z', ended_at: null }, now)).toBe(true);
+    expect(runningLong({ started_at: '2026-10-27T04:00:01Z', ended_at: null }, now)).toBe(false);
+    expect(runningLong({ started_at: '2026-10-26T04:00:00Z', ended_at: '2026-10-27T04:00:00Z' }, now)).toBe(false);
   });
 });
 

@@ -36,6 +36,12 @@ export function entrySeconds(e: { started_at: string; ended_at: string | null },
   return Math.max(0, Math.round((end - Date.parse(e.started_at)) / 1000));
 }
 
+/** A timer running this long was probably left on (overnight, say). */
+export const LONG_RUN_SECONDS = 8 * 3600;
+
+export const runningLong = (e: { started_at: string; ended_at: string | null }, now = Date.now()) =>
+  !e.ended_at && entrySeconds(e, now) >= LONG_RUN_SECONDS;
+
 /** What's wrong with an entry's times, or null if they're fine. A running entry has no end. */
 export function timesProblem(startedAt: string, endedAt: string | null, now = Date.now()): string | null {
   const start = Date.parse(startedAt);

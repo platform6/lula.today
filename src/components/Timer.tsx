@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProject, useRunningEntry, useTimeEntries } from '../db/hooks';
-import { continueEntry, ensureTimeTask, startCardTimer, startTimer, stopTimer } from '../db/time';
+import { continueEntry, ensureTimeTask, startCardTimer, startTimer, stopTimer, updateEntry } from '../db/time';
 import type { Task, TimeEntry } from '../db/types';
 import { tracksTime } from '../lib/paths';
-import { entrySeconds, formatClock, formatHours, nameKey } from '../lib/time';
+import { dayKey } from '../lib/dates';
+import { entrySeconds, formatClock, formatHours, nameKey, runningLong, timesProblem } from '../lib/time';
 import { ClockIcon, PlusIcon } from './icons';
 import { Sheet } from './Sheet';
 import { TimeEntrySheet } from './TimeEntrySheet';
@@ -33,32 +34,73 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
   const now = useNow(!!running);
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [stoppingAt, setStoppingAt] = useState(false);
 
   if (running === undefined || !lookup.loaded || (variant === 'inline' && !running)) return null;
 
   const shell =
     variant === 'dock'
       ? 'fixed inset-x-0 bottom-[calc(4rem+var(--tab-safe))] z-20 flex h-14 items-center gap-2 border-t border-line bg-surface px-3 md:hidden'
-      : variant === 'inline'
-        ? 'mx-4 mt-4 flex min-h-14 items-center gap-2 rounded-md border border-line bg-surface-2 px-2 md:hidden'
-        : 'mx-2 flex min-h-14 items-center gap-2 rounded-md border border-line bg-surface-2 px-2';
+      : 'mx-2 flex min-h-14 items-center gap-2 rounded-md border border-line bg-surface-2 px-2';
+
+  // A running timer is the loudest thing on screen: tinted, with a big live clock.
+  const long = !!running && runningLong(running, now);
+  const tint = long ? 'border-warn bg-warn/15' : 'border-accent bg-accent/15';
+  const runningShell =
+    variant === 'dock'
+      ? `fixed inset-x-0 bottom-[calc(4rem+var(--tab-safe))] z-20 flex h-14 items-center gap-2 border-t-2 px-3 md:hidden ${tint}`
+      : `${variant === 'inline' ? 'mx-4 mt-4 md:hidden' : 'mx-2'} flex flex-col gap-2 rounded-md border-2 p-2 ${tint}`;
+  const clockSize = variant === 'dock' ? 'text-xl' : variant === 'inline' ? 'text-4xl' : 'text-2xl';
+
+  const title = running && (
+    <button className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight" onClick={() => setEditing(true)}>
+      <span className="w-full truncate text-base font-bold">{lookup.entryTitle(running)}</span>
+      <span className={`w-full truncate text-xs font-semibold ${long ? 'text-warn' : 'text-fg-2'}`}>
+        {long
+          ? `Running since ${since(running.started_at)}`
+          : running.time_task_id
+            ? lookup.projectLabel(running.project_id)
+            : running.description || 'Tap to edit'}
+      </span>
+    </button>
+  );
+  const clock = running && (
+    <span className={`shrink-0 font-mono font-bold tabular-nums ${clockSize}`} role="timer">
+      {formatClock(entrySeconds(running, now))}
+    </span>
+  );
+  // A timer left on offers Stop at… (when it really ended); otherwise Switch to something else.
+  const actions = running && (
+    <>
+      {long ? (
+        <button className="btn-outline min-h-11 shrink-0 px-3" onClick={() => setStoppingAt(true)}>Stop at…</button>
+      ) : (
+        <button className="btn-outline min-h-11 shrink-0 px-3" onClick={() => setPicking(true)}>Switch</button>
+      )}
+      <button className="btn-primary min-h-11 shrink-0 px-3" onClick={() => void stopTimer(running.id)}>
+        Stop
+      </button>
+    </>
+  );
 
   return (
     <>
       {running ? (
-        <div className={shell}>
-          <span className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-accent" aria-hidden />
-          <button className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight" onClick={() => setEditing(true)}>
-            <span className="w-full truncate text-base font-bold">{lookup.entryTitle(running)}</span>
-            <span className="w-full truncate text-xs font-semibold text-fg-2">
-              {running.time_task_id ? lookup.projectLabel(running.project_id) : running.description || 'Tap to edit'}
-            </span>
-          </button>
-          <span className="shrink-0 font-mono text-lg font-bold tabular-nums">{formatClock(entrySeconds(running, now))}</span>
-          <button className="btn-primary min-h-10 shrink-0 px-3" onClick={() => void stopTimer(running.id)}>
-            Stop
-          </button>
-        </div>
+        variant === 'dock' ? (
+          <div className={runningShell}>
+            {title}
+            {clock}
+            {actions}
+          </div>
+        ) : (
+          <div className={runningShell}>
+            <div className="flex items-center gap-2">
+              {title}
+              {clock}
+            </div>
+            <div className="flex justify-end gap-2">{actions}</div>
+          </div>
+        )
       ) : (
         <div className={shell}>
           <button className="btn-ghost min-h-10 flex-1 justify-start px-2 text-fg" onClick={() => setPicking(true)}>
@@ -71,7 +113,70 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
       )}
       {picking && <TimerPicker lookup={lookup} onClose={() => setPicking(false)} />}
       {editing && running && <TimeEntrySheet entry={running} onClose={() => setEditing(false)} />}
+      {stoppingAt && running && <StopAtSheet entry={running} onClose={() => setStoppingAt(false)} />}
     </>
+  );
+}
+
+/** "5:12 PM", or "Mon 5:12 PM" when it's not today. */
+function since(iso: string): string {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return dayKey(d) === dayKey(new Date()) ? time : `${d.toLocaleDateString(undefined, { weekday: 'short' })} ${time}`;
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/** Stop a timer that was left on, at the time it really ended. */
+function StopAtSheet({ entry, onClose }: { entry: TimeEntry; onClose: () => void }) {
+  // Start from an hour after it began, the likeliest kind of "forgot to stop".
+  const guess = new Date(Math.min(Date.parse(entry.started_at) + 3600_000, Date.now()));
+  const [date, setDate] = useState(dayKey(guess));
+  const [time, setTime] = useState(`${pad(guess.getHours())}:${pad(guess.getMinutes())}`);
+  const [error, setError] = useState<string | null>(null);
+
+  async function stop() {
+    const ended_at = new Date(`${date}T${time}`).toISOString();
+    const problem = timesProblem(entry.started_at, ended_at);
+    if (problem) return setError(problem);
+    await updateEntry(entry.id, { ended_at });
+    onClose();
+  }
+
+  return (
+    <Sheet
+      title="Stop at…"
+      onClose={onClose}
+      side="center"
+      footer={
+        <div className="flex w-full justify-end gap-2 pb-2">
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={() => void stop()}>Stop</button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-3 p-4">
+        <p className="text-base text-fg-2">Started {since(entry.started_at)}. When did you finish?</p>
+        <div className="flex flex-wrap gap-2">
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Date
+            <input
+              type="date"
+              className="input w-auto"
+              value={date}
+              min={dayKey(new Date(entry.started_at))}
+              max={dayKey(new Date())}
+              onChange={(e) => e.target.value && setDate(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Time
+            <input type="time" className="input w-auto" value={time} onChange={(e) => e.target.value && setTime(e.target.value)} />
+          </label>
+        </div>
+        {error && <p className="text-base font-semibold text-danger">{error}</p>}
+      </div>
+    </Sheet>
   );
 }
 
