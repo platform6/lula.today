@@ -10,11 +10,30 @@ import { TimerPicker, useNow } from './Timer';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
 const PERIOD_KEY = 'lula.time.period';
+const VIEW_KEY = 'lula.time.view';
+
+type View = 'entries' | 'report';
+
+function remembered<T extends string>(key: string, fallback: T): T {
+  try {
+    return (localStorage.getItem(key) as T | null) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function remember(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // per-viewer convenience only
+  }
+}
 const DAYS_PAGE = 14;
 
 /**
- * Tracked time for some projects (or all of them): a period total, a breakdown
- * by task or project, and the entries day by day.
+ * Tracked time for some projects (or all of them). Entries: every entry, week by
+ * week and day by day. Report: a period's total and a breakdown by task or project.
  */
 export function TimeReport({
   projectIds,
@@ -30,13 +49,8 @@ export function TimeReport({
 }) {
   const all = useTimeEntries();
   const lookup = useTimeLookup();
-  const [period, setPeriod] = useState<Period>(() => {
-    try {
-      return (localStorage.getItem(PERIOD_KEY) as Period | null) ?? 'week';
-    } catch {
-      return 'week';
-    }
-  });
+  const [view, setView] = useState<View>(() => remembered<View>(VIEW_KEY, 'entries'));
+  const [period, setPeriod] = useState<Period>(() => remembered<Period>(PERIOD_KEY, 'week'));
   const [picking, setPicking] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<TimeEntry | null>(null);
@@ -64,23 +78,23 @@ export function TimeReport({
   const colorOf = (key: string) => (by === 'project' ? lookup.projectColor(key || null) : lookup.projectColor(startProjectId ?? null));
 
   const byDay = new Map<string, TimeEntry[]>();
-  for (const e of inPeriod) {
+  for (const e of entries) {
     const day = dayKey(new Date(e.started_at));
     byDay.set(day, [...(byDay.get(day) ?? []), e]);
   }
   const dayList = [...byDay].slice(0, days);
-  // Week totals count the whole week, even where the period cuts it.
   const weekTotals = new Map(totalsBy(entries, (e) => weekOf(dayKey(new Date(e.started_at))), now).map((w) => [w.key, w.seconds]));
 
   const pick = (p: Period) => {
     setPeriod(p);
-    setDays(DAYS_PAGE);
-    try {
-      localStorage.setItem(PERIOD_KEY, p);
-    } catch {
-      // per-viewer convenience only
-    }
+    remember(PERIOD_KEY, p);
   };
+  const show = (v: View) => {
+    setView(v);
+    remember(VIEW_KEY, v);
+  };
+  const tab = (on: boolean) =>
+    `min-h-11 flex-1 rounded-sm text-base font-semibold ${on ? 'bg-surface text-fg shadow' : 'text-fg-2'}`;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 p-4">
@@ -93,68 +107,84 @@ export function TimeReport({
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Period">
-        {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
-          <button
-            key={p}
-            role="tab"
-            aria-selected={p === period}
-            className={`min-h-10 rounded-sm border-2 px-3 text-sm font-semibold ${p === period ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
-            onClick={() => pick(p)}
-          >
-            {PERIOD_LABELS[p]}
-          </button>
-        ))}
+      <div className="flex gap-1 rounded-md border border-line bg-surface-2 p-1" role="tablist" aria-label="Show">
+        <button role="tab" aria-selected={view === 'entries'} className={tab(view === 'entries')} onClick={() => show('entries')}>
+          Entries
+        </button>
+        <button role="tab" aria-selected={view === 'report'} className={tab(view === 'report')} onClick={() => show('report')}>
+          Report
+        </button>
       </div>
 
-      <section>
-        <p className="text-4xl font-bold tabular-nums">{formatHours(total)}</p>
-        <p className="text-sm text-fg-2">
-          {PERIOD_LABELS[period].toLowerCase()} · {inPeriod.length} entr{inPeriod.length === 1 ? 'y' : 'ies'}
-        </p>
-        {breakdown.length > 1 && (
-          <ul className="mt-4 flex flex-col gap-2.5">
-            {breakdown.map((b) => (
-              <li key={b.key}>
-                <div className="flex items-baseline gap-2 text-base">
-                  <span className="min-w-0 flex-1 truncate font-semibold">{nameOf(b.key)}</span>
-                  <span className="shrink-0 tabular-nums text-fg-2">{formatHours(b.seconds)}</span>
-                </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${Math.max(2, (b.seconds / breakdown[0].seconds) * 100)}%`, background: colorOf(b.key) ?? 'var(--accent)' }}
-                  />
-                </div>
-              </li>
+      {view === 'report' && (
+        <>
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Period">
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+              <button
+                key={p}
+                role="tab"
+                aria-selected={p === period}
+                className={`min-h-10 rounded-sm border-2 px-3 text-sm font-semibold ${p === period ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
+                onClick={() => pick(p)}
+              >
+                {PERIOD_LABELS[p]}
+              </button>
             ))}
-          </ul>
-        )}
-      </section>
+          </div>
 
-      <section className="flex flex-col gap-5">
-        {dayList.map(([day, list], i) => {
-          const week = weekOf(day);
-          const newWeek = period !== 'week' && (i === 0 || weekOf(dayList[i - 1][0]) !== week);
-          return (
-            <div key={day} className="flex flex-col gap-5">
-              {newWeek && (
-                <h2 className="flex items-baseline gap-2 border-b-2 border-line-strong pb-1 text-lg font-bold">
-                  <span className="flex-1">{weekLabel(week)}</span>
-                  <span className="text-base tabular-nums text-fg-2">{formatDuration(weekTotals.get(week) ?? 0)}</span>
-                </h2>
-              )}
-              <DayGroup day={day} entries={list} now={now} lookup={lookup} onOpen={setEditing} onDelete={remove} />
-            </div>
-          );
-        })}
-        {inPeriod.length === 0 && <p className="text-base text-muted">No time tracked {PERIOD_LABELS[period].toLowerCase()}.</p>}
-        {byDay.size > days && (
-          <button className="btn-outline self-start" onClick={() => setDays((d) => d + DAYS_PAGE)}>
-            Show more days
-          </button>
-        )}
-      </section>
+          <section>
+            <p className="text-4xl font-bold tabular-nums">{formatHours(total)}</p>
+            <p className="text-sm text-fg-2">
+              {PERIOD_LABELS[period].toLowerCase()} · {inPeriod.length} entr{inPeriod.length === 1 ? 'y' : 'ies'}
+            </p>
+            {breakdown.length > 1 && (
+              <ul className="mt-4 flex flex-col gap-2.5">
+                {breakdown.map((b) => (
+                  <li key={b.key}>
+                    <div className="flex items-baseline gap-2 text-base">
+                      <span className="min-w-0 flex-1 truncate font-semibold">{nameOf(b.key)}</span>
+                      <span className="shrink-0 tabular-nums text-fg-2">{formatHours(b.seconds)}</span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${Math.max(2, (b.seconds / breakdown[0].seconds) * 100)}%`, background: colorOf(b.key) ?? 'var(--accent)' }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {inPeriod.length === 0 && <p className="mt-2 text-base text-muted">No time tracked {PERIOD_LABELS[period].toLowerCase()}.</p>}
+          </section>
+        </>
+      )}
+
+      {view === 'entries' && (
+        <section className="flex flex-col gap-5">
+          {dayList.map(([day, list], i) => {
+            const week = weekOf(day);
+            const newWeek = i === 0 || weekOf(dayList[i - 1][0]) !== week;
+            return (
+              <div key={day} className="flex flex-col gap-5">
+                {newWeek && (
+                  <h2 className="flex items-baseline gap-2 border-b-2 border-line-strong pb-1 text-lg font-bold">
+                    <span className="flex-1">{weekLabel(week)}</span>
+                    <span className="text-base tabular-nums text-fg-2">{formatDuration(weekTotals.get(week) ?? 0)}</span>
+                  </h2>
+                )}
+                <DayGroup day={day} entries={list} now={now} lookup={lookup} onOpen={setEditing} onDelete={remove} />
+              </div>
+            );
+          })}
+          {entries.length === 0 && <p className="text-base text-muted">No time tracked yet. Start a timer or add time.</p>}
+          {byDay.size > days && (
+            <button className="btn-outline self-start" onClick={() => setDays((d) => d + DAYS_PAGE)}>
+              Show more days
+            </button>
+          )}
+        </section>
+      )}
 
       {picking && <TimerPicker lookup={lookup} projectId={startProjectId} onClose={() => setPicking(false)} />}
       {adding && <TimeEntrySheet projectId={startProjectId ?? null} onClose={() => setAdding(false)} />}
