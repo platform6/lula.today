@@ -16,28 +16,13 @@ import {
   type DayRange,
   type RangeKind,
 } from '../lib/time';
+import { remember, remembered } from '../lib/stored';
 import { BackIcon, ChevronRightIcon } from './icons';
 import type { TimeLookup } from './useTimeLookup';
 
 const RANGE_KEY = 'lula.time.period';
 /** The realm key for time with no realm. */
 const NO_REALM = '-';
-
-export function remembered<T extends string>(key: string, fallback: T): T {
-  try {
-    return (localStorage.getItem(key) as T | null) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-export function remember(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // per-viewer convenience only
-  }
-}
 
 const dayName = (day: string, opts: Intl.DateTimeFormatOptions) => {
   const [y, m, d] = day.split('-').map(Number);
