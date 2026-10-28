@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { TimeEntry } from '../db/types';
 import { formatDay as dayName, todayKey } from '../lib/dates';
 import { reportEntries, reportExport, reportTotals, type ReportFilters } from '../lib/report';
@@ -188,7 +188,12 @@ const MAX_YEAR = 2100;
  */
 function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
+  // A new date from outside (the < > buttons, a new period) replaces the draft.
+  const [shown, setShown] = useState(value);
+  if (value !== shown) {
+    setShown(value);
+    setDraft(value);
+  }
   return (
     <label className="flex flex-col gap-1 text-sm font-semibold">
       {label}

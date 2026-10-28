@@ -74,7 +74,8 @@ describe('the timer', () => {
     render(<TimerBar variant="side" />, { wrapper: MemoryRouter });
 
     await user.click(await screen.findByRole('button', { name: /start timer/i }));
-    const recent = screen.getByRole('heading', { name: 'Start again' }).parentElement!;
+    // Recent entries load after the sheet opens.
+    const recent = (await screen.findByRole('heading', { name: 'Start again' })).parentElement!;
     await user.click(await within(recent).findByText('Laps'));
 
     await waitFor(async () => expect((await runningEntries()).map((e) => e.description)).toEqual(['Laps']));
@@ -134,7 +135,9 @@ describe('the report', () => {
     await finished('Reading');
     render(<TimeReport groupBy="auto" />, { wrapper: MemoryRouter });
 
-    const from = (await screen.findByLabelText('From')) as HTMLInputElement;
+    // Wait for the entry to load, so the report has settled before typing.
+    await screen.findByText(/^1 entry/);
+    const from = screen.getByLabelText('From') as HTMLInputElement;
     const bars = () => screen.getAllByRole('button', { name: /: \d\d:\d\d:\d\d$/ }).length;
     const heading = () => screen.getByRole('heading', { level: 2 }).textContent;
     const before = { bars: bars(), heading: heading() };
