@@ -6,6 +6,7 @@
 //
 // Signs in through scripts/session.ts (credentials in .env.local).
 
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -147,6 +148,7 @@ async function show(ids: string) {
     const project = (await rows<Project>('projects', (q) => q.eq('id', t.project_id)))[0];
     const steps = (await rows<Step>('steps', (q) => q.eq('task_id', t.id))).sort(byPosition);
     const files = await attachmentsOf(t.id);
+    const commits = commitsFor(t.id);
     const board = project?.is_inbox ? 'Inbox' : project?.name;
     const state = t.cancelled_at ? 'cancelled' : t.completed_at ? 'completed' : 'open';
     if (json) {
@@ -163,17 +165,18 @@ async function show(ids: string) {
         url: t.url,
         steps: steps.map((s) => ({ text: s.text, done: s.is_done })),
         files: files.map((f) => ({ name: f.name, mime_type: f.mime_type, size: f.size })),
+        commits,
         notes: t.notes,
       });
       continue;
     }
     if (i > 0) console.log('\n---\n');
-    printCard(t, `${board} › ${column?.name}${state === 'open' ? '' : ` (${state})`}`, steps, files);
+    printCard(t, `${board} › ${column?.name}${state === 'open' ? '' : ` (${state})`}`, steps, files, commits);
   }
   if (json) out(cards.length === 1 ? shown[0] : shown);
 }
 
-function printCard(t: Task, where: string, steps: Step[], files: Attachment[]) {
+function printCard(t: Task, where: string, steps: Step[], files: Attachment[], commits: string[]) {
   console.log(`${t.title}`);
   console.log(`id ${t.id}`);
   console.log(`board ${where}`);
@@ -189,7 +192,24 @@ function printCard(t: Task, where: string, steps: Step[], files: Attachment[]) {
     console.log('files');
     for (const f of files) console.log(`  ${f.name} (${f.mime_type ?? 'unknown type'}, ${Math.round(f.size / 1024)} KB)`);
   }
+  if (commits.length) {
+    console.log('commits');
+    for (const c of commits) console.log(`  ${c}`);
+  }
   if (t.notes) console.log(`notes\n${t.notes}`);
+}
+
+/** Commits with a "Card: <id>" line for this card, newest first (none outside a git checkout). */
+function commitsFor(id: string): string[] {
+  try {
+    const log = execFileSync('git', ['log', '--format=%h %ad %s', '--date=short', '-i', `--grep=^Card: *${short(id)}`], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return log.split('\n').filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 async function attachmentsOf(taskId: string) {
@@ -292,7 +312,7 @@ const HELP = `lula board
 
   boards                          realms and their projects
   list <board> [column]           cards by column, with their ids
-  show <ids>                      cards: notes, steps, files, details
+  show <ids>                      cards: notes, steps, files, commits, details
   files <id> [folder]             download a card's files (to a temp folder by default)
   move <ids> <column>             move cards (Done completes them)
   note <ids> "<text>" [--by name] append a note to cards (signed Claude unless --by)

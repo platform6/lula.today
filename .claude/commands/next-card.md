@@ -12,7 +12,8 @@ Work one card from the **lula** board, following the board rules in AGENTS.md.
 2. Run `npm run board -- show <id>` and read the title, notes and steps. Unchecked steps and the latest notes are
    usually the owner's feedback from testing.
 3. If it's unclear what's wanted, ask the owner (or add a note with the question and leave the card in To Do). Don't guess.
-4. Move it to **Doing**, build it, and run `npm run typecheck` and `npm test`.
+4. Move it to **Doing**, build it, and run `npm run check` (typecheck, then tests); fix anything it reports.
 5. Add a note to the card saying what changed (and anything left for the owner to check), then report back and ask
    whether to commit and push.
-6. Once the owner says yes: commit, push, add a note with the commit hash, and move the card to **UAT**. Never move it to Done.
+6. Once the owner says yes: follow `/cp` (commit with a `Card:` line, push, note the hash, move the card to **UAT**).
+   Never move it to Done.

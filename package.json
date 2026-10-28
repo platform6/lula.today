@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "check": "tsc -b && vitest run",
     "icons": "pwa-assets-generator && node scripts/generate-favicon.mjs && node scripts/generate-brand-assets.mjs",
     "board": "tsx scripts/board.ts",
     "import-worklog": "tsx scripts/import-worklog.ts",

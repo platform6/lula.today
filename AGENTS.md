@@ -1,7 +1,7 @@
 # lula.today
 
 Offline-first task and kanban PWA: React + Vite + Tailwind, Dexie (IndexedDB) synced to Supabase.
-Run `npm run typecheck` and `npm test` before calling a change done.
+Run `npm run check` (typecheck, then tests; it exits non-zero if either fails) before calling a change done.
 
 These instructions are for any coding agent (Codex reads this file; Claude Code reads it through
 CLAUDE.md).
@@ -13,7 +13,7 @@ script to read and update them (it signs in as the owner; see `scripts/session.t
 
 ```
 npm run board -- list lula            # cards by column, with ids
-npm run board -- show <id>            # notes, steps, files, details
+npm run board -- show <id>            # notes, steps, files, details, commits
 npm run board -- files <id> [folder]  # download the card's attached files (temp folder by default)
 npm run board -- move <id> Doing
 npm run board -- note <id> "<text>"   # add --by <name> to sign the note, e.g. --by Codex
@@ -48,7 +48,7 @@ Rules for the board:
 2. `npm run board -- show <id>`: read the title, notes and steps. Unchecked steps and the latest
    notes are usually the owner's feedback from testing.
 3. If it's unclear what's wanted, ask (or note the question on the card and leave it in To Do).
-4. Move it to Doing, build it, and run `npm run typecheck` and `npm test`.
+4. Move it to Doing, build it, and run `npm run check`.
 5. Note on the card what changed and anything left for the owner to check, then report back and
    ask whether to commit and push.
 
@@ -57,13 +57,16 @@ Rules for the board:
 Saying this is the owner's go-ahead to commit and push what's in the working tree.
 
 1. `git status` and `git diff`; if there's nothing to commit, say so and stop.
-2. Run `npm run typecheck` and `npm test`; if either fails, report it and stop.
-3. Commit in this repo's style: a short summary line, then `-` bullets for each change. Never
-   stage `.env.local`, `.board-session.local` or `.claude/settings.local.json`.
-4. Push to the current branch.
-5. For each card in Doing that the commit completes: note `Committed in <short hash>.` and move it
-   to UAT. Leave cards still in progress where they are.
-6. Report the commit hash and which cards moved.
+2. Run `npm run check` on its own and read the result; if it fails, report it and stop. Don't chain
+   the commit or push onto a command whose failure wouldn't stop them.
+3. Work out which cards in Doing the commit completes. Leave cards still in progress out.
+4. Commit in this repo's style: a short summary line, then `-` bullets for each change, then a
+   `Card: <8-character id>` line per card from step 3 (`board show` lists a card's commits from
+   these). Never stage `.env.local`, `.board-session.local` or `.claude/settings.local.json`.
+5. Push to the current branch.
+6. Note `Committed in <short hash>.` on those cards and move them to UAT (comma-separated ids,
+   one call each).
+7. Report the commit hash and which cards moved.
 
 ## Database changes
 
