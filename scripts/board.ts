@@ -7,6 +7,7 @@
 // Signs in through scripts/session.ts (credentials in .env.local).
 
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -58,12 +59,24 @@ async function findProject(name: string): Promise<{ project: Project; label: str
   fail(`No project or realm called "${name}". Try: npm run board -- boards`);
 }
 
+/** Cards by id, comma-separated for several. All are found before anything changes, so a typo changes nothing. */
+async function findTasks(ids: string): Promise<Task[]> {
+  const prefixes = [...new Set(ids.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean))];
+  for (const p of prefixes) if (!/^[0-9a-f-]{4,36}$/.test(p)) fail(`"${p}" isn't a card id (use the 8-character id from "list").`);
+  if (prefixes.length === 0) fail('Give a card id.');
+  const all = await rows<Task>('tasks');
+  return prefixes.map((p) => {
+    const matches = all.filter((t) => t.id.startsWith(p));
+    if (matches.length === 0) fail(`No card with id ${p}.`);
+    if (matches.length > 1) fail(`Id ${p} matches ${matches.length} cards; use more characters.`);
+    return matches[0];
+  });
+}
+
 async function findTask(idPrefix: string): Promise<Task> {
-  if (!/^[0-9a-f-]{4,36}$/i.test(idPrefix)) fail(`"${idPrefix}" isn't a card id (use the 8-character id from "list").`);
-  const matches = (await rows<Task>('tasks')).filter((t) => t.id.startsWith(idPrefix.toLowerCase()));
-  if (matches.length === 0) fail(`No card with id ${idPrefix}.`);
-  if (matches.length > 1) fail(`Id ${idPrefix} matches ${matches.length} cards; use more characters.`);
-  return matches[0];
+  const found = await findTasks(idPrefix);
+  if (found.length > 1) fail('Give one card id here.');
+  return found[0];
 }
 
 async function columnsOf(projectId: string) {
@@ -88,17 +101,36 @@ async function boards() {
 
 async function list(name: string, onlyColumn?: string) {
   const { project, label } = await findProject(name);
-  const columns = await columnsOf(project.id);
+  const columns = (await columnsOf(project.id)).filter((c) => !onlyColumn || norm(c.name) === norm(onlyColumn));
   const tasks = (await rows<Task>('tasks', (q) => q.eq('project_id', project.id))).filter((t) => !t.archived_at);
   const labels = new Map((await rows<Label>('labels')).map((l) => [l.id, l.name]));
   const links = await rows<{ task_id: string; label_id: string }>('task_labels');
+  const tagsOf = (t: Task) => links.filter((l) => l.task_id === t.id).map((l) => labels.get(l.label_id)).filter(Boolean) as string[];
+  const cardsIn = (c: BoardColumn) => tasks.filter((t) => t.column_id === c.id).sort(byPosition);
+  if (json) {
+    return out({
+      board: label,
+      columns: columns.map((c) => ({
+        name: c.name,
+        done: c.is_done,
+        cards: cardsIn(c).map((t) => ({
+          id: t.id,
+          title: t.title,
+          priority: PRIORITY[t.priority] || null,
+          due_at: t.due_at,
+          repeats: !!t.recurrence,
+          tags: tagsOf(t),
+          has_notes: !!t.notes,
+        })),
+      })),
+    });
+  }
   console.log(`# ${label}`);
   for (const c of columns) {
-    if (onlyColumn && norm(c.name) !== norm(onlyColumn)) continue;
-    const mine = tasks.filter((t) => t.column_id === c.id).sort(byPosition);
+    const mine = cardsIn(c);
     console.log(`\n## ${c.name}${c.is_done ? ' (done)' : ''} · ${mine.length}`);
     for (const t of mine) {
-      const tags = links.filter((l) => l.task_id === t.id).map((l) => labels.get(l.label_id)).filter(Boolean);
+      const tags = tagsOf(t);
       const meta = [PRIORITY[t.priority], fmtDue(t), t.recurrence ? 'repeats' : '', tags.length ? `#${tags.join(' #')}` : '', t.notes ? 'has notes' : '']
         .filter(Boolean)
         .join(' · ');
@@ -107,16 +139,44 @@ async function list(name: string, onlyColumn?: string) {
   }
 }
 
-async function show(idPrefix: string) {
-  const t = await findTask(idPrefix);
-  const column = (await rows<BoardColumn>('board_columns', (q) => q.eq('id', t.column_id)))[0];
-  const project = (await rows<Project>('projects', (q) => q.eq('id', t.project_id)))[0];
-  const steps = (await rows<Step>('steps', (q) => q.eq('task_id', t.id))).sort(byPosition);
+async function show(ids: string) {
+  const cards = await findTasks(ids);
+  const shown = [];
+  for (const [i, t] of cards.entries()) {
+    const column = (await rows<BoardColumn>('board_columns', (q) => q.eq('id', t.column_id)))[0];
+    const project = (await rows<Project>('projects', (q) => q.eq('id', t.project_id)))[0];
+    const steps = (await rows<Step>('steps', (q) => q.eq('task_id', t.id))).sort(byPosition);
+    const files = await attachmentsOf(t.id);
+    const board = project?.is_inbox ? 'Inbox' : project?.name;
+    const state = t.cancelled_at ? 'cancelled' : t.completed_at ? 'completed' : 'open';
+    if (json) {
+      shown.push({
+        id: t.id,
+        title: t.title,
+        board,
+        column: column?.name,
+        state,
+        priority: PRIORITY[t.priority] || null,
+        due_at: t.due_at,
+        due_has_time: t.due_has_time,
+        recurrence: t.recurrence,
+        url: t.url,
+        steps: steps.map((s) => ({ text: s.text, done: s.is_done })),
+        files: files.map((f) => ({ name: f.name, mime_type: f.mime_type, size: f.size })),
+        notes: t.notes,
+      });
+      continue;
+    }
+    if (i > 0) console.log('\n---\n');
+    printCard(t, `${board} › ${column?.name}${state === 'open' ? '' : ` (${state})`}`, steps, files);
+  }
+  if (json) out(cards.length === 1 ? shown[0] : shown);
+}
+
+function printCard(t: Task, where: string, steps: Step[], files: Attachment[]) {
   console.log(`${t.title}`);
   console.log(`id ${t.id}`);
-  console.log(
-    `board ${project?.is_inbox ? 'Inbox' : project?.name} › ${column?.name}${t.cancelled_at ? ' (cancelled)' : t.completed_at ? ' (completed)' : ''}`,
-  );
+  console.log(`board ${where}`);
   if (t.priority) console.log(`priority ${PRIORITY[t.priority]}`);
   if (t.due_at) console.log(`due ${fmtDue(t)}`);
   if (t.recurrence) console.log(`repeats ${JSON.stringify(t.recurrence)}`);
@@ -125,7 +185,6 @@ async function show(idPrefix: string) {
     console.log('steps');
     for (const s of steps) console.log(`  [${s.is_done ? 'x' : ' '}] ${s.text}`);
   }
-  const files = await attachmentsOf(t.id);
   if (files.length) {
     console.log('files');
     for (const f of files) console.log(`  ${f.name} (${f.mime_type ?? 'unknown type'}, ${Math.round(f.size / 1024)} KB)`);
@@ -154,8 +213,7 @@ async function files(idPrefix: string, dir?: string) {
   }
 }
 
-async function move(idPrefix: string, columnName: string) {
-  const t = await findTask(idPrefix);
+async function move(t: Task, columnName: string) {
   const columns = await columnsOf(t.project_id);
   const target = columns.find((c) => norm(c.name) === norm(columnName));
   if (!target) fail(`No column "${columnName}" here. Columns: ${columns.map((c) => c.name).join(', ')}`);
@@ -184,15 +242,27 @@ async function move(idPrefix: string, columnName: string) {
   console.log(`Moved "${t.title}" to ${target.name}.`);
 }
 
-async function note(idPrefix: string, text: string, by = 'Claude') {
-  const t = await findTask(idPrefix);
+async function note(t: Pick<Task, 'id' | 'title' | 'notes'>, text: string, by = 'Claude') {
   const stamp = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const entry = `[${by} · ${stamp}] ${text}`;
   await update('tasks', t.id, { notes: t.notes ? `${t.notes}\n\n${entry}` : entry });
-  console.log(`Added a note to "${t.title}".`);
+  if (!json) console.log(`Added a note to "${t.title}".`);
 }
 
-async function add(name: string, title: string, columnName?: string) {
+/** Add steps to the end of a card's checklist, one per text. */
+async function addSteps(t: Pick<Task, 'id' | 'title'>, texts: string[]) {
+  const existing = (await rows<Step>('steps', (q) => q.eq('task_id', t.id))).sort(byPosition);
+  const list = [...existing];
+  for (const text of texts) {
+    const position = keyAtEnd(list);
+    const { error } = await supabase.from('steps').insert({ id: randomUUID(), task_id: t.id, text: text.trim(), is_done: false, position });
+    if (error) fail(`Adding a step failed: ${error.message}`);
+    list.push({ position } as Step);
+  }
+  if (!json) console.log(`Added ${texts.length} step${texts.length === 1 ? '' : 's'} to "${t.title}".`);
+}
+
+async function add(name: string, title: string, columnName?: string, extra: { note?: string; steps: string[]; by?: string } = { steps: [] }) {
   const { project, label } = await findProject(name);
   const columns = await columnsOf(project.id);
   const column = columnName
@@ -211,26 +281,68 @@ async function add(name: string, title: string, columnName?: string) {
     position: keyAtEnd(await lastInColumn(column.id)),
   });
   if (error) fail(`Adding failed: ${error.message}`);
-  console.log(`Added ${short(id)} "${titleCase(title)}" to ${label} › ${column.name}.`);
+  const card = { id, title: titleCase(title), notes: null };
+  if (!json) console.log(`Added ${short(id)} "${card.title}" to ${label} › ${column.name}.`);
+  if (extra.note) await note(card, extra.note, extra.by);
+  if (extra.steps.length) await addSteps(card, extra.steps);
+  if (json) out({ id, title: card.title, board: label, column: column.name });
 }
 
 const HELP = `lula board
 
   boards                          realms and their projects
   list <board> [column]           cards by column, with their ids
-  show <id>                       one card: notes, steps, files, details
+  show <ids>                      cards: notes, steps, files, details
   files <id> [folder]             download a card's files (to a temp folder by default)
-  move <id> <column>              move a card (Done completes it)
-  note <id> "<text>" [--by name]  append a note to a card (signed Claude unless --by)
-  add <board> "<title>" [column]  add a card (first open column by default)
+  move <ids> <column>             move cards (Done completes them)
+  note <ids> "<text>" [--by name] append a note to cards (signed Claude unless --by)
+  step <id> "<text>" ["<text>"…]  add steps to the end of a card's checklist
+  add <board> "<title>" [column]  add a card (first open column by default),
+      [--note "<text>"] [--step "<text>"]…   with a note and steps
+
+  --file <path>   note and step: read the text from a file ("-" reads stdin);
+                  for step, each non-empty line is a step
+  --json          list, show and add: print JSON (add prints the new card's full id)
 
 <board> is a project name, a realm name (its own tasks) or "inbox".
-<id> is the 8-character id from "list".`;
+<id> is the 8-character id from "list"; <ids> is one, or several with commas: a1b2c3d4,e5f6a7b8.`;
 
-const [cmd, ...args] = process.argv.slice(2);
+// Flags may go anywhere; "--" ends them.
+const VALUE_FLAGS = ['--by', '--file', '--note', '--step'];
+const args: string[] = [];
+const flags: Record<string, string[]> = {};
+let json = false;
+{
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--') {
+      args.push(...argv.slice(i + 1));
+      break;
+    } else if (a === '--json') json = true;
+    else if (VALUE_FLAGS.includes(a)) {
+      if (argv[i + 1] === undefined) fail(`${a} needs a value.\n\n${HELP}`);
+      (flags[a.slice(2)] ??= []).push(argv[++i]);
+    } else args.push(a);
+  }
+}
+const cmd = args.shift();
+const flag = (name: string) => flags[name]?.at(-1);
 const need = (n: number) => {
   if (args.length < n) fail(HELP);
 };
+const out = (value: unknown) => console.log(JSON.stringify(value, null, 2));
+
+/** The --file's text, if given ("-" is stdin). */
+function fileText(): string | undefined {
+  const file = flag('file');
+  if (file === undefined) return undefined;
+  try {
+    return readFileSync(file === '-' ? 0 : file, 'utf8').trim();
+  } catch (e) {
+    fail(`Reading ${file === '-' ? 'stdin' : file} failed: ${e instanceof Error ? e.message : e}`);
+  }
+}
 
 if (!cmd || cmd === 'help') {
   console.log(HELP);
@@ -240,15 +352,23 @@ if (!cmd || cmd === 'help') {
   else if (cmd === 'list') (need(1), await list(args[0], args[1]));
   else if (cmd === 'show') (need(1), await show(args[0]));
   else if (cmd === 'files') (need(1), await files(args[0], args[1]));
-  else if (cmd === 'move') (need(2), await move(args[0], args.slice(1).join(' ')));
-  else if (cmd === 'note') {
-    // An optional trailing "--by <name>" signs the note for another agent.
-    const byAt = args.indexOf('--by');
-    const by = byAt > 0 ? args[byAt + 1] : undefined;
-    const text = (byAt > 0 ? args.slice(1, byAt) : args.slice(1)).join(' ');
-    if (!text || (byAt > 0 && !by)) fail(HELP);
-    await note(args[0], text, by);
-  }
-  else if (cmd === 'add') (need(2), await add(args[0], args[1], args[2]));
-  else fail(HELP);
+  else if (cmd === 'move') {
+    need(2);
+    const column = args.slice(1).join(' ');
+    for (const t of await findTasks(args[0])) await move(t, column);
+  } else if (cmd === 'note') {
+    need(1);
+    const text = fileText() ?? args.slice(1).join(' ');
+    if (!text) fail(HELP);
+    for (const t of await findTasks(args[0])) await note(t, text, flag('by'));
+  } else if (cmd === 'step') {
+    need(1);
+    const file = fileText();
+    const texts = (file === undefined ? args.slice(1) : file.split(/\r?\n/)).map((s) => s.trim()).filter(Boolean);
+    if (texts.length === 0) fail(HELP);
+    await addSteps(await findTask(args[0]), texts);
+  } else if (cmd === 'add') {
+    need(2);
+    await add(args[0], args[1], args[2], { note: flag('note'), steps: flags.step ?? [], by: flag('by') });
+  } else fail(HELP);
 }

@@ -13,5 +13,6 @@ Typing this command is the owner's go-ahead to commit and push what's in the wor
 4. Push to the current branch.
 5. For each card on the lula board in **Doing** that this commit completes (check with
    `npm run board -- list lula Doing` and the cards' notes): add a note `Committed in <short hash>.` and move it
-   to **UAT**. Leave cards that are still in progress where they are, and never move anything to Done.
+   to **UAT**, all of them in one call each: `npm run board -- note <id>,<id> "Committed in <hash>."` then
+   `npm run board -- move <id>,<id> UAT`. Leave cards that are still in progress where they are, and never move anything to Done.
 6. Report the commit hash and which cards moved.

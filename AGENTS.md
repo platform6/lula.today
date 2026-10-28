@@ -17,7 +17,14 @@ npm run board -- show <id>            # notes, steps, files, details
 npm run board -- files <id> [folder]  # download the card's attached files (temp folder by default)
 npm run board -- move <id> Doing
 npm run board -- note <id> "<text>"   # add --by <name> to sign the note, e.g. --by Codex
+npm run board -- step <id> "<text>" ["<text>"...]   # add checklist steps
+npm run board -- help                 # everything else
 ```
+
+`move`, `note` and `show` take several ids at once, comma-separated (`a1b2c3d4,e5f6a7b8`); every id is
+checked before anything changes. For long or multi-line text, `note` and `step` read `--file <path>`
+(`-` for stdin; for `step`, one step per line) instead of quoting it on the command line. `list`,
+`show` and `add` print JSON with `--json`.
 
 It needs network access and the owner's login in `.env.local` (gitignored, on the owner's
 computer only). If it can't sign in or reach Supabase, say so rather than working around it.

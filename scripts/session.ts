@@ -32,9 +32,19 @@ export const supabase = createClient(process.env.VITE_SUPABASE_URL!, process.env
   auth: { storage: fileStore, persistSession: true, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
+/** Thrown by fail(): printed without a stack trace. */
+class Failure extends Error {}
+
+// Exiting from inside fail() while a request is still closing crashes Node on
+// Windows (a libuv assertion, exit code 127), so fail() throws and this exits.
+process.on('uncaughtException', (e) => {
+  console.error(e instanceof Failure ? e.message : e);
+  process.exitCode = 1;
+});
+
+/** Stop with a message and exit code 1. Not for use inside a try that would catch it. */
 export function fail(message: string): never {
-  console.error(message);
-  process.exit(1);
+  throw new Failure(message);
 }
 
 /** Uses the cached session, or signs in with the credentials from .env.local. Returns the user id. */
