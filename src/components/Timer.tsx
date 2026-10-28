@@ -4,11 +4,12 @@ import { useProject, useRunningEntry, useTimeEntries } from '../db/hooks';
 import { continueEntry, startCardTimer, startTimer, stopTimer, updateEntry } from '../db/time';
 import type { Task, TimeEntry } from '../db/types';
 import { tracksTime } from '../lib/paths';
-import { dayKey } from '../lib/dates';
+import { dayKey, sinceLabel } from '../lib/dates';
 import { entrySeconds, formatDuration, runningLong, timesProblem } from '../lib/time';
 import { BackIcon, ClockIcon, PlayIcon } from './icons';
 import { Sheet } from './Sheet';
-import { Dot, Group, PickRow, ProjectPicker, TagPicker, TaskPicker, TimeEntrySheet } from './TimeEntrySheet';
+import { TimeEntrySheet } from './TimeEntrySheet';
+import { Dot, Group, PickRow, ProjectPicker, TagPicker, TaskPicker } from './TimePickers';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
 /** The current time, updated every `ms` while `active`. */
@@ -57,7 +58,7 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
       <span className="w-full truncate text-base font-bold">{lookup.entryTitle(running)}</span>
       <span className={`w-full truncate text-xs font-semibold ${long ? 'text-warn' : 'text-fg-2'}`}>
         {long
-          ? `Running since ${since(running.started_at)}`
+          ? `Running since ${sinceLabel(running.started_at)}`
           : running.time_task_id
             ? lookup.projectLabel(running.project_id)
             : running.description || 'Tap to edit'}
@@ -118,12 +119,6 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
   );
 }
 
-/** "5:12 PM", or "Mon 5:12 PM" when it's not today. */
-function since(iso: string): string {
-  const d = new Date(iso);
-  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  return dayKey(d) === dayKey(new Date()) ? time : `${d.toLocaleDateString(undefined, { weekday: 'short' })} ${time}`;
-}
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -156,7 +151,7 @@ function StopAtSheet({ entry, onClose }: { entry: TimeEntry; onClose: () => void
       }
     >
       <div className="flex flex-col gap-3 p-4">
-        <p className="text-base text-fg-2">Started {since(entry.started_at)}. When did you finish?</p>
+        <p className="text-base text-fg-2">Started {sinceLabel(entry.started_at)}. When did you finish?</p>
         <div className="flex flex-wrap gap-2">
           <label className="flex flex-col gap-1 text-sm font-semibold">
             Date

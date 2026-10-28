@@ -1,17 +1,14 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { TimeEntry } from '../db/types';
-import { dayKey, todayKey } from '../lib/dates';
+import { formatDay as dayName, todayKey } from '../lib/dates';
+import { reportEntries, reportExport, reportTotals, type ReportFilters } from '../lib/report';
 import {
   RANGE_LABELS,
-  bucketOf,
-  entrySeconds,
   formatDuration,
   ordered,
-  rangeBuckets,
   rangeFor,
   rangeLabel,
   stepRange,
-  totalsBy,
   type Bucket,
   type DayRange,
   type RangeKind,
@@ -21,13 +18,6 @@ import { BackIcon, ChevronRightIcon } from './icons';
 import type { TimeLookup } from './useTimeLookup';
 
 const RANGE_KEY = 'lula.time.period';
-/** The realm key for time with no realm. */
-const NO_REALM = '-';
-
-const dayName = (day: string, opts: Intl.DateTimeFormatOptions) => {
-  const [y, m, d] = day.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, opts);
-};
 
 /**
  * A period's tracked time: total, hours per day, time by realm, and a breakdown
@@ -56,41 +46,20 @@ export function Report({
   const [realm, setRealm] = useState('');
   const [taskId, setTaskId] = useState('');
   const [tagId, setTagId] = useState('');
-  const range = ordered(typed);
+  const { kind, from, to } = ordered(typed);
+  const range = useMemo(() => ({ kind, from, to }), [kind, from, to]);
+  const filters: ReportFilters = useMemo(() => ({ realm, taskId, tagId }), [realm, taskId, tagId]);
 
   const today = todayKey();
-  const realmOf = (e: TimeEntry) => {
-    const p = e.project_id ? lookup.projects.get(e.project_id) : undefined;
-    return (p && !p.is_inbox && p.area_id) || NO_REALM;
-  };
-  const realmName = (id: string) => (id === NO_REALM ? 'No realm' : (lookup.areas.get(id)?.name ?? 'Unknown realm'));
-
-  // An entry counts toward the day it started on, as in Clockify.
-  const inRange = entries.filter((e) => {
-    const day = dayKey(new Date(e.started_at));
-    return day >= range.from && day <= range.to;
-  });
-  const inRealm = scoped || !realm ? inRange : inRange.filter((e) => realmOf(e) === realm);
-  const list = inRealm.filter((e) => (!taskId || e.time_task_id === taskId) && (!tagId || e.tag_ids.includes(tagId)));
-  const total = list.reduce((sum, e) => sum + entrySeconds(e, now), 0);
-
-  const realmOptions = [...new Set(inRange.map(realmOf))].sort((a, b) => realmName(a).localeCompare(realmName(b)));
-  const taskOptions = [...new Set(inRealm.map((e) => e.time_task_id).filter((id): id is string => !!id))]
-    .map((id) => ({ id, name: lookup.tasks.get(id)?.name ?? 'Unknown task' }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const tagOptions = [...new Set(inRange.flatMap((e) => e.tag_ids))]
-    .map((id) => ({ id, name: lookup.tags.get(id)?.name ?? 'Unknown tag' }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  const { bucket, keys } = rangeBuckets(range);
-  const perBucket = new Map(totalsBy(list, (e) => bucketOf(dayKey(new Date(e.started_at)), bucket), now).map((t) => [t.key, t.seconds]));
-  const realms = totalsBy(list, realmOf, now).map((t) => ({
-    ...t,
-    name: realmName(t.key),
-    color: lookup.areas.get(t.key)?.color ?? null,
-  }));
-  const by = groupBy === 'auto' ? (new Set(list.map((e) => e.project_id)).size > 1 ? 'project' : 'task') : groupBy;
-  const breakdown = totalsBy(list, (e) => (by === 'task' ? (e.time_task_id ?? '') : (e.project_id ?? '')), now);
+  // Filtering waits for the period or a filter to change; the totals follow the running clock.
+  const { list, realmOptions, taskOptions, tagOptions } = useMemo(
+    () => reportEntries(entries, range, filters, lookup, scoped),
+    [entries, range, filters, lookup, scoped],
+  );
+  const { total, bucket, keys, perBucket, realms, by, breakdown } = useMemo(
+    () => reportTotals(list, range, lookup, groupBy, now),
+    [list, range, lookup, groupBy, now],
+  );
   const nameOf = (key: string) =>
     by === 'task' ? (key ? (lookup.tasks.get(key)?.name ?? 'Unknown task') : 'No task') : lookup.projectLabel(key || null);
 
@@ -143,7 +112,7 @@ export function Report({
       <div className="flex flex-wrap gap-2">
         {!scoped && (
           <Filter label="Realm" value={realm} onChange={(v) => { setRealm(v); setTaskId(''); }} all="All realms">
-            {realmOptions.map((id) => <option key={id} value={id}>{realmName(id)}</option>)}
+            {realmOptions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </Filter>
         )}
         <Filter label="Task" value={taskId} onChange={setTaskId} all="All tasks">
@@ -168,7 +137,7 @@ export function Report({
               {filtered ? ' (filtered)' : ''}
             </p>
           </div>
-          <button className="btn-outline min-h-11" disabled={list.length === 0} onClick={() => exportJson(range, list, lookup, now, { realm, taskId, tagId })}>
+          <button className="btn-outline min-h-11" disabled={list.length === 0} onClick={() => downloadJson(range, reportExport(range, list, filters, lookup, now))}>
             Export JSON
           </button>
         </div>
@@ -385,42 +354,8 @@ function RealmDonut({ slices, total }: { slices: { key: string; name: string; co
   );
 }
 
-/** Download the period's entries, with names filled in, as a JSON file. */
-function exportJson(
-  range: DayRange,
-  list: TimeEntry[],
-  lookup: TimeLookup,
-  now: number,
-  filters: { realm: string; taskId: string; tagId: string },
-) {
-  const nameOr = <T extends { name: string }>(map: Map<string, T>, id: string) => (id ? (map.get(id)?.name ?? null) : null);
-  const entries = [...list]
-    .sort((a, b) => a.started_at.localeCompare(b.started_at))
-    .map((e) => {
-      const p = e.project_id ? lookup.projects.get(e.project_id) : undefined;
-      return {
-        id: e.id,
-        started_at: e.started_at,
-        ended_at: e.ended_at,
-        seconds: entrySeconds(e, now),
-        description: e.description,
-        realm: p?.area_id ? (lookup.areas.get(p.area_id)?.name ?? null) : null,
-        project: p && !p.is_area_default && !p.is_inbox ? p.name : null,
-        task: nameOr(lookup.tasks, e.time_task_id ?? ''),
-        tags: e.tag_ids.map((id) => lookup.tags.get(id)?.name).filter(Boolean),
-      };
-    });
-  const data = {
-    from: range.from,
-    to: range.to,
-    filters: {
-      realm: nameOr(lookup.areas, filters.realm),
-      task: nameOr(lookup.tasks, filters.taskId),
-      tag: nameOr(lookup.tags, filters.tagId),
-    },
-    total_seconds: entries.reduce((sum, e) => sum + e.seconds, 0),
-    entries,
-  };
+/** Download the export as a JSON file. */
+function downloadJson(range: DayRange, data: unknown) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;

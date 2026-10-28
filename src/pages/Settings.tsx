@@ -5,9 +5,11 @@ import { useAreas, useLabels, usePendingCount, useSettings } from '../db/hooks';
 import type { ColumnTemplate } from '../db/types';
 import { supabase } from '../lib/supabase';
 import { syncNow, useSyncStatus } from '../sync/engine';
+import { clockLabel } from '../lib/dates';
 import { COLORS, ColorPicker, colorName } from '../components/ColorPicker';
 import { useConfirmCompleteSetting } from '../components/ConfirmComplete';
 import { TreeNode } from '../components/NodeTree';
+import { StuckChanges } from '../components/StuckChanges';
 import { ColumnsEditor } from '../components/ColumnsEditor';
 import { PageHeader } from '../components/PageHeader';
 import { DownIcon, UpIcon, XIcon } from '../components/icons';
@@ -355,8 +357,14 @@ function SyncPanel() {
           })}
         </time>
       </div>
-      {status.error && <p className="text-danger">{status.error}</p>}
-      <button className="btn-primary mt-1" onClick={() => void syncNow()} disabled={status.state === 'syncing'}>
+      {status.error && (status.retryAt || status.stuck.length === 0) && (
+        <p className="text-danger">
+          {status.error}
+          {status.retryAt && ` Trying again at ${clockLabel(new Date(status.retryAt).toISOString())}.`}
+        </p>
+      )}
+      <StuckChanges stuck={status.stuck} />
+      <button className="btn-primary mt-1" onClick={() => void syncNow({ force: true })} disabled={status.state === 'syncing'}>
         Sync now
       </button>
     </div>

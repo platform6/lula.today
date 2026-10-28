@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planPush } from './plan';
+import { backoffMs, isUnreachable, matchFor, planPush } from './plan';
 
 describe('planPush', () => {
   it('updates only the columns that changed', () => {
@@ -20,5 +20,24 @@ describe('planPush', () => {
     ]);
     expect(plan.whole).toEqual(['a']);
     expect([...plan.partial.keys()]).toEqual(['b']);
+  });
+});
+
+describe('retrying', () => {
+  it('backs off from 5 seconds, doubling, up to 5 minutes', () => {
+    expect([1, 2, 3, 4].map(backoffMs)).toEqual([5_000, 10_000, 20_000, 40_000]);
+    expect(backoffMs(20)).toBe(300_000);
+  });
+
+  it('tells an unreachable server from a refused change', () => {
+    expect(isUnreachable('TypeError: Failed to fetch')).toBe(true);
+    expect(isUnreachable('Load failed')).toBe(true);
+    expect(isUnreachable('column "colour" of relation "tasks" does not exist')).toBe(false);
+    expect(isUnreachable('new row violates row-level security policy')).toBe(false);
+  });
+
+  it('finds a row on the server from its outbox key', () => {
+    expect(matchFor('id', 'abc')).toEqual({ id: 'abc' });
+    expect(matchFor('task_id,label_id', 't1|l2')).toEqual({ task_id: 't1', label_id: 'l2' });
   });
 });

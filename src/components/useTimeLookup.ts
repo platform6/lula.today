@@ -35,6 +35,8 @@ export function useTimeLookup() {
       tasksOf: (projectId: string | null) => (tasks ?? []).filter((t) => t.project_id === projectId && !t.archived_at),
       projectLabel: (projectId: string | null) => place(projectId)?.label ?? 'No project',
       projectColor: (projectId: string | null) => place(projectId)?.color ?? null,
+      /** The realm time on the project counts toward; none for Sorting or no project. */
+      realmOf: (projectId: string | null) => place(projectId)?.area?.id ?? null,
       /** What the entry was spent on: its task, else its project. */
       entryTitle: (e: TimeEntry) =>
         (e.time_task_id && taskMap.get(e.time_task_id)?.name) || place(e.project_id)?.label || 'No project',

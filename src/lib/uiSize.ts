@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react';
+import { remember, remembered } from './stored';
 
 // Per-device UI scale. It sets data-ui-size on <html>, which index.css maps to
 // the root font size, so everything sized in rem (text, spacing, controls)
@@ -11,13 +12,8 @@ const KEY = 'lula.uiSize';
 const listeners = new Set<() => void>();
 
 function read(): UiSize {
-  try {
-    const v = localStorage.getItem(KEY);
-    if (v === 'small' || v === 'large') return v;
-  } catch {
-    // storage unavailable: default size
-  }
-  return 'medium';
+  const v = remembered<string>(KEY, 'medium');
+  return v === 'small' || v === 'large' ? v : 'medium';
 }
 
 export function useUiSize(): [UiSize, (size: UiSize) => void] {
@@ -26,11 +22,7 @@ export function useUiSize(): [UiSize, (size: UiSize) => void] {
     return () => listeners.delete(l);
   }, read);
   const set = useCallback((next: UiSize) => {
-    try {
-      localStorage.setItem(KEY, next);
-    } catch {
-      // per-device convenience only
-    }
+    remember(KEY, next);
     document.documentElement.dataset.uiSize = next;
     listeners.forEach((l) => l());
   }, []);

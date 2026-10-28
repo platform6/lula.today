@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useInboxCount } from '../db/hooks';
 import { ArchiveIcon, BriefcaseIcon, CalendarIcon, ChevronRightIcon, ListIcon, PencilIcon, SlidersIcon, WitchHatIcon } from '../components/icons';
-import { CountBadge } from '../components/Layout';
+import { CountBadge } from '../components/CountBadge';
 import { PageHeader } from '../components/PageHeader';
 
 /** On phones, everything that doesn't have its own tab. */

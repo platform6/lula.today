@@ -1,34 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
-import { MAX_ATTACHMENT_BYTES, addAttachment, attachmentLinks, deleteAttachment, formatSize } from '../db/attachments';
+import { useState } from 'react';
 import {
-  addStep,
   archiveTask,
   cancelTask,
   createProject,
-  deleteStep,
   deleteTask,
-  moveStep,
   moveTask,
   moveTaskToProject,
   restoreTask,
   setTaskCompleted,
-  setTaskLabel,
-  tagTask,
-  updateStep,
   updateTask,
 } from '../db/actions';
-import { useAreas, useAttachments, useColumns, useLabels, useProject, useSteps, useTask, useTaskLabelMap } from '../db/hooks';
+import { useAreas, useColumns, useProject, useTask } from '../db/hooks';
 import { ProjectSelect } from './ProjectSelect';
 import { DateField } from './DateField';
-import { COLORS } from './ColorPicker';
 import { useConfirmComplete } from './ConfirmComplete';
-import type { Priority, Step, Task } from '../db/types';
+import type { Priority, Task } from '../db/types';
 import { dueDateInput, dueTimeInput, toDueAt } from '../lib/dates';
 import { PRIORITY_LABELS, isArchived, normalizeUrl } from '../lib/tasks';
-import { CheckIcon, CopyIcon, DownIcon, LinkIcon, PaperclipIcon, PlusIcon, UpIcon, XIcon } from './icons';
+import { CheckIcon, CopyIcon, LinkIcon, PlusIcon } from './icons';
 import { RepeatField } from './RepeatPicker';
 import { Sheet } from './Sheet';
 import { CardTimer } from './Timer';
+import { Attachments } from './TaskAttachments';
+import { TaskLabels } from './TaskLabels';
+import { Steps } from './TaskSteps';
 
 export function TaskSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const task = useTask(id);
@@ -174,7 +169,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
 
         <Steps taskId={task.id} />
         <Attachments taskId={task.id} />
-        <Labels taskId={task.id} />
+        <TaskLabels taskId={task.id} />
 
         {/* Two equal buttons: what fits the task's state, then Delete. */}
         <div className="grid grid-cols-2 gap-2 border-t border-line pt-4">
@@ -258,185 +253,6 @@ function DueFields({ task }: { task: Task }) {
   );
 }
 
-function Steps({ taskId }: { taskId: string }) {
-  const steps = useSteps(taskId) ?? [];
-  const [text, setText] = useState('');
-  const done = steps.filter((s) => s.is_done).length;
-
-  return (
-    <div>
-      <label className="field-label">
-        Steps {steps.length > 0 && <span className="normal-case">· {done}/{steps.length}</span>}
-      </label>
-      <ul className="flex flex-col gap-1">
-        {steps.map((s, i) => (
-          <StepRow key={s.id} step={s} first={i === 0} last={i === steps.length - 1} />
-        ))}
-      </ul>
-      <form
-        className="mt-1"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const v = text.trim();
-          if (!v) return;
-          void addStep(taskId, v);
-          setText('');
-        }}
-      >
-        <input
-          className="input"
-          placeholder="Add a step…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          enterKeyHint="done"
-        />
-      </form>
-    </div>
-  );
-}
-
-function StepRow({ step, first, last }: { step: Step; first: boolean; last: boolean }) {
-  return (
-    <li className="group flex items-center gap-2 rounded-sm border-b border-line px-1 hover:bg-surface-2">
-      <input
-        type="checkbox"
-        className="h-6 w-6 shrink-0 accent-[var(--accent)]"
-        checked={step.is_done}
-        onChange={(e) => void updateStep(step.id, { is_done: e.target.checked })}
-      />
-      <input
-        className={`min-h-11 min-w-0 flex-1 bg-transparent py-2 font-medium focus:outline-none ${step.is_done ? 'text-muted line-through' : 'text-fg'}`}
-        defaultValue={step.text}
-        onBlur={(e) => {
-          const v = e.target.value.trim();
-          if (v && v !== step.text) void updateStep(step.id, { text: v });
-        }}
-      />
-      <button className="p-2 text-fg-2 disabled:opacity-30" disabled={first} onClick={() => void moveStep(step.task_id, step.id, -1)} aria-label="Move up">
-        <UpIcon width={22} height={22} />
-      </button>
-      <button className="p-2 text-fg-2 disabled:opacity-30" disabled={last} onClick={() => void moveStep(step.task_id, step.id, 1)} aria-label="Move down">
-        <DownIcon width={22} height={22} />
-      </button>
-      <button className="p-2 text-fg-2 hover:text-danger" onClick={() => void deleteStep(step.id)} aria-label="Delete step">
-        <XIcon width={22} height={22} />
-      </button>
-    </li>
-  );
-}
-
-function useOnline(): boolean {
-  const [online, setOnline] = useState(navigator.onLine);
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
-    return () => {
-      window.removeEventListener('online', update);
-      window.removeEventListener('offline', update);
-    };
-  }, []);
-  return online;
-}
-
-/** Files on the task. Attaching, opening and removing need a connection. */
-function Attachments({ taskId }: { taskId: string }) {
-  const files = useAttachments(taskId) ?? [];
-  const online = useOnline();
-  const [links, setLinks] = useState<Map<string, string>>(new Map());
-  const [uploading, setUploading] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const picker = useRef<HTMLInputElement>(null);
-
-  const paths = files.map((f) => f.path).join('\n');
-  useEffect(() => {
-    if (!online || !paths) return;
-    let live = true;
-    attachmentLinks(paths.split('\n'))
-      .then((l) => live && setLinks(l))
-      .catch(() => live && setError("Couldn't load the files. Try reopening the task."));
-    return () => {
-      live = false;
-    };
-  }, [paths, online]);
-
-  async function attach(list: FileList | null) {
-    const chosen = [...(list ?? [])];
-    if (picker.current) picker.current.value = '';
-    if (chosen.length === 0) return;
-    setError(null);
-    const tooBig = chosen.filter((f) => f.size > MAX_ATTACHMENT_BYTES);
-    if (tooBig.length) setError(`Over the 10 MB limit: ${tooBig.map((f) => f.name).join(', ')}`);
-    const ok = chosen.filter((f) => f.size <= MAX_ATTACHMENT_BYTES);
-    setUploading((n) => n + ok.length);
-    for (const f of ok) {
-      try {
-        await addAttachment(taskId, f);
-      } catch (e) {
-        setError((e as Error).message);
-      } finally {
-        setUploading((n) => n - 1);
-      }
-    }
-  }
-
-  return (
-    <div>
-      <span className="field-label">Files</span>
-      {files.length > 0 && (
-        <ul className="mb-1.5 flex flex-col gap-1">
-          {files.map((f) => {
-            const url = links.get(f.path);
-            const isImage = f.mime_type?.startsWith('image/');
-            return (
-              <li key={f.id} className="flex items-center gap-2 rounded-sm border-b border-line px-1 hover:bg-surface-2">
-                {isImage && url ? (
-                  <img src={url} alt="" className="h-10 w-10 shrink-0 rounded-sm object-cover" />
-                ) : (
-                  <PaperclipIcon width={20} height={20} className="mx-2.5 shrink-0 text-fg-2" />
-                )}
-                {url ? (
-                  <a
-                    className="min-h-11 min-w-0 flex-1 truncate py-2.5 font-medium text-fg underline-offset-2 hover:underline"
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {f.name}
-                  </a>
-                ) : (
-                  <span className="min-h-11 min-w-0 flex-1 truncate py-2.5 font-medium text-fg-2">{f.name}</span>
-                )}
-                <span className="shrink-0 text-sm text-muted">{formatSize(f.size)}</span>
-                <button
-                  className="p-2 text-fg-2 hover:text-danger disabled:opacity-30"
-                  disabled={!online}
-                  onClick={() => void deleteAttachment(f)}
-                  aria-label={`Remove ${f.name}`}
-                >
-                  <XIcon width={22} height={22} />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <input ref={picker} type="file" multiple className="hidden" onChange={(e) => void attach(e.target.files)} />
-      <button
-        type="button"
-        className="btn-outline flex min-h-11 items-center gap-1.5 px-3 text-sm disabled:opacity-50"
-        disabled={!online || uploading > 0}
-        onClick={() => picker.current?.click()}
-      >
-        <PaperclipIcon width={16} height={16} /> {uploading > 0 ? 'Uploading…' : 'Attach file'}
-      </button>
-      {!online && <p className="mt-1.5 text-sm text-muted">Files need a connection. You're offline.</p>}
-      {error && <p role="alert" className="mt-1.5 text-sm text-danger">{error}</p>}
-    </div>
-  );
-}
-
-/** Create a project from inside a task, and move the task into it. */
 function NewProjectForm({ task }: { task: Task }) {
   const areas = useAreas() ?? [];
   const currentArea = useProject(task.project_id)?.area_id;
@@ -534,107 +350,5 @@ function CopyId({ id }: { id: string }) {
         {state === 'copied' ? 'Copied' : state === 'failed' ? "Couldn't copy" : ''}
       </span>
     </button>
-  );
-}
-
-function Labels({ taskId }: { taskId: string }) {
-  const labels = useLabels() ?? [];
-  const active = new Set(useTaskLabelMap()?.get(taskId) ?? []);
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState('');
-
-  const applied = labels.filter((l) => active.has(l.id));
-  const query = name.trim().toLowerCase();
-  // Only the tags you're looking for: unapplied ones matching what's typed (a few to start).
-  const suggestions = labels
-    .filter((l) => !active.has(l.id) && l.name.toLowerCase().includes(query))
-    .slice(0, query ? 8 : 5);
-  const exact = labels.some((l) => l.name.trim().toLowerCase() === query);
-
-  const close = () => {
-    setAdding(false);
-    setName('');
-  };
-  const add = (v: string) => {
-    if (!v.trim()) return;
-    // new tags take the next palette color, as in Settings
-    void tagTask(taskId, v, COLORS[labels.length % COLORS.length]);
-    close();
-  };
-
-  return (
-    <div>
-      <span className="field-label">Tags</span>
-      <div className="flex flex-wrap gap-1.5">
-        {applied.map((l) => (
-          <button
-            key={l.id}
-            className="flex min-h-11 items-center gap-2 rounded-sm border-2 border-line-strong px-3 text-sm font-semibold text-fg"
-            onClick={() => void setTaskLabel(taskId, l.id, false)}
-            aria-label={`Remove tag ${l.name}`}
-          >
-            <span className="h-3 w-3 rounded-full" style={{ background: l.color ?? 'var(--muted)' }} />
-            {l.name}
-            <XIcon width={16} height={16} className="text-fg-2" />
-          </button>
-        ))}
-        {!adding && (
-          <button className="btn-outline flex min-h-11 items-center gap-1.5 px-3 text-sm" onClick={() => setAdding(true)}>
-            <PlusIcon width={16} height={16} /> Add tag
-          </button>
-        )}
-      </div>
-      {adding && (
-        <div className="mt-2">
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              // Enter picks the first match, or creates the tag if nothing matches.
-              add(suggestions[0] && !exact ? suggestions[0].name : name);
-            }}
-          >
-            <input
-              className="input"
-              placeholder={labels.length ? 'Find or create a tag' : 'Name your first tag'}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Escape' && close()}
-              enterKeyHint="done"
-              aria-label="Find or create a tag"
-              autoFocus
-            />
-            <button type="button" className="btn-outline shrink-0 px-3" onClick={close}>
-              Cancel
-            </button>
-          </form>
-          {(suggestions.length > 0 || (query && !exact)) && (
-            <ul className="mt-1.5 flex flex-col rounded-sm border-2 border-line-strong">
-              {suggestions.map((l) => (
-                <li key={l.id}>
-                  <button
-                    className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-semibold hover:bg-surface-2"
-                    onClick={() => add(l.name)}
-                  >
-                    <span className="h-3 w-3 rounded-full" style={{ background: l.color ?? 'var(--muted)' }} />
-                    {l.name}
-                  </button>
-                </li>
-              ))}
-              {query && !exact && (
-                <li>
-                  <button
-                    className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-semibold text-accent hover:bg-surface-2"
-                    onClick={() => add(name)}
-                  >
-                    <PlusIcon width={16} height={16} /> Create &ldquo;{name.trim()}&rdquo;
-                  </button>
-                </li>
-              )}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
   );
 }

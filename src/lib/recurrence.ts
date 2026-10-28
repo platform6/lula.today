@@ -1,5 +1,5 @@
 import type { Recurrence, RepeatPreset } from '../db/types';
-import { dayKey } from './dates';
+import { dayKey, formatDay } from './dates';
 
 // Recurring tasks are one task whose due date moves forward each time it is
 // completed or skipped. Everything here is local-calendar date math.
@@ -105,8 +105,7 @@ export function describe(rule: Recurrence, due: Date): string {
     }
   }
   if (rule.until) {
-    const [y, m, d] = rule.until.split('-').map(Number);
-    text += `, until ${new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    text += `, until ${formatDay(rule.until, { month: 'short', day: 'numeric', year: 'numeric' })}`;
   }
   if (rule.count) text += `, ${rule.count} times`;
   return text;

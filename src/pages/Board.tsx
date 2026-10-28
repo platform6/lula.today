@@ -28,6 +28,7 @@ import { TaskMeta } from '../components/TaskMeta';
 import { BackIcon, PlusIcon, SlidersIcon } from '../components/icons';
 import { useOpenTask } from '../components/useOpenTask';
 import { useConfirmComplete } from '../components/ConfirmComplete';
+import { remember, remembered } from '../lib/stored';
 
 type DragData = { type: 'task' | 'column'; columnId: string };
 
@@ -183,13 +184,7 @@ function Kanban({ project, area, viewSwitch }: { project: Project; area: Area | 
     tab?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
   }, [activeCol]);
   const confirmComplete = useConfirmComplete();
-  const [hideDone, setHideDone] = useState(() => {
-    try {
-      return localStorage.getItem(HIDE_DONE_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [hideDone, setHideDone] = useState(() => remembered<string>(HIDE_DONE_KEY, '0') === '1');
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -272,11 +267,7 @@ function Kanban({ project, area, viewSwitch }: { project: Project; area: Area | 
 
   const toggleHideDone = () => {
     setHideDone((v) => {
-      try {
-        localStorage.setItem(HIDE_DONE_KEY, v ? '0' : '1');
-      } catch {
-        // per-viewer convenience only
-      }
+      remember(HIDE_DONE_KEY, v ? '0' : '1');
       return !v;
     });
   };

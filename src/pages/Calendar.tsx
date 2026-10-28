@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAllTasks } from '../db/hooks';
 import type { Task } from '../db/types';
-import { dayKey, todayKey } from '../lib/dates';
+import { dayKey, parseDayKey, todayKey } from '../lib/dates';
 import { bankHolidays } from '../lib/bankHolidays';
 import { describeShort, upcomingOccurrences } from '../lib/recurrence';
 import { isLive } from '../lib/tasks';
@@ -54,8 +54,8 @@ export function Calendar() {
     setSelected(today);
   };
 
-  const [sy, sm, sd] = selected.split('-').map(Number);
-  const selectedDate = new Date(sy, sm - 1, sd);
+  const selectedDate = parseDayKey(selected);
+  const sy = selectedDate.getFullYear();
   const selectedHoliday = (sy === month.y ? holidays : bankHolidays(sy)).get(selected);
   const dayTasks = (due.get(selected) ?? []).sort(byDue);
   const dayRepeats = repeats.get(selected) ?? [];

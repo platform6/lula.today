@@ -7,6 +7,7 @@ import { isRealProject } from '../lib/paths';
 import { PageHeader } from '../components/PageHeader';
 import { TaskList } from '../components/TaskList';
 import { XIcon } from '../components/icons';
+import { remember, remembered } from '../lib/stored';
 
 type Status = 'open' | 'done' | 'all';
 
@@ -39,13 +40,8 @@ type SortKey = keyof typeof SORTS;
 
 const SORT_KEY = 'lula.allTasksSort';
 function readSort(): SortKey {
-  try {
-    const v = localStorage.getItem(SORT_KEY);
-    if (v && v in SORTS) return v as SortKey;
-  } catch {
-    // storage unavailable: default order
-  }
-  return 'due';
+  const v = remembered<string>(SORT_KEY, 'due');
+  return v in SORTS ? (v as SortKey) : 'due';
 }
 
 export function AllTasks() {
@@ -74,11 +70,7 @@ export function AllTasks() {
   const [sort, setSortState] = useState<SortKey>(readSort);
   const setSort = (next: SortKey) => {
     setSortState(next);
-    try {
-      localStorage.setItem(SORT_KEY, next); // remembered per device
-    } catch {
-      // storage unavailable; the choice still applies until you leave
-    }
+    remember(SORT_KEY, next);
   };
 
   if (!tasks) return null;

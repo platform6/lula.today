@@ -26,7 +26,7 @@ export function SyncBadge() {
       onClick={() => {
         setTapped(true);
         setTimeout(() => setTapped(false), 700);
-        void syncNow();
+        void syncNow({ force: true });
       }}
       title={status.error ?? 'Sync now'}
       aria-label={`${text}. Sync now`}

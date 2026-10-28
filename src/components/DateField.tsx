@@ -1,4 +1,4 @@
-import { addDays, todayKey } from '../lib/dates';
+import { dayLabel } from '../lib/dates';
 import { CalendarIcon, ClockIcon, XIcon } from './icons';
 
 // iOS draws <input type="date|time"> blank when empty (no placeholder) and in
@@ -6,20 +6,6 @@ import { CalendarIcon, ClockIcon, XIcon } from './icons';
 // placeholder, with the native input stretched invisibly on top so a tap still
 // opens the system picker.
 
-function dateLabel(value: string): string {
-  const today = todayKey();
-  if (value === today) return 'Today';
-  if (value === addDays(today, 1)) return 'Tomorrow';
-  if (value === addDays(today, -1)) return 'Yesterday';
-  const [y, m, d] = value.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    ...(y !== new Date().getFullYear() ? { year: 'numeric' } : {}),
-  });
-}
 
 function timeLabel(value: string): string {
   const [h, m] = value.split(':').map(Number);
@@ -43,7 +29,7 @@ export function DateField({
   className?: string;
 }) {
   const Icon = kind === 'date' ? CalendarIcon : ClockIcon;
-  const text = value ? (kind === 'date' ? dateLabel(value) : timeLabel(value)) : placeholder;
+  const text = value ? (kind === 'date' ? dayLabel(value) : timeLabel(value)) : placeholder;
 
   return (
     <div className={`relative ${className}`}>

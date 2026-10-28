@@ -5,7 +5,7 @@ import { useAllColumns, useAreaMap, useLabels, useProjects, useStepCounts, useTa
 import type { Label, Task } from '../db/types';
 import { placeOf, type Place } from '../lib/paths';
 import { CheckIcon, GripIcon } from './icons';
-import type { InboxDragData } from './Layout';
+import type { InboxDragData } from './dragData';
 import { MoveToSheet } from './MoveToSheet';
 import { PlaceTag } from './PlaceTag';
 import { TaskMeta } from './TaskMeta';

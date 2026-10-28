@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTimeEntries } from '../db/hooks';
 import { continueEntry, deleteEntry, restoreEntry, stopTimer } from '../db/time';
 import type { TimeEntry } from '../db/types';
-import { dayKey, todayKey, addDays } from '../lib/dates';
-import { entrySeconds, formatDuration, stackEntries, totalsBy, weekOf } from '../lib/time';
+import { clockLabel as clock, dayKey, dayLabel, todayKey, weekLabel } from '../lib/dates';
+import { entriesByDay, weekTotals as weekTotalsOf } from '../lib/report';
+import { entrySeconds, formatDuration, stackEntries, weekOf } from '../lib/time';
 import { DownIcon, PlayIcon, TagIcon } from './icons';
 import { remember, remembered } from '../lib/stored';
 import { Report } from './Report';
@@ -43,16 +44,12 @@ export function TimeReport({
   );
   const running = entries.some((e) => !e.ended_at);
   const now = useNow(running, 30_000);
+  const byDay = useMemo(() => entriesByDay(entries), [entries]);
+  const weekTotals = useMemo(() => weekTotalsOf(entries, now), [entries, now]);
 
   if (!all || !lookup.loaded) return null;
 
-  const byDay = new Map<string, TimeEntry[]>();
-  for (const e of entries) {
-    const day = dayKey(new Date(e.started_at));
-    byDay.set(day, [...(byDay.get(day) ?? []), e]);
-  }
-  const dayList = [...byDay].slice(0, days);
-  const weekTotals = new Map(totalsBy(entries, (e) => weekOf(dayKey(new Date(e.started_at))), now).map((w) => [w.key, w.seconds]));
+  const dayList = byDay.slice(0, days);
 
   const show = (v: View) => {
     setView(v);
@@ -83,7 +80,7 @@ export function TimeReport({
               <div key={day} className="flex flex-col gap-5">
                 {newWeek && (
                   <h2 className="flex items-baseline gap-2 border-b-2 border-line-strong pb-1 text-lg font-bold">
-                    <span className="flex-1">{weekLabel(week)}</span>
+                    <span className="flex-1">{weekLabel(week, weekOf(todayKey()))}</span>
                     <span className="text-base tabular-nums text-fg-2">{formatDuration(weekTotals.get(week) ?? 0)}</span>
                   </h2>
                 )}
@@ -92,7 +89,7 @@ export function TimeReport({
             );
           })}
           {entries.length === 0 && <p className="text-base text-muted">No time tracked yet. Tap + to start a timer or add time.</p>}
-          {byDay.size > days && (
+          {byDay.length > days && (
             <button className="btn-outline self-start" onClick={() => setDays((d) => d + DAYS_PAGE)}>
               Show more days
             </button>
@@ -105,35 +102,6 @@ export function TimeReport({
     </div>
   );
 }
-
-function dayLabel(day: string): string {
-  const today = todayKey();
-  if (day === today) return 'Today';
-  if (day === addDays(today, -1)) return 'Yesterday';
-  const [y, m, d] = day.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    ...(y !== new Date().getFullYear() ? { year: 'numeric' } : {}),
-  });
-}
-
-function weekLabel(monday: string): string {
-  const thisWeek = weekOf(todayKey());
-  if (monday === thisWeek) return 'This week';
-  if (monday === addDays(thisWeek, -7)) return 'Last week';
-  const date = (key: string) => {
-    const [y, m, d] = key.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  };
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
-  return `${fmt(date(monday))} – ${fmt(date(addDays(monday, 6)))}`;
-}
-
-const clock = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 function DayGroup({
   day,

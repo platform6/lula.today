@@ -1,4 +1,4 @@
-import { addDays, dayKey, todayKey } from './dates';
+import { addDays, dayKey, parseDayKey, todayKey } from './dates';
 
 // Time tracking helpers that don't touch the database.
 
@@ -74,11 +74,6 @@ export interface DayRange {
   to: string;
 }
 
-const toDate = (key: string) => {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d);
-};
-
 function monthRange(kind: RangeKind, year: number, month: number): DayRange {
   return { kind, from: dayKey(new Date(year, month, 1)), to: dayKey(new Date(year, month + 1, 0)) };
 }
@@ -86,7 +81,7 @@ function monthRange(kind: RangeKind, year: number, month: number): DayRange {
 /** The range a kind names, as of `today` (weeks start Monday). Custom starts as this week. */
 export function rangeFor(kind: RangeKind, today = todayKey()): DayRange {
   const monday = weekOf(today);
-  const t = toDate(today);
+  const t = parseDayKey(today);
   switch (kind) {
     case 'lastWeek':
       return { kind, from: addDays(monday, -7), to: addDays(monday, -1) };
@@ -111,7 +106,7 @@ export function rangeDays(r: DayRange): string[] {
 /** The range before (-1) or after (1): a month for month ranges, else the same number of days. */
 export function stepRange(r: DayRange, dir: 1 | -1): DayRange {
   if (r.kind === 'month' || r.kind === 'lastMonth') {
-    const f = toDate(r.from);
+    const f = parseDayKey(r.from);
     return monthRange(r.kind, f.getFullYear(), f.getMonth() + dir);
   }
   const length = rangeDays(r).length;
@@ -140,9 +135,9 @@ export function rangeBuckets(r: DayRange): { bucket: Bucket; keys: string[] } {
 export function rangeLabel(r: DayRange, today = todayKey()): string {
   const now = rangeFor(r.kind, today);
   if (r.kind !== 'custom' && now.from === r.from && now.to === r.to) return RANGE_LABELS[r.kind];
-  const year = toDate(today).getFullYear();
-  const from = toDate(r.from);
-  const to = toDate(r.to);
+  const year = parseDayKey(today).getFullYear();
+  const from = parseDayKey(r.from);
+  const to = parseDayKey(r.to);
   if (r.kind === 'month' || r.kind === 'lastMonth') {
     return from.toLocaleDateString(undefined, { month: 'long', ...(from.getFullYear() !== year ? { year: 'numeric' } : {}) });
   }
@@ -205,7 +200,6 @@ export function stackEntries<E extends Stackable>(entries: E[]): E[][] {
 
 /** The Monday (YYYY-MM-DD) of the week a day (YYYY-MM-DD) falls in. */
 export function weekOf(day: string): string {
-  const [y, m, d] = day.split('-').map(Number);
-  const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+  const weekday = (parseDayKey(day).getDay() + 6) % 7;
   return addDays(day, -weekday);
 }

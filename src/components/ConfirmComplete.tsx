@@ -4,6 +4,7 @@ import type { Task } from '../db/types';
 import { describeLower, nextDue } from '../lib/recurrence';
 import { CheckIcon, RepeatIcon } from './icons';
 import { Sheet } from './Sheet';
+import { remember, remembered } from '../lib/stored';
 
 // "Mark this complete?" confirmation, shared by every way a task can be
 // completed (board drag, list checkbox, column picker). On by default; can be
@@ -12,13 +13,7 @@ import { Sheet } from './Sheet';
 const SETTING_KEY = 'lula.confirmComplete';
 const settingListeners = new Set<() => void>();
 
-function readSetting(): boolean {
-  try {
-    return localStorage.getItem(SETTING_KEY) !== 'off';
-  } catch {
-    return true;
-  }
-}
+const readSetting = () => remembered<string>(SETTING_KEY, 'on') !== 'off';
 
 export function useConfirmCompleteSetting(): [boolean, (on: boolean) => void] {
   const on = useSyncExternalStore(
@@ -29,11 +24,7 @@ export function useConfirmCompleteSetting(): [boolean, (on: boolean) => void] {
     readSetting,
   );
   const set = useCallback((next: boolean) => {
-    try {
-      localStorage.setItem(SETTING_KEY, next ? 'on' : 'off');
-    } catch {
-      // per-device convenience only
-    }
+    remember(SETTING_KEY, next ? 'on' : 'off');
     settingListeners.forEach((l) => l());
   }, []);
   return [on, set];
