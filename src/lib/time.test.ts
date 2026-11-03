@@ -34,6 +34,17 @@ describe('report ranges', () => {
     expect(rangeDays(rangeFor('twoWeeks', sun))).toHaveLength(14);
   });
 
+  it('runs year to date from January 1 to today, stepping a year at a time', () => {
+    const ytd = rangeFor('yearToDate', '2026-11-03');
+    expect(ytd).toEqual({ kind: 'yearToDate', from: '2026-01-01', to: '2026-11-03' });
+    expect(rangeFor('yearToDate', '2026-01-01')).toEqual({ kind: 'yearToDate', from: '2026-01-01', to: '2026-01-01' });
+    expect(stepRange(ytd, -1)).toEqual({ kind: 'yearToDate', from: '2025-01-01', to: '2025-11-03' });
+    expect(stepRange(stepRange(ytd, -1), 1)).toEqual(ytd);
+    expect(stepRange({ kind: 'yearToDate', from: '2028-01-01', to: '2028-02-29' }, -1)).toEqual({ kind: 'yearToDate', from: '2027-01-01', to: '2027-02-28' });
+    expect(rangeLabel(ytd, '2026-11-03')).toBe('Year to date');
+    expect(rangeLabel(stepRange(ytd, -1), '2026-11-03')).not.toBe('Year to date');
+  });
+
   it('steps by a month or by the range length', () => {
     expect(stepRange(rangeFor('month', '2026-03-15'), -1)).toEqual({ kind: 'month', from: '2026-02-01', to: '2026-02-28' });
     expect(stepRange(rangeFor('week', sun), 1)).toEqual({ kind: 'week', from: '2026-10-26', to: '2026-11-01' });

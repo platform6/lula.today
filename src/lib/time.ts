@@ -56,7 +56,7 @@ export function timesProblem(startedAt: string, endedAt: string | null, now = Da
 /** Name used to match tasks and tags: trimmed, spaces collapsed, case ignored. */
 export const nameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
 
-export type RangeKind = 'week' | 'lastWeek' | 'twoWeeks' | 'month' | 'lastMonth' | 'custom';
+export type RangeKind = 'week' | 'lastWeek' | 'twoWeeks' | 'month' | 'lastMonth' | 'yearToDate' | 'custom';
 
 export const RANGE_LABELS: Record<RangeKind, string> = {
   week: 'This week',
@@ -64,6 +64,7 @@ export const RANGE_LABELS: Record<RangeKind, string> = {
   twoWeeks: 'Past two weeks',
   month: 'This month',
   lastMonth: 'Last month',
+  yearToDate: 'Year to date',
   custom: 'Custom',
 };
 
@@ -91,6 +92,8 @@ export function rangeFor(kind: RangeKind, today = todayKey()): DayRange {
       return monthRange(kind, t.getFullYear(), t.getMonth());
     case 'lastMonth':
       return monthRange(kind, t.getFullYear(), t.getMonth() - 1);
+    case 'yearToDate':
+      return { kind, from: dayKey(new Date(t.getFullYear(), 0, 1)), to: today };
     default:
       return { kind, from: monday, to: addDays(monday, 6) };
   }
@@ -103,11 +106,21 @@ export function rangeDays(r: DayRange): string[] {
   return days;
 }
 
-/** The range before (-1) or after (1): a month for month ranges, else the same number of days. */
+/**
+ * The range before (-1) or after (1): a month for month ranges, the same stretch of the
+ * year before or after for year to date (Jan 1 – Nov 3), else the same number of days.
+ */
 export function stepRange(r: DayRange, dir: 1 | -1): DayRange {
   if (r.kind === 'month' || r.kind === 'lastMonth') {
     const f = parseDayKey(r.from);
     return monthRange(r.kind, f.getFullYear(), f.getMonth() + dir);
+  }
+  if (r.kind === 'yearToDate') {
+    const to = parseDayKey(r.to);
+    const year = to.getFullYear() + dir;
+    // Feb 29 becomes Feb 28 in a year without one.
+    const day = Math.min(to.getDate(), new Date(year, to.getMonth() + 1, 0).getDate());
+    return { kind: r.kind, from: dayKey(new Date(year, 0, 1)), to: dayKey(new Date(year, to.getMonth(), day)) };
   }
   const length = rangeDays(r).length;
   return { kind: r.kind, from: addDays(r.from, dir * length), to: addDays(r.to, dir * length) };

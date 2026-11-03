@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAllTasks, useBusPurchases, useInboxCount, useWorkDays } from '../db/hooks';
 import { BriefcaseIcon, CalendarIcon, SlidersIcon, WitchHatIcon } from '../components/icons';
-import { LOW_TICKETS, statusInfo, ticketsLeft } from '../lib/worklog';
+import { LOW_TICKETS, TICKETS_PER_OFFICE_DAY, statusInfo, ticketsLeft } from '../lib/worklog';
 import { BrandLockup } from '../components/Brand';
 import type { Task } from '../db/types';
 import { addDays, dayKey, isOverdue, todayKey } from '../lib/dates';
@@ -86,6 +86,7 @@ function WorkToday() {
   const status = days.find((d) => d.day === today)?.status;
   const left = ticketsLeft(purchases, days, today);
   const low = left <= LOW_TICKETS;
+  const trips = Math.max(0, Math.floor(left / TICKETS_PER_OFFICE_DAY));
   return (
     <Link
       to="/work"
@@ -94,8 +95,8 @@ function WorkToday() {
       <BriefcaseIcon width={20} height={20} className="shrink-0 text-fg-2" />
       <span className="min-w-0 flex-1 text-sm">
         <b className="text-fg">{status ? statusInfo(status).label : 'Not logged yet'}</b>
-        <span className={`block ${low ? 'font-semibold text-warn' : 'text-fg-2'}`}>
-          {Math.max(0, left)} bus ticket{left === 1 ? '' : 's'} left{low ? ': buy a 10-pack' : ''}
+        <span className={`block text-[0.6875rem] tracking-wide uppercase ${low ? 'font-semibold text-warn' : 'text-fg-2'}`}>
+          {trips} office day{trips === 1 ? '' : 's'} left{low ? ': buy a 10-pack' : ''}
         </span>
       </span>
       <span className="kicker">Work log ›</span>

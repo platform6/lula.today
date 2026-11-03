@@ -253,6 +253,24 @@ textarea {
   }
 }
 
+/* Reduced motion: no bars and no scaling, just the check mark fading in and out. */
+.swish-check-gentle {
+  animation: swish-check-fade 1200ms ease-in-out forwards;
+}
+
+@keyframes swish-check-fade {
+  0% {
+    opacity: 0;
+  }
+  20%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* Printing (the work log's year sheet): plain white paper, one landscape page. */
 @media print {
   @page {
