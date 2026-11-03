@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { addStep, deleteStep, moveStep, updateStep } from '../db/actions';
 import { useSteps } from '../db/hooks';
 import type { Step } from '../db/types';
@@ -29,15 +29,70 @@ export function Steps({ taskId }: { taskId: string }) {
           setText('');
         }}
       >
-        <input
-          className="input"
+        <GrowingText
+          className="input resize-none overflow-hidden break-words"
           placeholder="Add a step…"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onEnter={(el) => el.form?.requestSubmit()}
           enterKeyHint="done"
         />
       </form>
     </div>
+  );
+}
+
+/** Fit a textarea's height to its text, so long text wraps instead of hiding past the edge. */
+function fitHeight(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+
+/**
+ * A one-line text box that wraps and grows to show all of its text. Steps are single
+ * lines, so Enter calls onEnter instead of adding a line break, and pasted line breaks
+ * become spaces.
+ */
+function GrowingText({
+  onEnter,
+  onChange,
+  ...props
+}: Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'rows'> & { onEnter: (el: HTMLTextAreaElement) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Refit when the text changes from outside and when the box's width changes (sheet opening, rotation).
+  useEffect(() => fitHeight(ref.current), [props.value]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let width = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      fitHeight(el);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <textarea
+      {...props}
+      ref={ref}
+      rows={1}
+      onChange={(e) => {
+        if (/[\r\n]/.test(e.target.value)) e.target.value = e.target.value.replace(/\s*[\r\n]+\s*/g, ' ');
+        fitHeight(e.target);
+        onChange?.(e);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+          e.preventDefault();
+          onEnter(e.currentTarget);
+        }
+      }}
+    />
   );
 }
 
@@ -50,9 +105,11 @@ function StepRow({ step, first, last }: { step: Step; first: boolean; last: bool
         checked={step.is_done}
         onChange={(e) => void updateStep(step.id, { is_done: e.target.checked })}
       />
-      <input
-        className={`min-h-11 min-w-0 flex-1 bg-transparent py-2 font-medium focus:outline-none ${step.is_done ? 'text-muted line-through' : 'text-fg'}`}
+      <GrowingText
+        className={`min-h-11 min-w-0 flex-1 resize-none overflow-hidden break-words bg-transparent py-2 font-medium leading-snug focus:outline-none ${step.is_done ? 'text-muted line-through' : 'text-fg'}`}
         defaultValue={step.text}
+        aria-label="Step"
+        onEnter={(el) => el.blur()}
         onBlur={(e) => {
           const v = e.target.value.trim();
           if (v && v !== step.text) void updateStep(step.id, { text: v });
