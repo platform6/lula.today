@@ -233,8 +233,10 @@ async function files(idPrefix: string, dir?: string) {
   }
 }
 
-async function move(t: Task, columnName: string) {
-  const columns = await columnsOf(t.project_id);
+/** Move a card to a column, on its own board or (with `to`) on another one. */
+async function move(t: Task, columnName: string, to?: { project: Project; label: string }) {
+  const projectId = to?.project.id ?? t.project_id;
+  const columns = await columnsOf(projectId);
   const target = columns.find((c) => norm(c.name) === norm(columnName));
   if (!target) fail(`No column "${columnName}" here. Columns: ${columns.map((c) => c.name).join(', ')}`);
 
@@ -254,12 +256,13 @@ async function move(t: Task, columnName: string) {
   }
   const completed_at = target.is_done ? (t.completed_at ?? new Date().toISOString()) : null;
   await update('tasks', t.id, {
+    ...(projectId !== t.project_id ? { project_id: projectId } : {}),
     column_id: target.id,
     position: keyAtEnd(await lastInColumn(target.id, t.id)),
     completed_at,
     ...(t.recurrence && completed_at && !t.completed_at ? { recurrence: { ...t.recurrence, done: (t.recurrence.done ?? 0) + 1 } } : {}),
   });
-  console.log(`Moved "${t.title}" to ${target.name}.`);
+  console.log(`Moved "${t.title}" to ${to && projectId !== t.project_id ? `${to.label} › ` : ''}${target.name}.`);
 }
 
 async function note(t: Pick<Task, 'id' | 'title' | 'notes'>, text: string, by = 'Claude') {
@@ -315,6 +318,7 @@ const HELP = `lula board
   show <ids>                      cards: notes, steps, files, commits, details
   files <id> [folder]             download a card's files (to a temp folder by default)
   move <ids> <column>             move cards (Done completes them)
+      [--to <board>]                  to that column on another board
   note <ids> "<text>" [--by name] append a note to cards (signed Claude unless --by)
   step <id> "<text>" ["<text>"…]  add steps to the end of a card's checklist
   add <board> "<title>" [column]  add a card (first open column by default),
@@ -328,7 +332,7 @@ const HELP = `lula board
 <id> is the 8-character id from "list"; <ids> is one, or several with commas: a1b2c3d4,e5f6a7b8.`;
 
 // Flags may go anywhere; "--" ends them.
-const VALUE_FLAGS = ['--by', '--file', '--note', '--step'];
+const VALUE_FLAGS = ['--by', '--file', '--note', '--step', '--to'];
 const args: string[] = [];
 const flags: Record<string, string[]> = {};
 let json = false;
@@ -375,7 +379,14 @@ if (!cmd || cmd === 'help') {
   else if (cmd === 'move') {
     need(2);
     const column = args.slice(1).join(' ');
-    for (const t of await findTasks(args[0])) await move(t, column);
+    const to = flag('to') === undefined ? undefined : await findProject(flag('to')!);
+    const cards = await findTasks(args[0]);
+    if (to) {
+      // Check the column exists before moving anything.
+      const columns = await columnsOf(to.project.id);
+      if (!columns.some((c) => norm(c.name) === norm(column))) fail(`No column "${column}" on ${to.label}. Columns: ${columns.map((c) => c.name).join(', ')}`);
+    }
+    for (const t of cards) await move(t, column, to);
   } else if (cmd === 'note') {
     need(1);
     const text = fileText() ?? args.slice(1).join(' ');
