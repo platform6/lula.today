@@ -15,7 +15,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { moveTaskToRealm } from '../db/actions';
-import { useAreas, useSettings } from '../db/hooks';
+import { useAreas, useRunningEntry, useSettings } from '../db/hooks';
 import type { Area } from '../db/types';
 import { onNotice } from '../lib/celebrate';
 import { remember } from '../lib/stored';
@@ -53,6 +53,9 @@ export function Layout() {
   const onListsPage = pathname.startsWith('/lists');
   // The Time page shows the running timer itself, so the docked bar is left off there.
   const onTimePage = pathname === '/';
+  // The running timer's bar sits above the tabs (except on Time); the + clears it, else sits just above the tabs.
+  const running = useRunningEntry();
+  const timerDocked = !onTimePage && !!running;
   const theme = useSettings()?.theme;
   const [dragging, setDragging] = useState<InboxDragData | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -133,7 +136,7 @@ export function Layout() {
 
           {!dragging && !onListsPage && (
             <button
-              className={`fixed right-4 ${onTimePage ? 'bottom-[calc(5.25rem+var(--tab-safe))]' : 'bottom-[calc(8.875rem+var(--tab-safe))]'} z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6`}
+              className={`fixed right-4 ${timerDocked ? 'bottom-[calc(8.875rem+var(--tab-safe))]' : 'bottom-[calc(5.25rem+var(--tab-safe))]'} z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6`}
               onClick={() => setAddMenu(true)}
               aria-label="Add time or a task"
             >

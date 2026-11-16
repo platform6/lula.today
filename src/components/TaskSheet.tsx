@@ -90,10 +90,10 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
         </div>
       }
     >
-      {/* Phones: one column in the order below. Wide screens: the title, notes and steps on the
-          left, everything else on the right. The column wrappers vanish on phones (display: contents). */}
-      <div className="flex flex-col gap-4 p-4 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-6 lg:p-6">
-        <div className="contents lg:flex lg:flex-col lg:gap-4">
+      {/* Phones: one column in the order below. Wide screens: the fields on the left, and the
+          title, notes and steps on the right (wider). The column wrappers vanish on phones (display: contents). */}
+      <div className="flex flex-col gap-4 p-4 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start lg:gap-6 lg:p-6">
+        <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-4">
           <textarea
             className="input order-1 resize-none text-xl font-bold"
             rows={2}
@@ -112,7 +112,7 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
             <Steps taskId={task.id} />
           </div>
         </div>
-        <div className="contents lg:flex lg:flex-col lg:gap-4">
+        <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-4">
           {!archived && (
             <div className="order-2">
               <CardTimer task={task} />
