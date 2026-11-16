@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { noteEntries } from '../lib/notes';
 import { fitHeight, useFitHeight } from './fitHeight';
 import {
   archiveTask,
@@ -357,10 +358,50 @@ function CopyId({ id }: { id: string }) {
   );
 }
 
-/** The task's notes: grows to show all of its text, saved when you leave the box. */
+/**
+ * The task's notes. Shown as text with each signed entry ("[Claude · Nov 16, 12:30 PM] …")
+ * under an orange badge; tap to edit the text itself, which grows to fit and saves when you leave it.
+ */
 function NotesBox({ id, notes, onSave }: { id: string; notes: string | null; onSave: (notes: string | null) => void }) {
+  const [editing, setEditing] = useState(false);
+  const entries = noteEntries(notes ?? '');
+
+  if (!editing && entries.length > 0) {
+    return (
+      <button
+        type="button"
+        id={id}
+        className="input flex min-h-24 w-full flex-col items-stretch gap-3 text-left"
+        onClick={() => setEditing(true)}
+        aria-describedby={`${id}-hint`}
+      >
+        {entries.map((e, i) => (
+          <span key={i} className="flex flex-col items-start gap-1">
+            {e.stamp && (
+              <span className="rounded-sm bg-accent/15 px-1.5 py-0.5 text-xs font-semibold text-accent">
+                {e.stamp.by} · {e.stamp.when}
+              </span>
+            )}
+            {e.text && <span className="block w-full whitespace-pre-wrap break-words">{e.text}</span>}
+          </span>
+        ))}
+        <span id={`${id}-hint`} className="sr-only">Tap to edit the notes</span>
+      </button>
+    );
+  }
+  return <NotesEditor id={id} notes={notes} onDone={(v) => { setEditing(false); if (v !== notes) onSave(v); }} autoFocus={editing} />;
+}
+
+/** The notes as plain text, growing to fit; `onDone` gets the trimmed text (null if empty) when you leave it. */
+function NotesEditor({ id, notes, onDone, autoFocus }: { id: string; notes: string | null; onDone: (notes: string | null) => void; autoFocus: boolean }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useFitHeight(ref);
+  useEffect(() => {
+    const el = ref.current;
+    if (!autoFocus || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [autoFocus]);
   return (
     <textarea
       ref={ref}
@@ -369,10 +410,7 @@ function NotesBox({ id, notes, onSave }: { id: string; notes: string | null; onS
       rows={4}
       defaultValue={notes ?? ''}
       onInput={(e) => fitHeight(e.currentTarget)}
-      onBlur={(e) => {
-        const v = e.target.value.trim() || null;
-        if (v !== notes) onSave(v);
-      }}
+      onBlur={(e) => onDone(e.target.value.trim() || null)}
     />
   );
 }

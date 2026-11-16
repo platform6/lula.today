@@ -266,7 +266,9 @@ async function move(t: Task, columnName: string, to?: { project: Project; label:
 }
 
 async function note(t: Pick<Task, 'id' | 'title' | 'notes'>, text: string, by = 'Claude') {
-  const stamp = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  // e.g. "Nov 16, 12:30 PM"; the app shows it as a badge.
+  const d = new Date();
+  const stamp = `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
   const entry = `[${by} · ${stamp}] ${text}`;
   await update('tasks', t.id, { notes: t.notes ? `${t.notes}\n\n${entry}` : entry });
   if (!json) console.log(`Added a note to "${t.title}".`);
