@@ -151,6 +151,8 @@ export interface TimeField extends Row {
   choices: string[];
   position: string;
   archived_at: string | null;
+  /** The realm whose entries show it (e.g. Game for Video games); none shows it everywhere. Missing on rows stored before realms had fields. */
+  area_id?: string | null;
 }
 
 /** What a time entry was spent on within a project: a plain name, optionally tied to a card. */

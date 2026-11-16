@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { useTimeFields } from '../db/hooks';
+import { useTimeEntries, useTimeFields } from '../db/hooks';
 import { addEntry, deleteEntry, updateEntry } from '../db/time';
 import type { TimeEntry } from '../db/types';
 import { addDays, dayKey, todayKey } from '../lib/dates';
@@ -8,6 +8,7 @@ import { BackIcon } from './icons';
 import { Sheet } from './Sheet';
 import { Dot, Group, PickRow, ProjectPicker, SwitchRow, TagPicker, TaskPicker } from './TimePickers';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
+import { TimeFieldRows, keptValues, shownFields } from './TimeFieldRows';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const timeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -33,7 +34,7 @@ export function TimeEntrySheet(props: {
 
 type View = 'form' | 'project' | 'task' | 'tags';
 
-const VIEW_TITLES: Record<Exclude<View, 'form'>, string> = { project: 'Projects', task: 'Tasks', tags: 'Tags' };
+const VIEW_TITLES: Record<Exclude<View, 'form'>, string> = { project: 'Projects', task: 'Activities', tags: 'Tags' };
 
 function EntryForm({
   entry,
@@ -70,7 +71,8 @@ function EntryForm({
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const extraFields = (useTimeFields() ?? []).filter((f) => !f.archived_at || extra[f.id]);
+  const entries = useTimeEntries() ?? [];
+  const extraFields = shownFields(useTimeFields() ?? [], lookup.realmOf(project || null), entry?.fields);
 
   const running = !!entry && !entry.ended_at;
   const task = taskId ? lookup.tasks.get(taskId) : undefined;
@@ -81,7 +83,8 @@ function EntryForm({
   const endIso = endTime ? fromInputs(endTime < startTime ? addDays(date, 1) : date, endTime) : null;
   // Untouched times keep the entry's seconds; the inputs only hold minutes.
   const seconds = entry?.ended_at && !timesChanged ? entrySeconds(entry) : endIso ? entrySeconds({ started_at: startIso, ended_at: endIso }) : null;
-  const cleanFields = () => Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
+  // Values in fields for another realm are dropped when the project moves there.
+  const cleanFields = () => keptValues(extra, extraFields);
   const sameTags = [...tagIds].sort().join() === [...(entry?.tag_ids ?? [])].sort().join();
   const dirty =
     timesChanged ||
@@ -170,7 +173,7 @@ function EntryForm({
           </span>
         }
       >
-        {view === 'project' && <ProjectPicker lookup={lookup} selected={project} onPick={pickProject} />}
+        {view === 'project' && <ProjectPicker lookup={lookup} entries={entries} selected={project} onPick={pickProject} />}
         {view === 'task' && (
           <TaskPicker
             lookup={lookup}
@@ -185,6 +188,8 @@ function EntryForm({
         {view === 'tags' && (
           <TagPicker
             lookup={lookup}
+            realmId={lookup.realmOf(project || null)}
+            entries={entries}
             selected={tagIds}
             onToggle={(id) => setTagIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))}
           />
@@ -305,37 +310,14 @@ function EntryForm({
               'Select project'
             )}
           </PickRow>
-          <PickRow label="Task" onClick={() => setView('task')}>
-            {task ? <span className="truncate text-fg">{task.name}</span> : 'Select task'}
+          <PickRow label="Activity" onClick={() => setView('task')}>
+            {task ? <span className="truncate text-fg">{task.name}</span> : 'Select activity'}
           </PickRow>
+          <TimeFieldRows fields={extraFields} values={extra} entries={entries} onChange={(id, v) => setExtra((x) => ({ ...x, [id]: v }))} />
           <PickRow label="Tags" onClick={() => setView('tags')}>
             {tagNames ? <span className="truncate text-fg">{tagNames}</span> : 'Select tags'}
           </PickRow>
-          {extraFields.map((f) => (
-            <Row key={f.id} label={f.name} htmlFor={`time-field-${f.id}`}>
-              {f.kind === 'choice' ? (
-                <select
-                  id={`time-field-${f.id}`}
-                  className={fieldClass}
-                  value={extra[f.id] ?? ''}
-                  onChange={(e) => setExtra((x) => ({ ...x, [f.id]: e.target.value }))}
-                >
-                  <option value="">None</option>
-                  {[...new Set([...f.choices, ...(extra[f.id] ? [extra[f.id]] : [])])].map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  id={`time-field-${f.id}`}
-                  className="min-h-12 min-w-0 flex-1 bg-transparent text-right text-base outline-none"
-                  value={extra[f.id] ?? ''}
-                  onChange={(e) => setExtra((x) => ({ ...x, [f.id]: e.target.value }))}
-                />
-              )}
-            </Row>
-          ))}
-          <SwitchRow label="Commute" hint="Done while travelling" checked={commute} onChange={setCommute} />
+          <SwitchRow label="Commute" checked={commute} onChange={setCommute} />
         </Group>
         {error && <p className="text-base font-semibold text-danger">{error}</p>}
       </div>

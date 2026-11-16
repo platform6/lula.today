@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db, clearLocalData } from './db';
 import { setCurrentUser } from './mutate';
 import type { Task } from './types';
-import { addEntry, continueEntry, deleteEntry, startCardTimer, ensureTimeTag, ensureTimeTask, runningEntries, startTimer, stopTimer, updateEntry } from './time';
+import { addEntry, addTimeField, removeTimeField, renameTimeField, continueEntry, deleteEntry, startCardTimer, ensureTimeTag, ensureTimeTask, runningEntries, startTimer, stopTimer, updateEntry } from './time';
 
 beforeEach(async () => {
   await clearLocalData();
@@ -81,5 +81,22 @@ describe('card timers', () => {
     expect(first.time_task_id).toBe(second.time_task_id);
     expect(await db.time_tasks.get(first.time_task_id!)).toMatchObject({ project_id: 'p1', name: 'Board script', task_id: 'c1' });
     expect(second.project_id).toBe('p1');
+  });
+});
+
+describe('realm time fields', () => {
+  it("adds typed fields to a realm in order, renames them, and removes them without touching entries' values", async () => {
+    const game = await addTimeField('play', '  Game ');
+    const platform = await addTimeField('play', 'Platform');
+    expect(game).toMatchObject({ name: 'Game', kind: 'text', area_id: 'play', archived_at: null });
+    expect(platform.position > game.position).toBe(true);
+
+    const e = await addEntry({ started_at: '2026-11-16T10:00:00Z', ended_at: '2026-11-16T11:00:00Z', fields: { [game.id]: 'Hades' } });
+    await renameTimeField(game.id, 'Title ');
+    await removeTimeField(game.id);
+    const stored = (await db.time_fields.get(game.id))!;
+    expect(stored.name).toBe('Title');
+    expect(stored.archived_at).not.toBeNull();
+    expect((await db.time_entries.get(e.id))!.fields).toEqual({ [game.id]: 'Hades' });
   });
 });

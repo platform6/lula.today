@@ -1,6 +1,7 @@
 import { db } from './db';
 import { newRow, now, patch, put, writeTx } from './mutate';
-import type { Task, TimeEntry, TimeTag, TimeTask } from './types';
+import type { Task, TimeEntry, TimeField, TimeTag, TimeTask } from './types';
+import { byPosition, keyBetween } from '../lib/position';
 import { nameKey } from '../lib/time';
 
 // Time tracking writes. Only one timer runs at a time: starting one stops the
@@ -122,3 +123,24 @@ export async function startCardTimer(card: Task): Promise<TimeEntry> {
   const task = await ensureCardTimeTask(card);
   return startTimer({ project_id: card.project_id, time_task_id: task.id });
 }
+
+/** Add a typed field (e.g. Game) to a realm's time entries, after its others. */
+export async function addTimeField(areaId: string, name: string): Promise<TimeField> {
+  const last = (await db.time_fields.toArray()).filter(alive).sort(byPosition).at(-1);
+  const field: TimeField = {
+    ...newRow(),
+    name: name.trim(),
+    kind: 'text',
+    choices: [],
+    position: keyBetween(last?.position, null),
+    archived_at: null,
+    area_id: areaId,
+  };
+  await put('time_fields', field);
+  return field;
+}
+
+export const renameTimeField = (id: string, name: string) => patch('time_fields', id, { name: name.trim() });
+
+/** Stop offering a field. Entries keep their values, and still show them. */
+export const removeTimeField = (id: string) => patch('time_fields', id, { archived_at: now() });

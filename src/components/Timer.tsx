@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useProject, useRunningEntry, useTimeEntries } from '../db/hooks';
+import { useProject, useRunningEntry, useTimeEntries, useTimeFields } from '../db/hooks';
 import { continueEntry, startCardTimer, startTimer, stopTimer, updateEntry } from '../db/time';
 import type { Task, TimeEntry } from '../db/types';
 import { tracksTime } from '../lib/paths';
@@ -11,6 +11,7 @@ import { Sheet } from './Sheet';
 import { TimeEntrySheet } from './TimeEntrySheet';
 import { Dot, Group, PickRow, ProjectPicker, SwitchRow, TagPicker, TaskPicker } from './TimePickers';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
+import { TimeFieldRows, keptValues, shownFields } from './TimeFieldRows';
 
 /** The current time, updated every `ms` while `active`. */
 export function useNow(active: boolean, ms = 1000): number {
@@ -203,6 +204,8 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
   const [taskId, setTaskId] = useState<string | null>(null);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [commute, setCommute] = useState(false);
+  const [extra, setExtra] = useState<Record<string, string>>({});
+  const fields = shownFields(useTimeFields() ?? [], lookup.realmOf(project || null));
 
   const recent = useMemo(
     () => recentEntries((entries ?? []).filter((e) => !projectId || e.project_id === projectId), 6),
@@ -212,7 +215,7 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
   const tagNames = tagIds.map((id) => lookup.tags.get(id)?.name).filter(Boolean).join(', ');
 
   const start = async () => {
-    await startTimer({ project_id: project || null, time_task_id: taskId, tag_ids: tagIds, description, commute });
+    await startTimer({ project_id: project || null, time_task_id: taskId, tag_ids: tagIds, description, commute, fields: keptValues(extra, fields) });
     onClose();
   };
   const pickProject = (id: string) => {
@@ -232,11 +235,11 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
             <button className="btn-ghost -ml-2 px-2" onClick={() => setView('form')} aria-label="Back to the timer">
               <BackIcon width={24} height={24} />
             </button>
-            {view === 'project' ? 'Projects' : view === 'task' ? 'Tasks' : 'Tags'}
+            {view === 'project' ? 'Projects' : view === 'task' ? 'Activities' : 'Tags'}
           </span>
         }
       >
-        {view === 'project' && <ProjectPicker lookup={lookup} selected={project} onPick={pickProject} />}
+        {view === 'project' && <ProjectPicker lookup={lookup} entries={entries ?? []} selected={project} onPick={pickProject} />}
         {view === 'task' && (
           <TaskPicker
             lookup={lookup}
@@ -251,6 +254,8 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
         {view === 'tags' && (
           <TagPicker
             lookup={lookup}
+            realmId={lookup.realmOf(project || null)}
+            entries={entries ?? []}
             selected={tagIds}
             onToggle={(id) => setTagIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))}
           />
@@ -302,13 +307,14 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
               'Select project'
             )}
           </PickRow>
-          <PickRow label="Task" onClick={() => setView('task')}>
-            {task ? <span className="truncate text-fg">{task.name}</span> : 'Select task'}
+          <PickRow label="Activity" onClick={() => setView('task')}>
+            {task ? <span className="truncate text-fg">{task.name}</span> : 'Select activity'}
           </PickRow>
+          <TimeFieldRows fields={fields} values={extra} entries={entries ?? []} onChange={(id, v) => setExtra((x) => ({ ...x, [id]: v }))} />
           <PickRow label="Tags" onClick={() => setView('tags')}>
             {tagNames ? <span className="truncate text-fg">{tagNames}</span> : 'Select tags'}
           </PickRow>
-          <SwitchRow label="Commute" hint="Done while travelling" checked={commute} onChange={setCommute} />
+          <SwitchRow label="Commute" checked={commute} onChange={setCommute} />
         </Group>
 
         {recent.length > 0 && (

@@ -61,7 +61,7 @@ export function reportEntries<E extends Entry>(
     .map((id) => ({ id, name: realmName(id, lookup) }))
     .sort(byName);
   const taskOptions = [...new Set(inRealm.map((e) => e.time_task_id).filter((id): id is string => !!id))]
-    .map((id) => ({ id, name: lookup.tasks.get(id)?.name ?? 'Unknown task' }))
+    .map((id) => ({ id, name: lookup.tasks.get(id)?.name ?? 'Unknown activity' }))
     .sort(byName);
   const tagOptions = [...new Set(inRange.flatMap((e) => e.tag_ids))]
     .map((id) => ({ id, name: lookup.tags.get(id)?.name ?? 'Unknown tag' }))

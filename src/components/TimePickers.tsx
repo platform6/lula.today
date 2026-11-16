@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { ensureTimeTag, ensureTimeTask } from '../db/time';
+import type { Project, TimeEntry } from '../db/types';
 import { nameKey } from '../lib/time';
+import { realmTagIds, recentProjectIds } from '../lib/timePicks';
 import { CheckIcon, ChevronRightIcon, PlusIcon, SearchIcon } from './icons';
 import type { TimeLookup } from './useTimeLookup';
 
@@ -20,15 +22,18 @@ export function PickRow({ label, onClick, children }: { label: string; onClick: 
   );
 }
 
-/** An on/off row in a Group, such as Commute. */
-export function SwitchRow({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (on: boolean) => void }) {
+/** An on/off row in a Group, such as Commute, with a slide switch. */
+export function SwitchRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (on: boolean) => void }) {
   return (
-    <label className="flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 hover:bg-surface">
-      <span className="min-w-0 flex-1">
-        <span className="block text-base">{label}</span>
-        {hint && <span className="block text-sm text-fg-2">{hint}</span>}
+    <label className="group flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 hover:bg-surface">
+      <span className="min-w-0 flex-1 text-base">{label}</span>
+      <input type="checkbox" role="switch" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span
+        aria-hidden
+        className="relative h-7 w-12 shrink-0 rounded-full bg-line-strong transition-colors peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-2 motion-reduce:transition-none"
+      >
+        <span className="absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform group-has-checked:translate-x-5 motion-reduce:transition-none" />
       </span>
-      <input type="checkbox" role="switch" className="h-6 w-6 shrink-0 accent-[var(--accent)]" checked={checked} onChange={(e) => onChange(e.target.checked)} />
     </label>
   );
 }
@@ -42,7 +47,8 @@ export function Dot({ color }: { color: string | null }) {
   return <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color ?? 'var(--line-strong)' }} />;
 }
 
-type Item = { id: string; label: string; color?: string | null; group?: string };
+/** `shortcut` items repeat one listed further down (e.g. under Recent), so a search skips them. */
+type Item = { id: string; label: string; color?: string | null; group?: string; shortcut?: boolean };
 
 /**
  * A searchable list to pick from, as in Clockify: a "Without …" row, the items
@@ -68,7 +74,7 @@ function Picker({
 }) {
   const [query, setQuery] = useState('');
   const key = nameKey(query);
-  const shown = key ? items.filter((i) => nameKey(`${i.group ?? ''} ${i.label}`).includes(key)) : items;
+  const shown = key ? items.filter((i) => !i.shortcut && nameKey(`${i.group ?? ''} ${i.label}`).includes(key)) : items;
   const exact = items.some((i) => nameKey(i.label) === key);
 
   const groups: [string | undefined, Item[]][] = [];
@@ -120,13 +126,24 @@ function Picker({
   );
 }
 
-export function ProjectPicker({ lookup, selected, onPick }: { lookup: TimeLookup; selected: string; onPick: (id: string) => void }) {
+export function ProjectPicker({
+  lookup,
+  entries,
+  selected,
+  onPick,
+}: {
+  lookup: TimeLookup;
+  /** Newest first, for the Recent group. */
+  entries: TimeEntry[];
+  selected: string;
+  onPick: (id: string) => void;
+}) {
   const projects = [...lookup.timeProjects];
   // Keep an entry's project pickable even if it no longer tracks time.
   const current = selected ? lookup.projects.get(selected) : undefined;
   if (current && !projects.some((p) => p.id === current.id)) projects.unshift(current);
 
-  const items: Item[] = projects.map((p) => {
+  const item = (p: Project): Item => {
     const realm = p.area_id ? lookup.areas.get(p.area_id)?.name : undefined;
     return {
       id: p.id,
@@ -134,7 +151,14 @@ export function ProjectPicker({ lookup, selected, onPick }: { lookup: TimeLookup
       color: lookup.projectColor(p.id),
       group: realm ?? 'No realm',
     };
-  });
+  };
+  // The projects you last tracked, then everything by realm. Only worth it once there's a choice.
+  const live = new Set(lookup.timeProjects.map((p) => p.id));
+  const recent = projects.length > 5 ? recentProjectIds(entries.filter((e) => e.project_id && live.has(e.project_id)), 5) : [];
+  const items: Item[] = [
+    ...recent.map((id) => ({ ...item(lookup.projects.get(id)!), group: 'Recent', shortcut: true })),
+    ...projects.map(item),
+  ];
 
   return (
     <Picker
@@ -171,29 +195,54 @@ export function TaskPicker({
   return (
     <Picker
       search="Search"
-      none={{ label: 'Without task', selected: !selected, onPick: () => onPick(null) }}
+      none={{ label: 'Without activity', selected: !selected, onPick: () => onPick(null) }}
       items={tasks.map((t) => ({ id: t.id, label: t.name }))}
       isSelected={(id) => id === selected}
       onPick={onPick}
       onCreate={(name) => void ensureTimeTask(projectId, name).then((t) => onPick(t.id))}
     >
       <p className="text-sm text-fg-2">
-        {projectId ? <>Tasks in {lookup.projectLabel(projectId)}</> : 'Tasks with no project. Pick a project first to see its tasks.'}
+        {projectId ? <>Activities in {lookup.projectLabel(projectId)}</> : 'Activities with no project. Pick a project first to see its activities.'}
       </p>
     </Picker>
   );
 }
 
-export function TagPicker({ lookup, selected, onToggle }: { lookup: TimeLookup; selected: string[]; onToggle: (id: string) => void }) {
+export function TagPicker({
+  lookup,
+  realmId,
+  entries,
+  selected,
+  onToggle,
+}: {
+  lookup: TimeLookup;
+  /** The entry's realm: its tags come first. */
+  realmId: string | null;
+  /** Newest first, to rank the realm's tags. */
+  entries: TimeEntry[];
+  selected: string[];
+  onToggle: (id: string) => void;
+}) {
   const [archived, setArchived] = useState(false);
   const tags = [...lookup.tags.values()].filter((t) => !!t.archived_at === archived);
+  // The realm's tags by use, then the rest; any tag can still be picked.
+  const realm = realmId ? lookup.areas.get(realmId) : undefined;
+  const used = realm && !archived ? realmTagIds(entries, realm.id, lookup.realmOf) : [];
+  const first = used.map((id) => tags.find((t) => t.id === id)).filter((t) => !!t);
+  const rest = tags.filter((t) => !used.includes(t.id));
+  const items: Item[] = first.length
+    ? [
+        ...first.map((t) => ({ id: t.id, label: t.name, group: `Used in ${realm!.name}` })),
+        ...rest.map((t) => ({ id: t.id, label: t.name, group: 'Other tags' })),
+      ]
+    : tags.map((t) => ({ id: t.id, label: t.name }));
   const tab = (on: boolean) =>
     `min-h-11 flex-1 rounded-sm text-base font-semibold ${on ? 'bg-surface text-fg shadow' : 'text-fg-2'}`;
 
   return (
     <Picker
       search="Search"
-      items={tags.map((t) => ({ id: t.id, label: t.name }))}
+      items={items}
       isSelected={(id) => selected.includes(id)}
       onPick={onToggle}
       onCreate={

@@ -21,7 +21,7 @@ const RANGE_KEY = 'lula.time.period';
 
 /**
  * A period's tracked time: total, hours per day, time by realm, and a breakdown
- * by project or task. Filter by realm, task and tag; step with < >; export as JSON.
+ * by project or activity. Filter by realm, activity and tag; step with < >; export as JSON.
  */
 export function Report({
   entries,
@@ -61,7 +61,7 @@ export function Report({
     [list, range, lookup, groupBy, now],
   );
   const nameOf = (key: string) =>
-    by === 'task' ? (key ? (lookup.tasks.get(key)?.name ?? 'Unknown task') : 'No task') : lookup.projectLabel(key || null);
+    by === 'task' ? (key ? (lookup.tasks.get(key)?.name ?? 'Unknown activity') : 'No activity') : lookup.projectLabel(key || null);
 
   const pick = (kind: RangeKind) => {
     // Custom starts from the dates on screen.
@@ -115,7 +115,7 @@ export function Report({
             {realmOptions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </Filter>
         )}
-        <Filter label="Task" value={taskId} onChange={setTaskId} all="All tasks">
+        <Filter label="Activity" value={taskId} onChange={setTaskId} all="All activities">
           {taskOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </Filter>
         <Filter label="Tag" value={tagId} onChange={setTagId} all="All tags">

@@ -21,7 +21,7 @@ const KIND: Partial<Record<SyncTable, string>> = {
   bus_purchases: 'Bus tickets',
   time_tags: 'Time tag',
   time_fields: 'Time field',
-  time_tasks: 'Time task',
+  time_tasks: 'Activity',
   time_entries: 'Time entry',
 };
 

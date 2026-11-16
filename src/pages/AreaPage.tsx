@@ -9,9 +9,10 @@ import {
   reopenProject,
   updateArea,
 } from '../db/actions';
-import { useAreas, useProjectProgress, useProjectTasks, useProjects } from '../db/hooks';
+import { useAreas, useProjectProgress, useProjectTasks, useProjects, useTimeFields } from '../db/hooks';
+import { addTimeField, removeTimeField, renameTimeField } from '../db/time';
 import type { Area, Project } from '../db/types';
-import { isRealProject, showsBoard } from '../lib/paths';
+import { isRealProject, showsBoard, tracksTime } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { isLive } from '../lib/tasks';
 import { ColorPicker } from '../components/ColorPicker';
@@ -19,7 +20,7 @@ import { ShowsEditor } from '../components/ShowsEditor';
 import { Branch, Children, NODE_SIZE, Stem, TreeNode } from '../components/NodeTree';
 import { PageHeader } from '../components/PageHeader';
 import { TaskList } from '../components/TaskList';
-import { BackIcon, DownIcon, PlusIcon, UpIcon } from '../components/icons';
+import { BackIcon, DownIcon, PlusIcon, UpIcon, XIcon } from '../components/icons';
 
 // Tree row heights (px); connectors meet each row's vertical center.
 const REALM_ROW_H = 52;
@@ -115,6 +116,8 @@ export function AreaPage() {
         </section>
 
         {finished.length > 0 && <FinishedProjects projects={finished} progress={progress} />}
+
+        {projects.some((p) => p.area_id === area.id && tracksTime(p)) && <RealmTimeFields area={area} />}
       </div>
     </div>
   );
@@ -269,5 +272,69 @@ function AreaEditor({ area, first, last }: { area: Area; first: boolean; last: b
         </div>
       )}
     </section>
+  );
+}
+
+/** Extra things to note on this realm's time entries, such as Game and Platform. */
+function RealmTimeFields({ area }: { area: Area }) {
+  const fields = (useTimeFields() ?? []).filter((f) => f.area_id === area.id && !f.archived_at);
+  const [name, setName] = useState('');
+  const taken = fields.some((f) => f.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+  return (
+    <section className="mx-4">
+      <h2 className="section-title">Time fields</h2>
+      <p className="mt-2 text-sm text-fg-2">
+        Shown when tracking time in {area.name}, suggesting what you've typed before. For example Game and Platform.
+      </p>
+      {fields.length > 0 && (
+        <ul className="mt-3 divide-y divide-line rounded-md border border-line bg-surface-2">
+          {fields.map((f) => (
+            <li key={f.id} className="flex min-h-14 items-center gap-2 pr-1 pl-4">
+              <label className="sr-only" htmlFor={`field-${f.id}`}>Field name</label>
+              <FieldName id={`field-${f.id}`} name={f.name} onSave={(v) => void renameTimeField(f.id, v)} />
+              <button className="btn-ghost shrink-0 px-2" aria-label={`Remove ${f.name}`} onClick={() => void removeTimeField(f.id)}>
+                <XIcon />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="mt-3 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim() || taken) return;
+          void addTimeField(area.id, name);
+          setName('');
+        }}
+      >
+        <input className="input" placeholder="Add a field" value={name} onChange={(e) => setName(e.target.value)} enterKeyHint="done" />
+        <button className="btn-outline shrink-0 px-3" disabled={!name.trim() || taken} aria-label="Add field">
+          <PlusIcon />
+        </button>
+      </form>
+      {fields.length > 0 && <p className="mt-2 text-sm text-fg-2">Removing a field keeps what earlier entries noted in it.</p>}
+    </section>
+  );
+}
+
+/** A field's name, saved when you leave the box; a blank name goes back to the old one. */
+function FieldName({ id, name, onSave }: { id: string; name: string; onSave: (name: string) => void }) {
+  const [draft, setDraft] = useState(name);
+  useEffect(() => setDraft(name), [name]);
+  return (
+    <input
+      id={id}
+      className="min-h-12 min-w-0 flex-1 bg-transparent text-base outline-none"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const v = draft.trim();
+        if (!v) setDraft(name);
+        else if (v !== name) onSave(v);
+      }}
+      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+    />
   );
 }
