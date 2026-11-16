@@ -1,5 +1,5 @@
 // The sums behind the time Report and Entries: pure, so they can be tested and memoised.
-import type { Area, Project, TimeEntry } from '../db/types';
+import type { Area, Project, TimeEntry, TimeField } from '../db/types';
 import { dayKey } from './dates';
 import { bucketOf, entrySeconds, rangeBuckets, totalsBy, weekOf, type Bucket, type DayRange } from './time';
 
@@ -13,6 +13,8 @@ export interface ReportLookup {
   tasks: Map<string, { name: string }>;
   tags: Map<string, { name: string }>;
   realmOf: (projectId: string | null) => string | null;
+  /** Time fields (e.g. Game), for grouping and the export. */
+  fields?: Map<string, Pick<TimeField, 'name' | 'area_id' | 'archived_at'>>;
 }
 
 /** Filter values; '' is "all". */
@@ -24,7 +26,7 @@ export interface ReportFilters {
 
 export const NO_FILTERS: ReportFilters = { realm: '', taskId: '', tagId: '' };
 
-type Entry = Pick<TimeEntry, 'started_at' | 'ended_at' | 'project_id' | 'time_task_id' | 'tag_ids'>;
+type Entry = Pick<TimeEntry, 'started_at' | 'ended_at' | 'project_id' | 'time_task_id' | 'tag_ids'> & Partial<Pick<TimeEntry, 'fields'>>;
 
 /** An entry counts toward the day it started on, as in Clockify. */
 export const entryDay = (e: { started_at: string }) => dayKey(new Date(e.started_at));
@@ -77,10 +79,10 @@ export interface ReportTotals {
   keys: string[];
   perBucket: Map<string, number>;
   realms: { key: string; name: string; color: string | null; seconds: number }[];
-  /** What the breakdown groups by. */
-  by: 'project' | 'task';
-  /** Seconds per project or task id ('' for none), largest first. */
-  breakdown: { key: string; seconds: number }[];
+  /** What the breakdown groups by: a field means one of the realm's time fields. */
+  by: 'project' | 'task' | 'field';
+  /** Seconds per project, task id or field value ('' for none), largest first. Field values carry the name to show. */
+  breakdown: { key: string; seconds: number; label?: string }[];
 }
 
 /** The totals, bars, realm slices and breakdown for a filtered list. */
@@ -91,6 +93,8 @@ export function reportTotals(
   /** 'auto' groups by project when the list has more than one, else by task. */
   groupBy: 'project' | 'task' | 'auto',
   now = Date.now(),
+  /** Group by this time field's values instead (ignoring case). */
+  fieldId = '',
 ): ReportTotals {
   const { bucket, keys } = rangeBuckets(range);
   const perBucket = new Map(totalsBy(list, (e) => bucketOf(entryDay(e), bucket), now).map((t) => [t.key, t.seconds]));
@@ -99,8 +103,8 @@ export function reportTotals(
     name: realmName(t.key, lookup),
     color: lookup.areas.get(t.key)?.color ?? null,
   }));
-  const by = groupBy === 'auto' ? (new Set(list.map((e) => e.project_id)).size > 1 ? 'project' : 'task') : groupBy;
-  const breakdown = totalsBy(list, (e) => (by === 'task' ? (e.time_task_id ?? '') : (e.project_id ?? '')), now);
+  const by = fieldId ? 'field' : groupBy === 'auto' ? (new Set(list.map((e) => e.project_id)).size > 1 ? 'project' : 'task') : groupBy;
+  const breakdown = by === 'field' ? fieldTotals(list, fieldId, now) : totalsBy(list, (e) => (by === 'task' ? (e.time_task_id ?? '') : (e.project_id ?? '')), now);
   return {
     total: list.reduce((sum, e) => sum + entrySeconds(e, now), 0),
     bucket,
@@ -110,6 +114,24 @@ export function reportTotals(
     by,
     breakdown,
   };
+}
+
+/** Seconds per value of a field, ignoring case; each shows as it was first typed in the newest entry. */
+export function fieldTotals(list: Entry[], fieldId: string, now = Date.now()) {
+  const valueOf = (e: Entry) => e.fields?.[fieldId]?.trim() ?? '';
+  const labels = new Map<string, string>();
+  for (const e of [...list].sort((a, b) => b.started_at.localeCompare(a.started_at))) {
+    const v = valueOf(e);
+    if (v && !labels.has(v.toLowerCase())) labels.set(v.toLowerCase(), v);
+  }
+  return totalsBy(list, (e) => valueOf(e).toLowerCase(), now).map((t) => ({ ...t, label: labels.get(t.key) }));
+}
+
+/** The fields a realm's report can group by: its own, plus removed ones that entries still have values in. */
+export function realmFields(lookup: ReportLookup, realmId: string, list: Entry[]): { id: string; name: string }[] {
+  return [...(lookup.fields ?? [])]
+    .filter(([id, f]) => f.area_id === realmId && (!f.archived_at || list.some((e) => e.fields?.[id]?.trim())))
+    .map(([id, f]) => ({ id, name: f.name }));
 }
 
 /** The JSON export: the period's entries, oldest first, with names filled in. */
@@ -136,6 +158,10 @@ export function reportExport(
         project: p && !p.is_area_default && !p.is_inbox ? p.name : null,
         task: nameOr(lookup.tasks, e.time_task_id ?? ''),
         tags: e.tag_ids.map((id) => lookup.tags.get(id)?.name).filter(Boolean),
+        // Field values by field name, e.g. { Game: 'Hades' }.
+        fields: Object.fromEntries(
+          Object.entries(e.fields ?? {}).map(([id, v]) => [lookup.fields?.get(id)?.name ?? id, v]),
+        ),
       };
     });
   return {

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { addStep, deleteStep, moveStep, updateStep } from '../db/actions';
 import { useSteps } from '../db/hooks';
 import type { Step } from '../db/types';
 import { DownIcon, UpIcon, XIcon } from './icons';
+import { fitHeight, useFitHeight } from './fitHeight';
 
 export function Steps({ taskId }: { taskId: string }) {
   const steps = useSteps(taskId) ?? [];
@@ -42,13 +43,6 @@ export function Steps({ taskId }: { taskId: string }) {
   );
 }
 
-/** Fit a textarea's height to its text, so long text wraps instead of hiding past the edge. */
-function fitHeight(el: HTMLTextAreaElement | null) {
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
-}
-
 /**
  * A one-line text box that wraps and grows to show all of its text. Steps are single
  * lines, so Enter calls onEnter instead of adding a line break, and pasted line breaks
@@ -62,19 +56,7 @@ function GrowingText({
   const ref = useRef<HTMLTextAreaElement>(null);
 
   // Refit when the text changes from outside and when the box's width changes (sheet opening, rotation).
-  useEffect(() => fitHeight(ref.current), [props.value]);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    let width = el.clientWidth;
-    const ro = new ResizeObserver(() => {
-      if (el.clientWidth === width) return;
-      width = el.clientWidth;
-      fitHeight(el);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  useFitHeight(ref, props.value);
 
   return (
     <textarea

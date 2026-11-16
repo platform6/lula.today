@@ -95,8 +95,8 @@ function WorkToday() {
       <BriefcaseIcon width={20} height={20} className="shrink-0 text-fg-2" />
       <span className="min-w-0 flex-1 text-sm">
         <b className="text-fg">{status ? statusInfo(status).label : 'Not logged yet'}</b>
-        <span className={`block text-[0.6875rem] tracking-wide uppercase ${low ? 'font-semibold text-warn' : 'text-fg-2'}`}>
-          {trips} office day{trips === 1 ? '' : 's'} left{low ? ': buy a 10-pack' : ''}
+        <span className={`block text-xs tracking-wide uppercase ${low ? 'font-semibold text-warn' : 'text-fg-2'}`}>
+          <b className={low ? '' : 'text-accent'}>{trips}</b> office day{trips === 1 ? '' : 's'} left{low ? ': buy a 10-pack' : ''}
         </span>
       </span>
       <span className="kicker">Work log ›</span>

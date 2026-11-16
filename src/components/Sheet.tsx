@@ -12,6 +12,7 @@ export function Sheet({
   children,
   footer,
   side = 'auto',
+  wide = false,
 }: {
   title?: ReactNode;
   onClose: () => void;
@@ -19,6 +20,8 @@ export function Sheet({
   /** Pinned below the scrolling content (e.g. a Save button). */
   footer?: ReactNode;
   side?: 'auto' | 'center' | 'modal';
+  /** A modal that uses most of a desktop screen (lg and up), e.g. a task with long notes. */
+  wide?: boolean;
 }) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -57,7 +60,7 @@ export function Sheet({
     side === 'center'
       ? 'inset-x-0 bottom-0 max-h-[90dvh] rounded-t-2xl md:inset-x-auto md:top-24 md:bottom-auto md:left-1/2 md:w-[32rem] md:-translate-x-1/2 md:rounded-2xl'
       : side === 'modal'
-        ? 'inset-x-0 bottom-0 max-h-[92dvh] rounded-t-2xl md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-h-[88dvh] md:w-[40rem] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl'
+        ? `inset-x-0 bottom-0 max-h-[92dvh] rounded-t-2xl md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-h-[88dvh] md:w-[40rem] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl${wide ? ' lg:max-h-[92dvh] lg:w-[min(72rem,94vw)]' : ''}`
         : 'inset-x-0 bottom-0 max-h-[92dvh] rounded-t-2xl md:inset-y-0 md:right-0 md:left-auto md:max-h-none md:w-[30rem] md:rounded-none md:border-l';
 
   return (

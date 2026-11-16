@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { TimeEntry } from '../db/types';
 import { formatDay as dayName, todayKey } from '../lib/dates';
-import { reportEntries, reportExport, reportTotals, type ReportFilters } from '../lib/report';
+import { NO_REALM, realmFields, realmOf, reportEntries, reportExport, reportTotals, type ReportFilters } from '../lib/report';
 import {
   RANGE_LABELS,
   formatDuration,
@@ -46,6 +46,7 @@ export function Report({
   const [realm, setRealm] = useState('');
   const [taskId, setTaskId] = useState('');
   const [tagId, setTagId] = useState('');
+  const [chosenField, setFieldId] = useState('');
   const { kind, from, to } = ordered(typed);
   const range = useMemo(() => ({ kind, from, to }), [kind, from, to]);
   const filters: ReportFilters = useMemo(() => ({ realm, taskId, tagId }), [realm, taskId, tagId]);
@@ -56,12 +57,22 @@ export function Report({
     () => reportEntries(entries, range, filters, lookup, scoped),
     [entries, range, filters, lookup, scoped],
   );
+  // One realm's report (filtered to it, or its board) can group by that realm's time fields.
+  const realmShown = scoped ? [...new Set(list.map((e) => realmOf(e, lookup)))] : realm ? [realm] : [];
+  const fieldOptions = realmShown.length === 1 && realmShown[0] !== NO_REALM ? realmFields(lookup, realmShown[0], list) : [];
+  const fieldId = fieldOptions.some((f) => f.id === chosenField) ? chosenField : '';
+  const field = fieldOptions.find((f) => f.id === fieldId);
   const { total, bucket, keys, perBucket, realms, by, breakdown } = useMemo(
-    () => reportTotals(list, range, lookup, groupBy, now),
-    [list, range, lookup, groupBy, now],
+    () => reportTotals(list, range, lookup, groupBy, now, fieldId),
+    [list, range, lookup, groupBy, now, fieldId],
   );
-  const nameOf = (key: string) =>
-    by === 'task' ? (key ? (lookup.tasks.get(key)?.name ?? 'Unknown activity') : 'No activity') : lookup.projectLabel(key || null);
+  const nameOf = (b: { key: string; label?: string }) =>
+    by === 'field'
+      ? (b.label ?? `No ${field?.name.toLowerCase() ?? 'value'}`)
+      : by === 'task'
+        ? b.key ? (lookup.tasks.get(b.key)?.name ?? 'Unknown activity') : 'No activity'
+        : lookup.projectLabel(b.key || null);
+  const byLabel = by === 'field' ? (field?.name ?? '') : by === 'task' ? 'activity' : 'project';
 
   const pick = (kind: RangeKind) => {
     // Custom starts from the dates on screen.
@@ -121,6 +132,11 @@ export function Report({
         <Filter label="Tag" value={tagId} onChange={setTagId} all="All tags">
           {tagOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </Filter>
+        {fieldOptions.length > 0 && (
+          <Filter label="Group by" value={fieldId} onChange={setFieldId} all="Project / activity">
+            {fieldOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </Filter>
+        )}
         {filtered && (
           <button className="btn-ghost min-h-11 self-end" onClick={() => { setRealm(''); setTaskId(''); setTagId(''); }}>
             Clear filters
@@ -148,14 +164,14 @@ export function Report({
           <>
             <Bars bucket={bucket} keys={keys} seconds={perBucket} />
             {!scoped && <RealmDonut slices={realms} total={total} />}
-            {breakdown.length > 1 && (
+            {(breakdown.length > 1 || (by === 'field' && breakdown.length > 0)) && (
               <div>
-                <h3 className="section-title mb-2">By {by}</h3>
+                <h3 className="section-title mb-2">By {byLabel}</h3>
                 <ul className="flex flex-col gap-2.5">
                   {breakdown.map((b) => (
                     <li key={b.key}>
                       <div className="flex items-baseline gap-2 text-base">
-                        <span className="min-w-0 flex-1 truncate font-semibold">{nameOf(b.key)}</span>
+                        <span className="min-w-0 flex-1 truncate font-semibold">{nameOf(b)}</span>
                         <span className="shrink-0 tabular-nums text-fg-2">{formatDuration(b.seconds)}</span>
                       </div>
                       <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2">

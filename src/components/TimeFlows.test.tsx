@@ -11,6 +11,26 @@ import { rangeDays } from '../lib/time';
 import { TimeEntrySheet } from './TimeEntrySheet';
 import { TimeReport } from './TimeReport';
 import { TimerBar } from './Timer';
+import { AddMenu } from './AddMenu';
+import { useState } from 'react';
+
+/** The running timer's bar and the + button's menu, which is where a timer starts. */
+function TimerScreen() {
+  const [adding, setAdding] = useState(false);
+  return (
+    <>
+      <TimerBar variant="side" />
+      <button onClick={() => setAdding(true)}>Add</button>
+      {adding && <AddMenu onClose={() => setAdding(false)} onNewTask={() => setAdding(false)} />}
+    </>
+  );
+}
+
+/** Open + and choose Start timer. */
+async function openStartTimer(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Add' }));
+  await user.click(await screen.findByRole('button', { name: /start timer/i }));
+}
 
 // The screens never reach the server in these tests.
 vi.mock('../lib/supabase', () => ({ supabase: {} }));
@@ -44,9 +64,10 @@ async function finished(description: string, hours = 1) {
 describe('the timer', () => {
   it('starts, switches and stops', async () => {
     const user = userEvent.setup();
-    render(<TimerBar variant="side" />, { wrapper: MemoryRouter });
+    render(<TimerScreen />, { wrapper: MemoryRouter });
 
-    await user.click(await screen.findByRole('button', { name: /start timer/i }));
+    expect(screen.queryByRole('timer')).toBeNull();
+    await openStartTimer(user);
     await user.type(screen.getByPlaceholderText('What are you working on?'), 'Write tests');
     await user.click(screen.getByRole('button', { name: 'Start' }));
 
@@ -64,16 +85,16 @@ describe('the timer', () => {
     expect((await db.time_entries.get(first.id))!.ended_at).not.toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Stop' }));
-    expect(await screen.findByRole('button', { name: /start timer/i })).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole('timer')).toBeNull());
     expect(await runningEntries()).toHaveLength(0);
   });
 
   it('starts a recent entry again in one tap', async () => {
     const user = userEvent.setup();
     await finished('Laps');
-    render(<TimerBar variant="side" />, { wrapper: MemoryRouter });
+    render(<TimerScreen />, { wrapper: MemoryRouter });
 
-    await user.click(await screen.findByRole('button', { name: /start timer/i }));
+    await openStartTimer(user);
     // Recent entries load after the sheet opens.
     const recent = (await screen.findByRole('heading', { name: 'Start again' })).parentElement!;
     await user.click(await within(recent).findByText('Laps'));

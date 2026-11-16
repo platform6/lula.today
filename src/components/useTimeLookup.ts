@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useAreas, useProjects, useTimeTags, useTimeTasks } from '../db/hooks';
+import { useAreas, useProjects, useTimeFields, useTimeTags, useTimeTasks } from '../db/hooks';
 import type { Project, TimeEntry } from '../db/types';
 import { placeOf, tracksTime } from '../lib/paths';
 import { byPosition } from '../lib/position';
@@ -10,12 +10,14 @@ export function useTimeLookup() {
   const projects = useProjects();
   const tasks = useTimeTasks();
   const tags = useTimeTags();
+  const fields = useTimeFields();
 
   return useMemo(() => {
     const areaMap = new Map((areas ?? []).map((a) => [a.id, a]));
     const projectMap = new Map((projects ?? []).map((p) => [p.id, p]));
     const taskMap = new Map((tasks ?? []).map((t) => [t.id, t]));
     const tagMap = new Map((tags ?? []).map((t) => [t.id, t]));
+    const fieldMap = new Map((fields ?? []).map((f) => [f.id, f]));
     const place = (projectId: string | null) => placeOf(projectId ? projectMap.get(projectId) : undefined, areaMap);
 
     // Realm order, each realm's own list before its projects; projects without a realm last.
@@ -31,6 +33,7 @@ export function useTimeLookup() {
       projects: projectMap,
       tasks: taskMap,
       tags: tagMap,
+      fields: fieldMap,
       timeProjects,
       tasksOf: (projectId: string | null) => (tasks ?? []).filter((t) => t.project_id === projectId && !t.archived_at),
       projectLabel: (projectId: string | null) => place(projectId)?.label ?? 'No project',
@@ -41,7 +44,7 @@ export function useTimeLookup() {
       entryTitle: (e: TimeEntry) =>
         (e.time_task_id && taskMap.get(e.time_task_id)?.name) || place(e.project_id)?.label || 'No project',
     };
-  }, [areas, projects, tasks, tags]);
+  }, [areas, projects, tasks, tags, fields]);
 }
 
 export type TimeLookup = ReturnType<typeof useTimeLookup>;

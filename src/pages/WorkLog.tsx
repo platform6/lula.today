@@ -169,8 +169,8 @@ function BusTickets({ left }: { left: number }) {
     <section className={`card flex flex-col gap-3 border-2 p-4 ${low ? 'border-warn' : 'border-line'}`}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-lg font-bold">Bus tickets</h2>
-        <span className="text-[0.6875rem] tracking-wide uppercase text-fg-2">
-          {trips} office day{trips === 1 ? '' : 's'} left
+        <span className="text-xs tracking-wide uppercase text-fg-2">
+          <b className={low ? 'text-warn' : 'text-accent'}>{trips}</b> office day{trips === 1 ? '' : 's'} left
         </span>
       </div>
       <p className="text-base">

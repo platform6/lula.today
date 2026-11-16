@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NO_FILTERS, NO_REALM, entriesByDay, realmOf, reportEntries, reportExport, reportTotals, weekTotals, type ReportLookup } from './report';
+import { NO_FILTERS, NO_REALM, entriesByDay, realmFields, realmOf, reportEntries, reportExport, reportTotals, weekTotals, type ReportLookup } from './report';
 import type { Area, Project } from '../db/types';
 import { placeOf } from './paths';
 import type { DayRange } from './time';
@@ -171,5 +171,47 @@ describe('entries by day and week', () => {
     expect(weeks.get('2026-10-26')).toBe(3600);
     expect(weeks.get('2026-10-19')).toBe(4.5 * 3600);
     expect(weeks.get('2026-10-12')).toBe(8 * 3600);
+  });
+});
+
+describe('grouping by a realm field', () => {
+  const week: DayRange = { kind: 'week', from: '2026-11-16', to: '2026-11-22' };
+  const played = (day: string, from: number, to: number, fields: Record<string, string> = {}) => ({ ...entry(day, from, to), fields });
+  const games = [
+    played('2026-11-16', 9, 11, { game: 'hades' }),
+    played('2026-11-17', 9, 10, { game: 'Hades', platform: 'Switch' }),
+    played('2026-11-18', 9, 12, { game: 'Zelda' }),
+    played('2026-11-19', 9, 9.5),
+  ];
+  const fields = new Map([
+    ['game', { name: 'Game', area_id: 'home', archived_at: null }],
+    ['platform', { name: 'Platform', area_id: 'home', archived_at: 'gone' }],
+    ['client', { name: 'Client', area_id: 'work', archived_at: null }],
+  ]);
+  const withFields: ReportLookup = { ...lookup, fields };
+
+  it('totals each value ignoring case, shown as typed in the newest entry, with no value last', () => {
+    const t = reportTotals(games, week, withFields, 'auto', Date.now(), 'game');
+    expect(t.by).toBe('field');
+    expect(t.breakdown).toEqual([
+      { key: 'hades', seconds: 3 * 3600, label: 'Hades' },
+      { key: 'zelda', seconds: 3 * 3600, label: 'Zelda' },
+      { key: '', seconds: 1800, label: undefined },
+    ]);
+  });
+
+  it("offers a realm's fields, and removed ones only while entries have values in them", () => {
+    expect(realmFields(withFields, 'home', games)).toEqual([
+      { id: 'game', name: 'Game' },
+      { id: 'platform', name: 'Platform' },
+    ]);
+    expect(realmFields(withFields, 'home', games.slice(2))).toEqual([{ id: 'game', name: 'Game' }]);
+    expect(realmFields(lookup, 'home', games)).toEqual([]);
+  });
+
+  it('exports field values by field name', () => {
+    const data = reportExport(week, games, NO_FILTERS, withFields);
+    expect(data.entries[1].fields).toEqual({ Game: 'Hades', Platform: 'Switch' });
+    expect(data.entries[3].fields).toEqual({});
   });
 });

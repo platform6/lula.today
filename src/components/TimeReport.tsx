@@ -165,10 +165,9 @@ function EntryBody({
   return (
     <>
       <span className="min-w-0 flex-1">
-        <span className={`block truncate text-base ${e.description ? 'font-semibold' : 'text-muted'}`}>
-          {e.description || 'No description'}
-        </span>
-        <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm">
+        {e.description && <span className="block truncate text-base font-semibold">{e.description}</span>}
+        {/* Without a description (most entries), the project and activity are the title. */}
+        <span className={`flex min-w-0 items-center gap-1.5 ${e.description ? 'mt-0.5 text-sm' : 'text-base'}`}>
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: lookup.projectColor(e.project_id) ?? 'var(--line-strong)' }} />
           <span className="truncate">
             <span className="font-semibold">{lookup.projectLabel(e.project_id)}{task ? ':' : ''}</span>

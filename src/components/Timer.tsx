@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useProject, useRunningEntry, useTimeEntries, useTimeFields } from '../db/hooks';
 import { continueEntry, startCardTimer, startTimer, stopTimer, updateEntry } from '../db/time';
 import type { Task, TimeEntry } from '../db/types';
@@ -38,15 +37,11 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
   const [editing, setEditing] = useState(false);
   const [stoppingAt, setStoppingAt] = useState(false);
 
-  if (running === undefined || !lookup.loaded || (variant === 'inline' && !running)) return null;
-
-  const shell =
-    variant === 'dock'
-      ? 'fixed inset-x-0 bottom-[calc(4rem+var(--tab-safe))] z-20 flex h-14 items-center gap-2 border-t border-line bg-surface px-3 md:hidden'
-      : 'mx-2 flex min-h-14 items-center gap-2 rounded-md border border-line bg-surface-2 px-2';
+  // Only a running timer shows; the + button starts one.
+  if (!running || !lookup.loaded) return null;
 
   // A running timer is the loudest thing on screen: tinted, with a big live clock.
-  const long = !!running && runningLong(running, now);
+  const long = runningLong(running, now);
   const tint = long ? 'border-warn bg-warn/15' : 'border-accent bg-accent/15';
   const runningShell =
     variant === 'dock'
@@ -54,7 +49,7 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
       : `${variant === 'inline' ? 'mx-4 mt-4 md:hidden' : 'mx-2'} flex flex-col gap-2 rounded-md border-2 p-2 ${tint}`;
   const clockSize = variant === 'dock' ? 'text-xl' : variant === 'inline' ? 'text-4xl' : 'text-2xl';
 
-  const title = running && (
+  const title = (
     <button className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight" onClick={() => setEditing(true)}>
       <span className="w-full truncate text-base font-bold">{lookup.entryTitle(running)}</span>
       <span className={`w-full truncate text-xs font-semibold ${long ? 'text-warn' : 'text-fg-2'}`}>
@@ -66,13 +61,13 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
       </span>
     </button>
   );
-  const clock = running && (
+  const clock = (
     <span className={`shrink-0 font-mono font-bold tabular-nums ${clockSize}`} role="timer">
       {formatDuration(entrySeconds(running, now))}
     </span>
   );
   // A timer left on offers Stop at… (when it really ended); otherwise Switch to something else.
-  const actions = running && (
+  const actions = (
     <>
       {long ? (
         <button className="btn-outline min-h-11 shrink-0 px-3" onClick={() => setStoppingAt(true)}>Stop at…</button>
@@ -87,35 +82,24 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
 
   return (
     <>
-      {running ? (
-        variant === 'dock' ? (
-          <div className={runningShell}>
+      {variant === 'dock' ? (
+        <div className={runningShell}>
+          {title}
+          {clock}
+          {actions}
+        </div>
+      ) : (
+        <div className={runningShell}>
+          <div className="flex items-center gap-2">
             {title}
             {clock}
-            {actions}
           </div>
-        ) : (
-          <div className={runningShell}>
-            <div className="flex items-center gap-2">
-              {title}
-              {clock}
-            </div>
-            <div className="flex justify-end gap-2">{actions}</div>
-          </div>
-        )
-      ) : (
-        <div className={shell}>
-          <button className="btn-ghost min-h-11 flex-1 justify-start px-2 text-fg" onClick={() => setPicking(true)}>
-            <ClockIcon /> Start timer
-          </button>
-          <Link to="/" className="btn-ghost min-h-11 shrink-0 px-2 text-sm">
-            Time
-          </Link>
+          <div className="flex justify-end gap-2">{actions}</div>
         </div>
       )}
       {picking && <TimerPicker lookup={lookup} onClose={() => setPicking(false)} />}
-      {editing && running && <TimeEntrySheet entry={running} onClose={() => setEditing(false)} />}
-      {stoppingAt && running && <StopAtSheet entry={running} onClose={() => setStoppingAt(false)} />}
+      {editing && <TimeEntrySheet entry={running} onClose={() => setEditing(false)} />}
+      {stoppingAt && <StopAtSheet entry={running} onClose={() => setStoppingAt(false)} />}
     </>
   );
 }
@@ -329,10 +313,9 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
                 >
                   <Dot color={lookup.projectColor(e.project_id)} />
                   <span className="min-w-0 flex-1">
-                    <span className={`block truncate text-base ${e.description ? 'font-semibold' : 'text-muted'}`}>
-                      {e.description || 'No description'}
-                    </span>
-                    <span className="block truncate text-sm text-fg-2">
+                    {e.description && <span className="block truncate text-base font-semibold">{e.description}</span>}
+                    {/* Without a description, the project and activity are the title. */}
+                    <span className={`block truncate ${e.description ? 'text-sm text-fg-2' : 'text-base font-semibold'}`}>
                       {lookup.projectLabel(e.project_id)}
                       {e.time_task_id ? `: ${lookup.tasks.get(e.time_task_id)?.name ?? ''}` : ''}
                     </span>
