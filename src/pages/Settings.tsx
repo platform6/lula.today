@@ -13,7 +13,7 @@ import { StuckChanges } from '../components/StuckChanges';
 import { ColumnsEditor } from '../components/ColumnsEditor';
 import { PageHeader } from '../components/PageHeader';
 import { DownIcon, UpIcon, XIcon } from '../components/icons';
-import { UI_SIZES, useUiSize } from '../lib/uiSize';
+import { UI_SIZES, UI_SIZE_LABELS, useUiSize } from '../lib/uiSize';
 import { START_PAGES, useStartPage } from '../lib/startPage';
 
 export function Settings() {
@@ -250,10 +250,11 @@ function UiSizePicker() {
         {UI_SIZES.map((s) => (
           <button
             key={s}
-            className={`btn flex-1 border-2 capitalize ${size === s ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
+            // Extra small is for desktop screens only.
+            className={`btn flex-1 border-2 ${s === 'xsmall' ? 'hidden md:inline-flex' : ''} ${size === s ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
             onClick={() => setSize(s)}
           >
-            {s}
+            {UI_SIZE_LABELS[s]}
           </button>
         ))}
       </div>

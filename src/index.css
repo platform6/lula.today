@@ -103,8 +103,15 @@ body,
 }
 
 /* UI size (Settings › Appearance): everything in rem scales from here. */
-html[data-ui-size='small'] {
+html[data-ui-size='small'],
+html[data-ui-size='xsmall'] {
   font-size: 87.5%;
+}
+/* Extra small is offered on wide screens only; a narrow window falls back to Small. */
+@media (min-width: 48rem) {
+  html[data-ui-size='xsmall'] {
+    font-size: 75%;
+  }
 }
 html[data-ui-size='large'] {
   font-size: 112.5%;
