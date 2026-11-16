@@ -90,12 +90,12 @@ export function Sidebar() {
       <TimerBar variant="side" />
       <button
         ref={pagesHeading}
-        className="mx-2 mt-2 flex min-h-11 items-center gap-2 rounded-sm px-3 text-sm font-bold text-fg-2 hover:bg-surface-2 hover:text-fg"
+        className="mx-2 mt-2 flex min-h-11 items-center gap-2 rounded-sm px-3 text-base font-semibold text-fg-2 hover:bg-surface-2 hover:text-fg"
         aria-expanded={pagesOpen}
         aria-controls="side-pages"
         onClick={togglePages}
       >
-        <span className="flex-1 text-left">Pages</span>
+        <span className="flex-1 text-left">Views</span>
         {/* Folded away, the Sorting count still shows. */}
         {!pagesOpen && <CountBadge count={inboxCount} />}
         {/* Open, the arrow under the pages folds them; folded, this one opens them. */}
@@ -116,7 +116,7 @@ export function Sidebar() {
         {/* Fold from the bottom too, without going back up to the heading. */}
         <button
           className="flex min-h-9 items-center justify-center rounded-sm text-fg-2 hover:bg-surface-2 hover:text-fg"
-          aria-label="Fold pages"
+          aria-label="Fold views"
           aria-controls="side-pages"
           onClick={() => {
             togglePages();
