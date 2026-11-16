@@ -9,7 +9,7 @@ import { entrySeconds, formatDuration, runningLong, timesProblem } from '../lib/
 import { BackIcon, ClockIcon, PlayIcon } from './icons';
 import { Sheet } from './Sheet';
 import { TimeEntrySheet } from './TimeEntrySheet';
-import { Dot, Group, PickRow, ProjectPicker, TagPicker, TaskPicker } from './TimePickers';
+import { Dot, Group, PickRow, ProjectPicker, SwitchRow, TagPicker, TaskPicker } from './TimePickers';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
 /** The current time, updated every `ms` while `active`. */
@@ -180,7 +180,7 @@ function recentEntries(entries: TimeEntry[], limit: number): TimeEntry[] {
   const seen = new Set<string>();
   const out: TimeEntry[] = [];
   for (const e of entries) {
-    const key = `${e.project_id}|${e.time_task_id}|${e.description ?? ''}`;
+    const key = `${e.project_id}|${e.time_task_id}|${e.description ?? ''}|${!!e.commute}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(e);
@@ -202,6 +202,7 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
   const [project, setProject] = useState(projectId ?? '');
   const [taskId, setTaskId] = useState<string | null>(null);
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [commute, setCommute] = useState(false);
 
   const recent = useMemo(
     () => recentEntries((entries ?? []).filter((e) => !projectId || e.project_id === projectId), 6),
@@ -211,7 +212,7 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
   const tagNames = tagIds.map((id) => lookup.tags.get(id)?.name).filter(Boolean).join(', ');
 
   const start = async () => {
-    await startTimer({ project_id: project || null, time_task_id: taskId, tag_ids: tagIds, description });
+    await startTimer({ project_id: project || null, time_task_id: taskId, tag_ids: tagIds, description, commute });
     onClose();
   };
   const pickProject = (id: string) => {
@@ -307,6 +308,7 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
           <PickRow label="Tags" onClick={() => setView('tags')}>
             {tagNames ? <span className="truncate text-fg">{tagNames}</span> : 'Select tags'}
           </PickRow>
+          <SwitchRow label="Commute" hint="Done while travelling" checked={commute} onChange={setCommute} />
         </Group>
 
         {recent.length > 0 && (

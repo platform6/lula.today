@@ -30,6 +30,19 @@ describe('time entries', () => {
     expect(next.id).not.toBe(e.id);
   });
 
+  it('marks entries as commute time, off unless asked, and keeps it when continued', async () => {
+    const plain = await startTimer({ project_id: 'p1' });
+    expect(plain.commute).toBe(false);
+    const travel = await startTimer({ project_id: 'p1', commute: true });
+    expect((await db.time_entries.get(travel.id))!.commute).toBe(true);
+    expect((await continueEntry(travel)).commute).toBe(true);
+    // Entries stored before commute existed have no value and continue as not commute.
+    const { commute: _, ...old } = plain;
+    expect((await continueEntry(old)).commute).toBe(false);
+    await updateEntry(travel.id, { commute: false });
+    expect((await db.time_entries.get(travel.id))!.commute).toBe(false);
+  });
+
   it('stops a timer', async () => {
     const e = await startTimer();
     await stopTimer(e.id);

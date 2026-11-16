@@ -20,6 +20,24 @@ export function PickRow({ label, onClick, children }: { label: string; onClick: 
   );
 }
 
+/** An on/off row in a Group, such as Commute. */
+export function SwitchRow({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 hover:bg-surface">
+      <span className="min-w-0 flex-1">
+        <span className="block text-base">{label}</span>
+        {hint && <span className="block text-sm text-fg-2">{hint}</span>}
+      </span>
+      <input type="checkbox" role="switch" className="h-6 w-6 shrink-0 accent-[var(--accent)]" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  );
+}
+
+/** Marks an entry done during a commute. */
+export function CommuteBadge() {
+  return <span className="rounded-sm bg-accent/15 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-accent">Commute</span>;
+}
+
 export function Dot({ color }: { color: string | null }) {
   return <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color ?? 'var(--line-strong)' }} />;
 }

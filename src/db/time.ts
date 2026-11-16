@@ -14,6 +14,7 @@ export interface EntryInput {
   tag_ids?: string[];
   description?: string | null;
   fields?: Record<string, string>;
+  commute?: boolean;
 }
 
 export async function runningEntries(): Promise<TimeEntry[]> {
@@ -30,6 +31,7 @@ function entry(input: EntryInput, started_at: string, ended_at: string | null): 
     tag_ids: input.tag_ids ?? [],
     description: input.description?.trim() || null,
     fields: input.fields ?? {},
+    commute: input.commute ?? false,
     source: null,
   };
 }
@@ -77,7 +79,7 @@ export async function updateEntry(id: string, changes: Partial<TimeEntry>): Prom
 
 /** Start a new timer on the same project, task, tags and description as `e`. */
 export const continueEntry = (e: TimeEntry) =>
-  startTimer({ project_id: e.project_id, time_task_id: e.time_task_id, tag_ids: e.tag_ids, description: e.description, fields: e.fields });
+  startTimer({ project_id: e.project_id, time_task_id: e.time_task_id, tag_ids: e.tag_ids, description: e.description, fields: e.fields, commute: !!e.commute });
 
 export const deleteEntry = (id: string) => patch('time_entries', id, { deleted_at: now() });
 export const restoreEntry = (id: string) => patch('time_entries', id, { deleted_at: null });

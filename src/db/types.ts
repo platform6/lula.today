@@ -172,6 +172,8 @@ export interface TimeEntry extends Row {
   description: string | null;
   /** Extra field values by TimeField id. */
   fields: Record<string, string>;
+  /** Done during a commute. Missing on entries stored before it existed, so read it as false then. */
+  commute?: boolean;
   /** Where the entry came from when it wasn't made in lula (e.g. 'import'). */
   source: string | null;
 }

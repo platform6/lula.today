@@ -9,6 +9,7 @@ import { DownIcon, PlayIcon, TagIcon } from './icons';
 import { remember, remembered } from '../lib/stored';
 import { Report } from './Report';
 import { TimeEntrySheet } from './TimeEntrySheet';
+import { CommuteBadge } from './TimePickers';
 import { useNow } from './Timer';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
@@ -174,6 +175,11 @@ function EntryBody({
             {task && <span className="text-fg-2"> {task}</span>}
           </span>
         </span>
+        {e.commute && (
+          <span className="mt-1 flex">
+            <CommuteBadge />
+          </span>
+        )}
         {tags && (
           <span className="mt-1 flex min-w-0 items-center gap-1 text-xs text-fg-2">
             <TagIcon width={14} height={14} className="shrink-0" />

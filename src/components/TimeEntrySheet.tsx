@@ -6,7 +6,7 @@ import { addDays, dayKey, todayKey } from '../lib/dates';
 import { entrySeconds, formatDuration, parseDuration, timesProblem } from '../lib/time';
 import { BackIcon } from './icons';
 import { Sheet } from './Sheet';
-import { Dot, Group, PickRow, ProjectPicker, TagPicker, TaskPicker } from './TimePickers';
+import { Dot, Group, PickRow, ProjectPicker, SwitchRow, TagPicker, TaskPicker } from './TimePickers';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -64,6 +64,7 @@ function EntryForm({
   const [endTime, setEndTime] = useState(initial.endTime);
   const [tagIds, setTagIds] = useState<string[]>(entry?.tag_ids ?? []);
   const [extra, setExtra] = useState<Record<string, string>>(entry?.fields ?? {});
+  const [commute, setCommute] = useState(!!entry?.commute);
   // What's typed in Duration, until it's left; otherwise it shows start to end.
   const [durationText, setDurationText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +86,7 @@ function EntryForm({
   const dirty =
     timesChanged ||
     !sameTags ||
+    commute !== !!entry?.commute ||
     project !== (entry?.project_id ?? projectId ?? '') ||
     taskId !== (entry?.time_task_id ?? null) ||
     description.trim() !== (entry?.description ?? '') ||
@@ -110,6 +112,7 @@ function EntryForm({
         description: description.trim() || null,
         tag_ids: tagIds,
         fields: cleanFields(),
+        commute,
       };
       if (!entry) {
         if (!endIso) throw new Error('Add an end time.');
@@ -332,6 +335,7 @@ function EntryForm({
               )}
             </Row>
           ))}
+          <SwitchRow label="Commute" hint="Done while travelling" checked={commute} onChange={setCommute} />
         </Group>
         {error && <p className="text-base font-semibold text-danger">{error}</p>}
       </div>
