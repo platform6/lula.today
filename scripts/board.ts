@@ -202,7 +202,10 @@ function printCard(t: Task, where: string, steps: Step[], files: Attachment[], c
 /** Commits with a "Card: <id>" line for this card, newest first (none outside a git checkout). */
 function commitsFor(id: string): string[] {
   try {
+    // Search the repo the command was run from: `npm --prefix <lula> run board` from another
+    // repo (e.g. C:\dev\tga) runs here, but INIT_CWD is where npm was started.
     const log = execFileSync('git', ['log', '--format=%h %ad %s', '--date=short', '-i', `--grep=^Card: *${short(id)}`], {
+      cwd: process.env.INIT_CWD || process.cwd(),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
