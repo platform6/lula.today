@@ -6,7 +6,7 @@ import type { Area } from '../db/types';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { remember, remembered } from '../lib/stored';
-import { ArchiveIcon, BackIcon, BriefcaseIcon, CalendarIcon, ChevronRightIcon, ClockIcon, DownIcon, WitchHatIcon, ListIcon, PencilIcon, SearchIcon, SlidersIcon, SunIcon } from './icons';
+import { ArchiveIcon, BackIcon, BriefcaseIcon, CalendarIcon, ChevronRightIcon, ClockIcon, DownIcon, WitchHatIcon, ListIcon, PencilIcon, SearchIcon, SlidersIcon, SunIcon, UpIcon } from './icons';
 import { BrandLockup } from './Brand';
 import { CountBadge } from './CountBadge';
 import type { RealmDropData } from './dragData';
@@ -53,6 +53,7 @@ export function Sidebar() {
     setHidden(h);
     remember(HIDDEN_KEY, h ? 'yes' : 'no');
   };
+  const pagesHeading = useRef<HTMLButtonElement>(null);
   const togglePages = () => {
     setPagesOpen((o) => {
       remember(PAGES_KEY, o ? 'folded' : 'open');
@@ -88,6 +89,7 @@ export function Sidebar() {
       </div>
       <TimerBar variant="side" />
       <button
+        ref={pagesHeading}
         className="mx-2 mt-2 flex min-h-11 items-center gap-2 rounded-sm px-3 text-sm font-bold text-fg-2 hover:bg-surface-2 hover:text-fg"
         aria-expanded={pagesOpen}
         aria-controls="side-pages"
@@ -96,7 +98,8 @@ export function Sidebar() {
         <span className="flex-1 text-left">Pages</span>
         {/* Folded away, the Sorting count still shows. */}
         {!pagesOpen && <CountBadge count={inboxCount} />}
-        <DownIcon width={18} height={18} className={pagesOpen ? 'rotate-180' : ''} />
+        {/* Open, the arrow under the pages folds them; folded, this one opens them. */}
+        {!pagesOpen && <DownIcon width={18} height={18} />}
       </button>
       <nav id="side-pages" hidden={!pagesOpen} className="flex flex-col gap-0.5 px-2">
         <NavLink to="/" end className={navClass}><ClockIcon /> Time</NavLink>
@@ -110,6 +113,19 @@ export function Sidebar() {
         <NavLink to="/tasks" className={navClass}><ListIcon /> All tasks</NavLink>
         <NavLink to="/search" className={navClass}><SearchIcon /> Search</NavLink>
         <NavLink to="/archive" className={navClass}><ArchiveIcon /> Archive</NavLink>
+        {/* Fold from the bottom too, without going back up to the heading. */}
+        <button
+          className="flex min-h-9 items-center justify-center rounded-sm text-fg-2 hover:bg-surface-2 hover:text-fg"
+          aria-label="Fold pages"
+          aria-controls="side-pages"
+          onClick={() => {
+            togglePages();
+            // This arrow is about to hide; keep keyboard focus on the heading.
+            pagesHeading.current?.focus();
+          }}
+        >
+          <UpIcon width={18} height={18} />
+        </button>
       </nav>
       <div className={`${pagesOpen ? 'mt-4' : 'mt-1'} flex-1 overflow-y-auto border-t border-line px-4 pt-3 pb-4`}>
         <div className="relative flex items-center">
