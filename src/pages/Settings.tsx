@@ -14,6 +14,7 @@ import { ColumnsEditor } from '../components/ColumnsEditor';
 import { PageHeader } from '../components/PageHeader';
 import { DownIcon, UpIcon, XIcon } from '../components/icons';
 import { UI_SIZES, useUiSize } from '../lib/uiSize';
+import { START_PAGES, useStartPage } from '../lib/startPage';
 
 export function Settings() {
   const settings = useSettings();
@@ -39,6 +40,7 @@ export function Settings() {
             ))}
           </div>
           <UiSizePicker />
+          <StartPagePicker />
         </Section>
 
         <Section title="Realm colors" hint="Each realm's color is shared by its projects and the lines in the realm tree.">
@@ -256,6 +258,28 @@ function UiSizePicker() {
         ))}
       </div>
       <p className="mt-2 text-sm text-fg-2">Scales text and controls. Applies to this device.</p>
+    </div>
+  );
+}
+
+function StartPagePicker() {
+  const [page, setPage] = useStartPage();
+  return (
+    <div className="mt-4">
+      <span className="field-label">Opening page</span>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {START_PAGES.map((p) => (
+          <button
+            key={p.path}
+            className={`btn border-2 ${page === p.path ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
+            aria-pressed={page === p.path}
+            onClick={() => setPage(p.path)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-sm text-fg-2">The page lula opens on. Applies to this device.</p>
     </div>
   );
 }
