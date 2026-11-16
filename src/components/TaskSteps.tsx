@@ -9,6 +9,12 @@ export function Steps({ taskId }: { taskId: string }) {
   const steps = useSteps(taskId) ?? [];
   const [text, setText] = useState('');
   const done = steps.filter((s) => s.is_done).length;
+  const add = () => {
+    const v = text.trim();
+    if (!v) return;
+    void addStep(taskId, v);
+    setText('');
+  };
 
   return (
     <div>
@@ -24,10 +30,7 @@ export function Steps({ taskId }: { taskId: string }) {
         className="mt-1"
         onSubmit={(e) => {
           e.preventDefault();
-          const v = text.trim();
-          if (!v) return;
-          void addStep(taskId, v);
-          setText('');
+          add();
         }}
       >
         <GrowingText
@@ -36,6 +39,8 @@ export function Steps({ taskId }: { taskId: string }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onEnter={(el) => el.form?.requestSubmit()}
+          // Leaving the box (or closing the task) keeps what was typed, as if Enter was pressed.
+          onBlur={add}
           enterKeyHint="done"
         />
       </form>

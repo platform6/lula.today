@@ -75,7 +75,8 @@ function TaskDetails({ task, onClose }: { task: Task; onClose: () => void }) {
   return (
     <Sheet
       title={task.cancelled_at ? 'Cancelled task' : archived ? 'Archived task' : 'Task'}
-      onClose={onClose}
+      // X, Escape and tapping outside save like the Save button: the field being typed in commits first.
+      onClose={saveAndClose}
       side="modal"
       wide
       footer={

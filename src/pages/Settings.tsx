@@ -251,7 +251,7 @@ function UiSizePicker() {
           <button
             key={s}
             // Extra small is for desktop screens only.
-            className={`btn flex-1 border-2 ${s === 'xsmall' ? 'hidden md:inline-flex' : ''} ${size === s ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
+            className={`btn flex-1 whitespace-nowrap border-2 ${s === 'xsmall' ? 'hidden md:inline-flex' : ''} ${size === s ? 'border-accent bg-accent/15 text-fg' : 'border-line-strong text-fg-2'}`}
             onClick={() => setSize(s)}
           >
             {UI_SIZE_LABELS[s]}

@@ -7,7 +7,7 @@ import { remember, remembered } from './stored';
 
 export type UiSize = 'xsmall' | 'small' | 'medium' | 'large';
 export const UI_SIZES: UiSize[] = ['xsmall', 'small', 'medium', 'large'];
-export const UI_SIZE_LABELS: Record<UiSize, string> = { xsmall: 'Extra small', small: 'Small', medium: 'Medium', large: 'Large' };
+export const UI_SIZE_LABELS: Record<UiSize, string> = { xsmall: 'X-Small', small: 'Small', medium: 'Medium', large: 'Large' };
 
 const KEY = 'lula.uiSize';
 const listeners = new Set<() => void>();
