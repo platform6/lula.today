@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useDroppable } from '@dnd-kit/core';
 import { useAreas, useInboxCount, useProjects } from '../db/hooks';
@@ -6,7 +6,7 @@ import type { Area } from '../db/types';
 import { isRealProject } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { remember, remembered } from '../lib/stored';
-import { ArchiveIcon, BackIcon, BriefcaseIcon, CalendarIcon, ChevronRightIcon, ClockIcon, DownIcon, WitchHatIcon, ListIcon, PencilIcon, SearchIcon, SlidersIcon, SunIcon, UpIcon } from './icons';
+import { ArchiveIcon, BackIcon, BriefcaseIcon, CalendarIcon, ChevronRightIcon, ClockIcon, DownIcon, WitchHatIcon, ListIcon, NodesIcon, PencilIcon, SearchIcon, SlidersIcon, SunIcon, UpIcon } from './icons';
 import { BrandLockup } from './Brand';
 import { CountBadge } from './CountBadge';
 import type { RealmDropData } from './dragData';
@@ -14,6 +14,19 @@ import { Branch, Children, NODE_SIZE, Stem, TreeNode } from './NodeTree';
 import { RealmExpansionAll, RealmToggle, useRealmExpansion } from './RealmExpansion';
 import { SyncBadge } from './SyncBadge';
 import { TimerBar } from './Timer';
+
+// The views, in sidebar order; the hidden sidebar's rail shows them as icons.
+const VIEWS = [
+  { to: '/', end: true, icon: ClockIcon, label: 'Time' },
+  { to: '/today', icon: SunIcon, label: 'Today' },
+  { to: '/calendar', icon: CalendarIcon, label: 'Calendar' },
+  { to: '/work', icon: BriefcaseIcon, label: 'Work log' },
+  { to: '/inbox', icon: WitchHatIcon, label: 'Sorting', count: true },
+  { to: '/tasks', icon: ListIcon, label: 'All tasks' },
+  { to: '/lists', icon: PencilIcon, label: 'Lists' },
+  { to: '/search', icon: SearchIcon, label: 'Search' },
+  { to: '/archive', icon: ArchiveIcon, label: 'Archive' },
+];
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-11 items-center gap-3 rounded-sm px-3 py-2 text-base font-semibold ${isActive ? 'bg-surface-2 text-fg shadow-[inset_3px_0_0_var(--accent)]' : 'text-fg-2 hover:bg-surface-2 hover:text-fg'}`;
@@ -68,10 +81,23 @@ export function Sidebar() {
 
   if (hidden) {
     return (
-      <aside className="hidden w-14 shrink-0 flex-col items-center border-r border-line bg-surface py-4 md:flex">
-        <button className="btn-ghost h-11 w-11 p-0" aria-label="Show sidebar" title="Show sidebar" onClick={() => hide(false)}>
+      <aside className="hidden w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-line bg-surface py-4 md:flex">
+        <button className="btn-ghost h-11 w-11 shrink-0 p-0" aria-label="Show sidebar" title="Show sidebar" onClick={() => hide(false)}>
           <ChevronRightIcon />
         </button>
+        <nav aria-label="Views" className="mt-2 flex flex-col items-center gap-1 border-t border-line pt-3">
+          {VIEWS.map((v) => (
+            <RailLink key={v.to} to={v.to} end={v.end} label={v.label} count={v.count ? inboxCount : 0}>
+              <v.icon />
+            </RailLink>
+          ))}
+        </nav>
+        <nav aria-label="Realms" className="mt-2 flex flex-col items-center border-t border-line pt-3">
+          <RailLink to="/realms" label="Realms"><NodesIcon /></RailLink>
+        </nav>
+        <nav aria-label="Settings" className="mt-auto flex flex-col items-center border-t border-line pt-3">
+          <RailLink to="/settings" label="Settings"><SlidersIcon /></RailLink>
+        </nav>
       </aside>
     );
   }
@@ -102,18 +128,11 @@ export function Sidebar() {
         {!pagesOpen && <DownIcon width={18} height={18} />}
       </button>
       <nav id="side-pages" hidden={!pagesOpen} className="flex flex-col gap-0.5 px-2">
-        <NavLink to="/" end className={navClass}><ClockIcon /> Time</NavLink>
-        <NavLink to="/today" className={navClass}><SunIcon /> Today</NavLink>
-        <NavLink to="/calendar" className={navClass}><CalendarIcon /> Calendar</NavLink>
-        <NavLink to="/work" className={navClass}><BriefcaseIcon /> Work log</NavLink>
-        <NavLink to="/inbox" className={navClass}>
-          <WitchHatIcon /> <span className="flex-1">Sorting</span>
-          <CountBadge count={inboxCount} />
-        </NavLink>
-        <NavLink to="/tasks" className={navClass}><ListIcon /> All tasks</NavLink>
-        <NavLink to="/lists" className={navClass}><PencilIcon /> Lists</NavLink>
-        <NavLink to="/search" className={navClass}><SearchIcon /> Search</NavLink>
-        <NavLink to="/archive" className={navClass}><ArchiveIcon /> Archive</NavLink>
+        {VIEWS.map(({ to, end, icon: Icon, label, count }) => (
+          <NavLink key={to} to={to} end={end} className={navClass}>
+            <Icon /> {count ? <><span className="flex-1">{label}</span><CountBadge count={inboxCount} /></> : label}
+          </NavLink>
+        ))}
         {/* Fold from the bottom too, without going back up to the heading. */}
         <button
           className="flex min-h-9 items-center justify-center rounded-sm text-fg-2 hover:bg-surface-2 hover:text-fg"
@@ -187,6 +206,28 @@ export function Sidebar() {
       </nav>
       <ResizeHandle width={width} onResize={resize} />
     </aside>
+  );
+}
+
+/** An icon link on the hidden sidebar's rail, named by its tooltip; a count shows as a badge on the icon. */
+function RailLink({ to, end, label, count = 0, children }: { to: string; end?: boolean; label: string; count?: number; children: ReactNode }) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      aria-label={count ? `${label}, ${count}` : label}
+      title={label}
+      className={({ isActive }) =>
+        `relative grid h-11 w-11 shrink-0 place-items-center rounded-sm ${isActive ? 'bg-surface-2 text-fg shadow-[inset_3px_0_0_var(--accent)]' : 'text-fg-2 hover:bg-surface-2 hover:text-fg'}`
+      }
+    >
+      {children}
+      {count > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[0.6875rem] font-bold text-accent-fg">
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </NavLink>
   );
 }
 
