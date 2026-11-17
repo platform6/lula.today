@@ -70,7 +70,7 @@ export function TimeReport({
         </button>
       </div>
 
-      {view === 'report' && <Report entries={entries} lookup={lookup} now={now} groupBy={groupBy} scoped={!!projectIds} />}
+      {view === 'report' && <Report entries={entries} lookup={lookup} now={now} groupBy={groupBy} scoped={!!projectIds} onOpen={setEditing} onDelete={remove} />}
 
       {view === 'entries' && (
         <section className="flex flex-col gap-5">

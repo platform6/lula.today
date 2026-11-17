@@ -185,6 +185,45 @@ describe('the report', () => {
   });
 });
 
+describe('the report by day', () => {
+  it("lists a day's entries when its bar is tapped", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('lula.time.view', 'report');
+    localStorage.setItem('lula.time.period', 'week');
+    await finished('Reading');
+    render(<TimeReport groupBy="auto" />, { wrapper: MemoryRouter });
+
+    await screen.findByText(/^1 entry/);
+    expect(screen.queryByText('Reading')).toBeNull();
+    const bar = screen.getAllByRole('button', { name: /: 01:00:00$/ })[0];
+
+    await user.click(bar);
+    expect(bar.getAttribute('aria-pressed')).toBe('true');
+    const day = screen.getByRole('region', { name: /^Entries on / });
+    await user.click(within(day).getByText('Reading'));
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+  });
+
+  it('closes the day with its X or a second tap on the bar', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('lula.time.view', 'report');
+    localStorage.setItem('lula.time.period', 'week');
+    await finished('Reading');
+    render(<TimeReport groupBy="auto" />, { wrapper: MemoryRouter });
+
+    await screen.findByText(/^1 entry/);
+    const bar = screen.getAllByRole('button', { name: /: 01:00:00$/ })[0];
+    await user.click(bar);
+    await user.click(screen.getByRole('button', { name: 'Close day' }));
+    expect(screen.queryByRole('region', { name: /^Entries on / })).toBeNull();
+
+    await user.click(bar);
+    expect(screen.getByRole('region', { name: /^Entries on / })).toBeTruthy();
+    await user.click(bar);
+    expect(screen.queryByRole('region', { name: /^Entries on / })).toBeNull();
+  });
+});
+
 describe('the entries list', () => {
   it('deletes an entry with a swipe, and Undo brings it back', async () => {
     const user = userEvent.setup();

@@ -1,9 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { TimeEntry } from '../db/types';
-import { formatDay as dayName, todayKey } from '../lib/dates';
-import { NO_REALM, realmFields, realmOf, reportEntries, reportExport, reportTotals, type ReportFilters } from '../lib/report';
+import { formatDay as dayName, dayLabel, todayKey } from '../lib/dates';
+import { NO_REALM, entryDay, realmFields, realmOf, reportEntries, reportExport, reportTotals, type ReportFilters } from '../lib/report';
 import {
   RANGE_LABELS,
+  entrySeconds,
   formatDuration,
   ordered,
   rangeFor,
@@ -14,7 +15,8 @@ import {
   type RangeKind,
 } from '../lib/time';
 import { remember, remembered } from '../lib/stored';
-import { BackIcon, ChevronRightIcon } from './icons';
+import { BackIcon, ChevronRightIcon, XIcon } from './icons';
+import { EntryRow } from './TimeReport';
 import type { TimeLookup } from './useTimeLookup';
 
 const RANGE_KEY = 'lula.time.period';
@@ -22,6 +24,7 @@ const RANGE_KEY = 'lula.time.period';
 /**
  * A period's tracked time: total, hours per day, time by realm, and a breakdown
  * by project or activity. Filter by realm, activity and tag; step with < >; export as JSON.
+ * Tap a day's bar to list that day's entries under the chart.
  */
 export function Report({
   entries,
@@ -29,6 +32,8 @@ export function Report({
   now,
   groupBy,
   scoped,
+  onOpen,
+  onDelete,
 }: {
   entries: TimeEntry[];
   lookup: TimeLookup;
@@ -37,6 +42,8 @@ export function Report({
   groupBy: 'project' | 'task' | 'auto';
   /** The entries are one project's: no realm filter or realm chart. */
   scoped: boolean;
+  onOpen: (e: TimeEntry) => void;
+  onDelete: (e: TimeEntry) => void;
 }) {
   // Custom dates are kept as typed; `range` puts them in order.
   const [typed, setRange] = useState<DayRange>(() => {
@@ -47,6 +54,7 @@ export function Report({
   const [taskId, setTaskId] = useState('');
   const [tagId, setTagId] = useState('');
   const [chosenField, setFieldId] = useState('');
+  const [chosenBar, setPicked] = useState<string | null>(null);
   const { kind, from, to } = ordered(typed);
   const range = useMemo(() => ({ kind, from, to }), [kind, from, to]);
   const filters: ReportFilters = useMemo(() => ({ realm, taskId, tagId }), [realm, taskId, tagId]);
@@ -66,6 +74,12 @@ export function Report({
     () => reportTotals(list, range, lookup, groupBy, now, fieldId),
     [list, range, lookup, groupBy, now, fieldId],
   );
+  // A bar stays picked while it's on the chart.
+  const picked = chosenBar && keys.includes(chosenBar) ? chosenBar : null;
+  const dayEntries =
+    bucket === 'day' && picked
+      ? list.filter((e) => entryDay(e) === picked).sort((a, b) => b.started_at.localeCompare(a.started_at))
+      : [];
   const nameOf = (b: { key: string; label?: string }) =>
     by === 'field'
       ? (b.label ?? `No ${field?.name.toLowerCase() ?? 'value'}`)
@@ -162,7 +176,29 @@ export function Report({
           <p className="text-base text-muted">No time tracked in this period{filtered ? ' with these filters' : ''}.</p>
         ) : (
           <>
-            <Bars bucket={bucket} keys={keys} seconds={perBucket} />
+            <Bars bucket={bucket} keys={keys} seconds={perBucket} picked={picked} onPick={setPicked} />
+            {bucket === 'day' && picked && (
+              <section aria-label={`Entries on ${dayLabel(picked)}`} className="-mt-2 flex flex-col gap-2">
+                <div className="flex items-center gap-2 px-1">
+                  <h3 className="flex-1 text-base font-semibold text-fg-2">{dayLabel(picked)}</h3>
+                  <span className="text-base font-semibold tabular-nums text-fg-2">
+                    {formatDuration(dayEntries.reduce((sum, e) => sum + entrySeconds(e, now), 0))}
+                  </span>
+                  <button className="btn-ghost -mr-2 h-11 w-11 shrink-0 p-0" aria-label="Close day" onClick={() => setPicked(null)}>
+                    <XIcon />
+                  </button>
+                </div>
+                {dayEntries.length === 0 ? (
+                  <p className="px-1 text-base text-muted">No time tracked this day{filtered ? ' with these filters' : ''}.</p>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {dayEntries.map((e) => (
+                      <EntryRow key={e.id} entry={e} now={now} lookup={lookup} onOpen={onOpen} onDelete={onDelete} />
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
             {!scoped && <RealmDonut slices={realms} total={total} />}
             {(breakdown.length > 1 || (by === 'field' && breakdown.length > 0)) && (
               <div>
@@ -271,11 +307,24 @@ function tick(key: string, i: number, count: number, bucket: Bucket): string {
   return dayName(key, { month: 'short', year: '2-digit' });
 }
 
-/** Hours per day (a week or a month for long ranges); tap or hover a bar to read its total. */
-function Bars({ bucket, keys, seconds }: { bucket: Bucket; keys: string[]; seconds: Map<string, number> }) {
-  const [active, setActive] = useState<string | null>(null);
+/** Hours per day (a week or a month for long ranges); hover a bar to read its total, tap to pick it. */
+function Bars({
+  bucket,
+  keys,
+  seconds,
+  picked,
+  onPick,
+}: {
+  bucket: Bucket;
+  keys: string[];
+  seconds: Map<string, number>;
+  picked: string | null;
+  onPick: (key: string | null) => void;
+}) {
+  const [hovered, setActive] = useState<string | null>(null);
   const max = Math.max(1, ...keys.map((d) => seconds.get(d) ?? 0));
   const peak = keys.find((d) => (seconds.get(d) ?? 0) === max);
+  const active = hovered ?? picked;
   const read = active ?? peak;
 
   return (
@@ -298,11 +347,11 @@ function Bars({ bucket, keys, seconds }: { bucket: Bucket; keys: string[]; secon
               key={d}
               className="flex h-full min-w-0 flex-1 items-end"
               aria-label={`${BUCKET_NAME[bucket](d)}: ${formatDuration(s)}`}
-              aria-pressed={active === d}
+              aria-pressed={picked === d}
               onMouseEnter={() => setActive(d)}
               onFocus={() => setActive(d)}
               onBlur={() => setActive(null)}
-              onClick={() => setActive((a) => (a === d ? null : d))}
+              onClick={() => onPick(picked === d ? null : d)}
             >
               <span
                 className={`block w-full rounded-t-[4px] ${active && active !== d ? 'bg-accent/50' : 'bg-accent'}`}
