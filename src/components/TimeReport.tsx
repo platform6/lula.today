@@ -11,6 +11,7 @@ import { Report } from './Report';
 import { TimeEntrySheet } from './TimeEntrySheet';
 import { CommuteBadge } from './TimePickers';
 import { useNow } from './Timer';
+import { byPosition } from '../lib/position';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 
 const VIEW_KEY = 'lula.time.view';
@@ -140,8 +141,9 @@ function DayGroup({
 }
 
 /**
- * An entry card as in Clockify: description, then project and task, then tags;
- * duration and times on the right.
+ * An entry card: what the time went on (description, else activity, else project)
+ * on up to two lines, then realm and project smaller, extra field values (e.g. Game),
+ * commute and tags; duration and times on the right.
  */
 function EntryBody({
   entry: e,
@@ -162,25 +164,42 @@ function EntryBody({
 }) {
   const task = e.time_task_id ? lookup.tasks.get(e.time_task_id)?.name : null;
   const tags = e.tag_ids.map((id) => lookup.tags.get(id)?.name).filter(Boolean).join(', ');
+  const fields = Object.entries(e.fields ?? {})
+    .map(([id, value]) => ({ field: lookup.fields.get(id), value: value.trim() }))
+    .filter((f): f is { field: NonNullable<typeof f.field>; value: string } => !!f.field && !!f.value)
+    .sort((a, b) => byPosition(a.field, b.field));
+  // The title is what the time went on: the description, else the activity, else the project.
+  const title = e.description || task || lookup.projectLabel(e.project_id);
+  const place = lookup.projectLabel(e.project_id);
+  // The smaller line under the title: realm and project, and the activity when the description took the title.
+  const sub = e.description ? `${place}${task ? `: ${task}` : ''}` : task ? place : null;
   return (
     <>
       <span className="min-w-0 flex-1">
-        {e.description && <span className="block truncate text-base font-semibold">{e.description}</span>}
-        {/* Without a description (most entries), the project and activity are the title. */}
-        <span className={`flex min-w-0 items-center gap-1.5 ${e.description ? 'mt-0.5 text-sm' : 'text-base'}`}>
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: lookup.projectColor(e.project_id) ?? 'var(--line-strong)' }} />
-          <span className="truncate">
-            <span className="font-semibold">{lookup.projectLabel(e.project_id)}{task ? ':' : ''}</span>
-            {task && <span className="text-fg-2"> {task}</span>}
-          </span>
+        <span className="flex min-w-0 items-start gap-1.5">
+          <span
+            className="mt-[0.45rem] h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ background: lookup.projectColor(e.project_id) ?? 'var(--line-strong)' }}
+          />
+          <span className="line-clamp-2 text-base font-semibold break-words">{title}</span>
         </span>
+        {sub && <span className="mt-0.5 line-clamp-2 pl-4 text-xs text-fg-2 break-words">{sub}</span>}
+        {fields.length > 0 && (
+          <span className="mt-1 flex flex-col pl-4 text-sm">
+            {fields.map(({ field, value }) => (
+              <span key={field.id} className="line-clamp-2 break-words">
+                <span className="text-fg-2">{field.name}:</span> {value}
+              </span>
+            ))}
+          </span>
+        )}
         {e.commute && (
-          <span className="mt-1 flex">
+          <span className="mt-1 flex pl-4">
             <CommuteBadge />
           </span>
         )}
         {tags && (
-          <span className="mt-1 flex min-w-0 items-center gap-1 text-xs text-fg-2">
+          <span className="mt-1 flex min-w-0 items-center gap-1 pl-4 text-xs text-fg-2">
             <TagIcon width={14} height={14} className="shrink-0" />
             <span className="truncate">{tags}</span>
           </span>

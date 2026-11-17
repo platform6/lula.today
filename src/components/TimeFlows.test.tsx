@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLocalData, db } from '../db/db';
 import { setCurrentUser } from '../db/mutate';
-import { addEntry, runningEntries } from '../db/time';
+import { addEntry, addTimeField, runningEntries } from '../db/time';
 import { dayKey } from '../lib/dates';
 import { rangeDays } from '../lib/time';
 import { TimeEntrySheet } from './TimeEntrySheet';
@@ -240,6 +240,21 @@ describe('the report by day', () => {
 });
 
 describe('the entries list', () => {
+  it("shows an entry's field values, like the game, in full", async () => {
+    const game = await addTimeField('realm-1', 'Game');
+    const end = new Date(Date.now() - 3600_000);
+    await addEntry({
+      started_at: new Date(end.getTime() - 3600_000).toISOString(),
+      ended_at: end.toISOString(),
+      fields: { [game.id]: 'The Legend of a Very Long Video Game Title: Extended Edition' },
+    });
+    render(<TimeReport groupBy="auto" />, { wrapper: MemoryRouter });
+
+    const value = await screen.findByText('The Legend of a Very Long Video Game Title: Extended Edition', { exact: false });
+    expect(value.textContent).toBe('Game: The Legend of a Very Long Video Game Title: Extended Edition');
+    expect(value.className).not.toMatch(/truncate/);
+  });
+
   it('deletes an entry with a swipe, and Undo brings it back', async () => {
     const user = userEvent.setup();
     const entry = await finished('Email');
