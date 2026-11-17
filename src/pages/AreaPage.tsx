@@ -15,7 +15,7 @@ import type { Area, Project } from '../db/types';
 import { isRealProject, showsBoard, tracksTime } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { isLive } from '../lib/tasks';
-import { ColorPicker } from '../components/ColorPicker';
+import { RealmColorPicker } from '../components/ColorPicker';
 import { ShowsEditor } from '../components/ShowsEditor';
 import { Branch, Children, NODE_SIZE, Stem, TreeNode } from '../components/NodeTree';
 import { PageHeader } from '../components/PageHeader';
@@ -248,7 +248,7 @@ function AreaEditor({ area, first, last }: { area: Area; first: boolean; last: b
       </div>
       <div>
         <span className="field-label">Color (shared by its projects)</span>
-        <ColorPicker value={area.color} onChange={(color) => void updateArea(area.id, { color })} />
+        <RealmColorPicker area={area} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <button className="btn-outline" disabled={first} onClick={() => void moveArea(area.id, -1)}><UpIcon /> Up</button>

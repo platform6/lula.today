@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { DEFAULT_COLUMNS, createLabel, deleteLabel, updateArea, updateLabel, updateSettings } from '../db/actions';
+import { DEFAULT_COLUMNS, createLabel, deleteLabel, updateLabel, updateSettings } from '../db/actions';
 import { useAreas, useLabels, usePendingCount, useSettings } from '../db/hooks';
 import type { ColumnTemplate } from '../db/types';
 import { supabase } from '../lib/supabase';
 import { syncNow, useSyncStatus } from '../sync/engine';
 import { clockLabel } from '../lib/dates';
-import { COLORS, ColorPicker, colorName } from '../components/ColorPicker';
+import { COLORS, RealmColorPicker, colorName } from '../components/ColorPicker';
 import { useConfirmCompleteSetting } from '../components/ConfirmComplete';
 import { TreeNode } from '../components/NodeTree';
 import { StuckChanges } from '../components/StuckChanges';
@@ -232,7 +232,7 @@ function RealmColors() {
           </button>
           {open === a.id && (
             <div className="border-t border-line p-4">
-              <ColorPicker value={a.color} onChange={(color) => void updateArea(a.id, { color })} />
+              <RealmColorPicker area={a} />
             </div>
           )}
         </li>
