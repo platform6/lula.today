@@ -111,6 +111,7 @@ export function Sidebar() {
           <CountBadge count={inboxCount} />
         </NavLink>
         <NavLink to="/tasks" className={navClass}><ListIcon /> All tasks</NavLink>
+        <NavLink to="/lists" className={navClass}><PencilIcon /> Lists</NavLink>
         <NavLink to="/search" className={navClass}><SearchIcon /> Search</NavLink>
         <NavLink to="/archive" className={navClass}><ArchiveIcon /> Archive</NavLink>
         {/* Fold from the bottom too, without going back up to the heading. */}
@@ -172,7 +173,6 @@ export function Sidebar() {
             );
           })}
         </Children>
-        <NavLink to="/lists" className={({ isActive }) => `mt-4 border-t border-line pt-3 ${navClass({ isActive })}`}><PencilIcon /> Lists</NavLink>
         {orphans.length > 0 && (
           <NavLink to="/realms" className="mt-3 block rounded-sm border-2 border-warn px-3 py-2 text-sm font-semibold text-warn">
             {orphans.length} project{orphans.length === 1 ? ' needs' : 's need'} a realm
