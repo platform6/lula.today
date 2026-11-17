@@ -16,7 +16,11 @@ Typing this command is the owner's go-ahead to commit and push what's in the wor
    the session gives for commits. Never stage secrets: `.env.local`, `.board-session.local` and
    `.claude/settings.local.json` are gitignored and must stay out.
 5. Push to the current branch.
-6. Note and move the cards from step 3, all of them in one call each:
-   `npm run board -- note <id>,<id> "Committed in <short hash>."` then `npm run board -- move <id>,<id> UAT`.
-   Never move anything to Done.
-7. Report the commit hash and which cards moved.
+6. Note, add test steps to, and move the cards from step 3:
+   - `npm run board -- note <id>,<id> "Committed in <short hash>."` (all cards in one call).
+   - For each card, add UAT checklist steps for the owner: `npm run board -- step <id> "Test: ..." "Test: ..."`
+     (or `--file <path>`, one step per line). One step per behaviour to check, each starting with `Test:` and
+     saying what to do and what should happen, e.g. `Test: In Time > Report, tap a day's bar; that day's
+     entries list under the chart`. Cover the edge cases the change touches, not only the main path.
+   - `npm run board -- move <id>,<id> UAT` (all cards in one call). Never move anything to Done.
+7. Report the commit hash, which cards moved, and the test steps added to each.

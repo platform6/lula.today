@@ -37,6 +37,10 @@ Rules for the board:
   owner says to.
 - Once it's pushed, add a note with the commit and move the card to **UAT**, where the owner
   tests it. Never move cards to **Done**; that is the owner's call after testing.
+- Before moving a card to UAT, add checklist steps for the owner to test it: one per behaviour
+  to check, each starting with `Test:` and saying what to do and what should happen (e.g.
+  `Test: In Time > Report, tap a day's bar; that day's entries list under the chart`). Cover
+  edge cases the change touches, not only the main path.
 - If a card is unclear, add a note with the question and leave it in To Do rather than guessing.
 - If another agent may be working the board too, only take the card you were given by id.
 
@@ -46,7 +50,8 @@ Rules for the board:
    stop), otherwise the **top** card from `npm run board -- list lula "To Do"`. If To Do is empty,
    say so and stop.
 2. `npm run board -- show <id>`: read the title, notes and steps. Unchecked steps and the latest
-   notes are usually the owner's feedback from testing.
+   notes are usually the owner's feedback from testing. Unchecked `Test:` steps are UAT steps from
+   an earlier round, not new work; the owner's notes say which of them failed.
 3. If it's unclear what's wanted, ask (or note the question on the card and leave it in To Do).
 4. Move it to Doing, build it, and run `npm run check`.
 5. Note on the card what changed and anything left for the owner to check, then report back and
@@ -64,9 +69,10 @@ Saying this is the owner's go-ahead to commit and push what's in the working tre
    `Card: <8-character id>` line per card from step 3 (`board show` lists a card's commits from
    these). Never stage `.env.local`, `.board-session.local` or `.claude/settings.local.json`.
 5. Push to the current branch.
-6. Note `Committed in <short hash>.` on those cards and move them to UAT (comma-separated ids,
-   one call each).
-7. Report the commit hash and which cards moved.
+6. Note `Committed in <short hash>.` on those cards (comma-separated ids, one call). Add each
+   card's `Test:` steps (`npm run board -- step <id> "Test: ..." ...`, or `--file` for many), then
+   move them all to UAT (one call).
+7. Report the commit hash, which cards moved, and the test steps added.
 
 ## Database changes
 
