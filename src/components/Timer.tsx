@@ -8,7 +8,7 @@ import { entrySeconds, formatDuration, runningLong, timesProblem } from '../lib/
 import { BackIcon, ClockIcon, PlayIcon } from './icons';
 import { Sheet } from './Sheet';
 import { TimeEntrySheet } from './TimeEntrySheet';
-import { Dot, Group, PickRow, ProjectPicker, SwitchRow, TagPicker, TaskPicker } from './TimePickers';
+import { Dot, Group, InputRow, PickRow, ProjectPicker, SwitchRow, TagPicker, TaskPicker } from './TimePickers';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 import { TimeFieldRows, keptValues, shownFields } from './TimeFieldRows';
 
@@ -177,8 +177,9 @@ function recentEntries(entries: TimeEntry[], limit: number): TimeEntry[] {
 type StartView = 'form' | 'project' | 'task' | 'tags';
 
 /**
- * Start a timer: what you're working on, then project, task and tags with the
- * same pickers as the entry form. Recent entries start again in one tap.
+ * Start a timer: project, task and tags with the same pickers as the entry form,
+ * then an optional description. Nothing is focused on open, so a phone's keyboard
+ * stays down until the description is tapped. Recent entries start again in one tap.
  */
 export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup; onClose: () => void; projectId?: string }) {
   const entries = useTimeEntries();
@@ -262,24 +263,6 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
       }
     >
       <div className="flex flex-col gap-4 p-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void start();
-          }}
-        >
-          <label className="sr-only" htmlFor="timer-desc">What are you working on?</label>
-          <input
-            id="timer-desc"
-            autoFocus
-            className="input"
-            placeholder="What are you working on?"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            enterKeyHint="go"
-          />
-        </form>
-
         <Group>
           <PickRow label="Project" onClick={() => setView('project')}>
             {project ? (
@@ -300,6 +283,26 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
           </PickRow>
           <SwitchRow label="Commute" checked={commute} onChange={setCommute} />
         </Group>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void start();
+          }}
+        >
+          <Group>
+            <InputRow label="Description" htmlFor="timer-desc">
+              <input
+                id="timer-desc"
+                className="min-h-12 min-w-0 flex-1 bg-transparent text-right text-base outline-none placeholder:text-muted"
+                placeholder="Optional"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                enterKeyHint="go"
+              />
+            </InputRow>
+          </Group>
+        </form>
 
         {recent.length > 0 && (
           <section>

@@ -261,3 +261,13 @@ export function TagPicker({
     </Picker>
   );
 }
+
+/** A labelled row holding an input, for the time sheets' grouped fields. */
+export function InputRow({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+  return (
+    <div className="flex min-h-14 items-center gap-3 px-4 py-1 focus-within:bg-surface">
+      <label className="shrink-0 text-base" htmlFor={htmlFor}>{label}</label>
+      <div className="flex min-w-0 flex-1 justify-end">{children}</div>
+    </div>
+  );
+}

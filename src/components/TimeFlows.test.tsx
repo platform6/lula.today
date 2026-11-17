@@ -68,7 +68,7 @@ describe('the timer', () => {
 
     expect(screen.queryByRole('timer')).toBeNull();
     await openStartTimer(user);
-    await user.type(screen.getByPlaceholderText('What are you working on?'), 'Write tests');
+    await user.type(screen.getByLabelText('Description'), 'Write tests');
     await user.click(screen.getByRole('button', { name: 'Start' }));
 
     expect(await screen.findByText('Write tests')).toBeTruthy();
@@ -76,7 +76,7 @@ describe('the timer', () => {
     const [first] = await runningEntries();
 
     await user.click(screen.getByRole('button', { name: 'Switch' }));
-    await user.type(screen.getByPlaceholderText('What are you working on?'), 'Review');
+    await user.type(screen.getByLabelText('Description'), 'Review');
     await user.click(screen.getByRole('button', { name: 'Start' }));
 
     expect(await screen.findByText('Review')).toBeTruthy();
@@ -87,6 +87,21 @@ describe('the timer', () => {
     await user.click(screen.getByRole('button', { name: 'Stop' }));
     await waitFor(() => expect(screen.queryByRole('timer')).toBeNull());
     expect(await runningEntries()).toHaveLength(0);
+  });
+
+  it('opens Start timer without focusing a text box, so no keyboard pops up', async () => {
+    const user = userEvent.setup();
+    render(<TimerScreen />, { wrapper: MemoryRouter });
+
+    await openStartTimer(user);
+    const description = screen.getByLabelText('Description');
+    expect(document.activeElement).not.toBe(description);
+    expect(document.activeElement?.tagName).not.toBe('INPUT');
+
+    // Starting without a description is fine.
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    const [entry] = await runningEntries();
+    expect(entry.description).toBeFalsy();
   });
 
   it('starts a recent entry again in one tap', async () => {

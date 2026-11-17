@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useTimeEntries, useTimeFields } from '../db/hooks';
 import { addEntry, deleteEntry, updateEntry } from '../db/time';
 import type { TimeEntry } from '../db/types';
@@ -6,7 +6,7 @@ import { addDays, dayKey, todayKey } from '../lib/dates';
 import { entrySeconds, formatDuration, parseDuration, timesProblem } from '../lib/time';
 import { BackIcon } from './icons';
 import { Sheet } from './Sheet';
-import { Dot, Group, PickRow, ProjectPicker, SwitchRow, TagPicker, TaskPicker } from './TimePickers';
+import { Dot, Group, InputRow as Row, PickRow, ProjectPicker, SwitchRow, TagPicker, TaskPicker } from './TimePickers';
 import { useTimeLookup, type TimeLookup } from './useTimeLookup';
 import { TimeFieldRows, keptValues, shownFields } from './TimeFieldRows';
 
@@ -327,11 +327,3 @@ function EntryForm({
 
 const fieldClass = 'input w-auto min-w-0 text-right';
 
-function Row({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
-  return (
-    <div className="flex min-h-14 items-center gap-3 px-4 py-1 focus-within:bg-surface">
-      <label className="shrink-0 text-base" htmlFor={htmlFor}>{label}</label>
-      <div className="flex min-w-0 flex-1 justify-end">{children}</div>
-    </div>
-  );
-}
