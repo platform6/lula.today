@@ -136,7 +136,7 @@ export function Layout() {
 
           {!dragging && !onListsPage && (
             <button
-              className={`fixed right-4 ${timerDocked ? 'bottom-[calc(8.875rem+var(--tab-safe))]' : 'bottom-[calc(5.25rem+var(--tab-safe))]'} z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6`}
+              className={`fixed right-4 ${timerDocked ? 'bottom-[calc(9.875rem+var(--tab-safe))]' : 'bottom-[calc(5.25rem+var(--tab-safe))]'} z-30 grid h-16 w-16 place-items-center rounded-full bg-accent text-accent-fg shadow-xl shadow-black/40 md:right-6 md:bottom-6`}
               onClick={() => setAddMenu(true)}
               aria-label="Add time or a task"
             >

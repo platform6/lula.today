@@ -407,7 +407,7 @@ export function useUndoDelete(lookup: TimeLookup) {
   const undoBar = last && (
     <div
       role="status"
-      className="fixed right-24 bottom-[calc(8.25rem+var(--tab-safe))] left-4 z-40 flex items-center gap-3 rounded-md border-2 border-line-strong bg-surface py-2 pr-2 pl-4 shadow-2xl md:right-28 md:bottom-6 md:left-auto md:w-96"
+      className="fixed right-24 bottom-[calc(9.25rem+var(--tab-safe))] left-4 z-40 flex items-center gap-3 rounded-md border-2 border-line-strong bg-surface py-2 pr-2 pl-4 shadow-2xl md:right-28 md:bottom-6 md:left-auto md:w-96"
     >
       <span className="min-w-0 flex-1 truncate text-base font-semibold">Deleted {lookup.entryTitle(last)}</span>
       <button className="btn-outline min-h-11 shrink-0 px-3" onClick={undo}>Undo</button>

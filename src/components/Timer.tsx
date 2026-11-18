@@ -45,14 +45,14 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
   const tint = long ? 'border-warn bg-warn/15' : 'border-accent bg-accent/15';
   const runningShell =
     variant === 'dock'
-      ? `fixed inset-x-0 bottom-[calc(4rem+var(--tab-safe))] z-20 flex h-14 items-center gap-2 border-t-2 px-3 md:hidden ${tint}`
+      ? `fixed inset-x-0 bottom-[calc(4rem+var(--tab-safe))] z-20 flex h-[4.5rem] items-center gap-3 border-t-2 px-4 py-2 md:hidden ${tint}`
       : `${variant === 'inline' ? 'mx-4 mt-4 md:hidden' : 'mx-2'} flex flex-col gap-2 rounded-md border-2 p-2 ${tint}`;
-  const clockSize = variant === 'dock' ? 'text-xl' : variant === 'inline' ? 'text-4xl' : 'text-2xl';
+  const clockSize = variant === 'dock' ? 'text-2xl' : variant === 'inline' ? 'text-4xl' : 'text-2xl';
 
   const title = (
-    <button className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight" onClick={() => setEditing(true)}>
+    <button className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left leading-snug" onClick={() => setEditing(true)}>
       <span className="w-full truncate text-base font-bold">{lookup.entryTitle(running)}</span>
-      <span className={`w-full truncate text-xs font-semibold ${long ? 'text-warn' : 'text-fg-2'}`}>
+      <span className={`w-full truncate font-semibold ${variant === 'dock' ? 'text-sm' : 'text-xs'} ${long ? 'text-warn' : 'text-fg-2'}`}>
         {long
           ? `Running since ${sinceLabel(running.started_at)}`
           : running.time_task_id
