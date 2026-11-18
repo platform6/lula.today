@@ -91,10 +91,42 @@ export async function ensureTimeTask(projectId: string | null, name: string): Pr
   const existing = (await db.time_tasks.toArray()).find(
     (t) => alive(t) && t.project_id === projectId && nameKey(t.name) === key,
   );
-  if (existing) return existing;
+  if (existing) {
+    // Typing a removed activity's name brings it back rather than making a twin.
+    if (existing.archived_at) await patch('time_tasks', existing.id, { archived_at: null });
+    return { ...existing, archived_at: null };
+  }
   const task: TimeTask = { ...newRow(), project_id: projectId, name: name.trim(), task_id: null, archived_at: null };
   await put('time_tasks', task);
   return task;
+}
+
+/** Rename an activity; earlier entries show the new name. */
+export const renameTimeTask = (id: string, name: string) => patch('time_tasks', id, { name: name.trim() });
+
+/** Hide an activity from the pickers; its entries keep it. */
+export const removeTimeTask = (id: string) => patch('time_tasks', id, { archived_at: now() });
+export const restoreTimeTask = (id: string) => patch('time_tasks', id, { archived_at: null });
+
+/** Move every entry on activity `fromId` to `intoId`, then remove `fromId`. Returns how many entries moved. */
+export async function mergeTimeTasks(fromId: string, intoId: string): Promise<number> {
+  if (fromId === intoId) return 0;
+  const t = now();
+  let moved = 0;
+  await writeTx(async () => {
+    const entries = (await db.time_entries.toArray()).filter((e) => alive(e) && e.time_task_id === fromId);
+    for (const e of entries) {
+      await db.time_entries.put({ ...e, time_task_id: intoId, updated_at: t });
+      await db.outbox.add({ table: 'time_entries', key: e.id, fields: ['time_task_id'] });
+    }
+    moved = entries.length;
+    const from = await db.time_tasks.get(fromId);
+    if (from) {
+      await db.time_tasks.put({ ...from, archived_at: t, updated_at: t });
+      await db.outbox.add({ table: 'time_tasks', key: fromId, fields: ['archived_at'] });
+    }
+  });
+  return moved;
 }
 
 /** The tag with this name, created if it doesn't exist yet. */

@@ -16,6 +16,7 @@ import { isRealProject, showsBoard, tracksTime } from '../lib/paths';
 import { byPosition } from '../lib/position';
 import { isLive } from '../lib/tasks';
 import { RealmColorPicker } from '../components/ColorPicker';
+import { ActivitiesEditor } from '../components/ActivitiesEditor';
 import { ShowsEditor } from '../components/ShowsEditor';
 import { Branch, Children, NODE_SIZE, Stem, TreeNode } from '../components/NodeTree';
 import { PageHeader } from '../components/PageHeader';
@@ -116,6 +117,12 @@ export function AreaPage() {
         </section>
 
         {finished.length > 0 && <FinishedProjects projects={finished} progress={progress} />}
+
+        {own && tracksTime(own) && (
+          <div className="mx-4">
+            <ActivitiesEditor projectId={own.id} name={area.name} />
+          </div>
+        )}
 
         {projects.some((p) => p.area_id === area.id && tracksTime(p)) && <RealmTimeFields area={area} />}
       </div>

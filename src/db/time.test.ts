@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db, clearLocalData } from './db';
 import { setCurrentUser } from './mutate';
 import type { Task } from './types';
-import { addEntry, addTimeField, removeTimeField, renameTimeField, continueEntry, deleteEntry, startCardTimer, ensureTimeTag, ensureTimeTask, runningEntries, startTimer, stopTimer, updateEntry } from './time';
+import { addEntry, addTimeField, removeTimeField, renameTimeField, continueEntry, deleteEntry, startCardTimer, ensureTimeTag, ensureTimeTask, mergeTimeTasks, removeTimeTask, renameTimeTask, restoreTimeTask, runningEntries, startTimer, stopTimer, updateEntry } from './time';
 
 beforeEach(async () => {
   await clearLocalData();
@@ -98,5 +98,42 @@ describe('realm time fields', () => {
     expect(stored.name).toBe('Title');
     expect(stored.archived_at).not.toBeNull();
     expect((await db.time_entries.get(e.id))!.fields).toEqual({ [game.id]: 'Hades' });
+  });
+});
+
+describe('managing activities', () => {
+  const hour = (h: number) => ({ started_at: new Date(2026, 0, 5, h).toISOString(), ended_at: new Date(2026, 0, 5, h + 1).toISOString() });
+
+  it('merges one activity into another: its entries move and it is removed', async () => {
+    const typo = await ensureTimeTask('p1', 'Zelad');
+    const right = await ensureTimeTask('p1', 'Zelda');
+    const a = await addEntry({ project_id: 'p1', time_task_id: typo.id, ...hour(9) });
+    const b = await addEntry({ project_id: 'p1', time_task_id: typo.id, ...hour(11) });
+    const c = await addEntry({ project_id: 'p1', time_task_id: right.id, ...hour(13) });
+
+    expect(await mergeTimeTasks(typo.id, right.id)).toBe(2);
+    for (const e of [a, b, c]) expect((await db.time_entries.get(e.id))!.time_task_id).toBe(right.id);
+    expect((await db.time_tasks.get(typo.id))!.archived_at).not.toBeNull();
+    const pushed = (await db.outbox.toArray()).filter((o) => o.table === 'time_entries' && o.fields?.includes('time_task_id'));
+    expect(pushed.map((o) => o.key).sort()).toEqual([a.id, b.id].sort());
+  });
+
+  it('renames, removes and restores an activity', async () => {
+    const t = await ensureTimeTask('p1', 'Speedrun');
+    await renameTimeTask(t.id, '  Speedrunning ');
+    expect((await db.time_tasks.get(t.id))!.name).toBe('Speedrunning');
+    await removeTimeTask(t.id);
+    expect((await db.time_tasks.get(t.id))!.archived_at).not.toBeNull();
+    await restoreTimeTask(t.id);
+    expect((await db.time_tasks.get(t.id))!.archived_at).toBeNull();
+  });
+
+  it("brings a removed activity back when its name is typed again, rather than making a twin", async () => {
+    const t = await ensureTimeTask('p1', 'Boss fights');
+    await removeTimeTask(t.id);
+    const again = await ensureTimeTask('p1', 'boss fights');
+    expect(again.id).toBe(t.id);
+    expect((await db.time_tasks.get(t.id))!.archived_at).toBeNull();
+    expect((await db.time_tasks.toArray()).filter((x) => x.project_id === 'p1')).toHaveLength(1);
   });
 });

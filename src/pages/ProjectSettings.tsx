@@ -16,9 +16,10 @@ import {
 } from '../db/actions';
 import { useAreas, useColumns, useProject, useProjectTasks } from '../db/hooks';
 import type { Area, Project } from '../db/types';
-import { showsBoard } from '../lib/paths';
+import { showsBoard, tracksTime } from '../lib/paths';
 import { isLive } from '../lib/tasks';
 import { ColumnsEditor } from '../components/ColumnsEditor';
+import { ActivitiesEditor } from '../components/ActivitiesEditor';
 import { ShowsEditor } from '../components/ShowsEditor';
 import { PageHeader } from '../components/PageHeader';
 import { BackIcon } from '../components/icons';
@@ -56,6 +57,10 @@ export function ProjectSettings() {
 
         {!project.is_inbox && (
           <ShowsEditor project={project} name={project.is_area_default ? (area?.name ?? project.name) : project.name} />
+        )}
+
+        {!project.is_inbox && tracksTime(project) && (
+          <ActivitiesEditor projectId={project.id} name={project.is_area_default ? (area?.name ?? project.name) : project.name} />
         )}
 
         {showsBoard(project) && (
