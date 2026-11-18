@@ -163,6 +163,7 @@ function EntryForm({
     return (
       <Sheet
         side="center"
+        fill
         onClose={requestClose}
         title={
           <span className="flex items-center gap-1">

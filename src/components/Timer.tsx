@@ -280,6 +280,7 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
     return (
       <Sheet
         side="center"
+        fill
         onClose={() => void done()}
         title={
           <span className="flex items-center gap-1">
