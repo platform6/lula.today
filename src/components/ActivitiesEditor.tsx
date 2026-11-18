@@ -1,19 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTimeEntries, useTimeTasks } from '../db/hooks';
 import { mergeTimeTasks, removeTimeTask, renameTimeTask, restoreTimeTask } from '../db/time';
 import type { TimeTask } from '../db/types';
 import { entrySeconds, formatDuration, nameKey } from '../lib/time';
-import { XIcon } from './icons';
+import { PencilIcon, XIcon } from './icons';
 
 /**
- * A project's activities (its own list's, for a realm): rename one, merge one into
- * another (its entries move over), or remove one from the pickers and bring it back.
+ * A project's activities (its own list's, for a realm). Each row renames or
+ * deletes; tick two or more and Merge combines them into the one you keep.
+ * Deleting hides an activity from the pickers (its entries keep it) and can be undone.
  */
 export function ActivitiesEditor({ projectId, name }: { projectId: string; name: string }) {
   const all = (useTimeTasks() ?? []).filter((t) => t.project_id === projectId);
   const entries = useTimeEntries();
-  const [merging, setMerging] = useState<{ from: TimeTask; into: TimeTask } | null>(null);
-  const [notice, setNotice] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [merging, setMerging] = useState(false);
+  const [keep, setKeep] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string; undo?: () => void } | null>(null);
 
   const usage = useMemo(() => {
     const now = Date.now();
@@ -32,23 +36,54 @@ export function ActivitiesEditor({ projectId, name }: { projectId: string; name:
   const removed = all.filter((t) => t.archived_at);
   const used = (id: string) => usage.get(id) ?? { count: 0, seconds: 0 };
   const entriesLabel = (n: number) => `${n} entr${n === 1 ? 'y' : 'ies'}`;
+  // Ticks on activities that have since gone don't count.
+  const picked = active.filter((t) => selected.includes(t.id));
 
-  const rename = (t: TimeTask, next: string): boolean => {
+  const toggle = (id: string) => {
+    setMerging(false);
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  };
+
+  const rename = (t: TimeTask, next: string) => {
     const twin = active.find((o) => o.id !== t.id && nameKey(o.name) === nameKey(next));
     if (twin) {
-      setNotice(`Another activity is already called ${twin.name}. To combine them, use Merge into.`);
-      return false;
+      setNotice({ text: `Another activity is already called ${twin.name}. To combine them, tick both and Merge.` });
+      return;
     }
-    setNotice('');
-    void renameTimeTask(t.id, next);
-    return true;
+    setNotice(null);
+    if (next !== t.name) void renameTimeTask(t.id, next);
+  };
+
+  const remove = (t: TimeTask) => {
+    setSelected((s) => s.filter((x) => x !== t.id));
+    setMerging(false);
+    void removeTimeTask(t.id);
+    setNotice({ text: `Deleted ${t.name}.`, undo: () => void restoreTimeTask(t.id).then(() => setNotice(null)) });
+  };
+
+  const startMerge = () => {
+    // Keep the most used by default.
+    const top = [...picked].sort((a, b) => used(b.id).count - used(a.id).count)[0];
+    setKeep(top.id);
+    setMerging(true);
+  };
+
+  const merge = async () => {
+    const into = picked.find((t) => t.id === keep);
+    if (!into) return;
+    const from = picked.filter((t) => t.id !== keep);
+    let moved = 0;
+    for (const t of from) moved += await mergeTimeTasks(t.id, into.id);
+    setMerging(false);
+    setSelected([]);
+    setNotice({ text: `Merged ${from.map((t) => t.name).join(', ')} into ${into.name}: ${entriesLabel(moved)} moved.` });
   };
 
   return (
     <section>
       <h2 className="section-title">Activities</h2>
       <p className="mt-2 text-sm text-fg-2">
-        What time in {name} is spent on, picked when tracking time. Rename one to fix a typo, or merge two into one.
+        What time in {name} is spent on, picked when tracking time. Tick two or more to merge them.
       </p>
       {active.length === 0 ? (
         <p className="mt-3 text-base text-muted">No activities yet. They're added from the Activity picker when tracking time.</p>
@@ -56,69 +91,87 @@ export function ActivitiesEditor({ projectId, name }: { projectId: string; name:
         <ul className="mt-3 divide-y divide-line rounded-md border border-line bg-surface-2">
           {active.map((t) => {
             const u = used(t.id);
-            const others = active.filter((o) => o.id !== t.id);
+            const ticked = selected.includes(t.id);
             return (
-              <li key={t.id} className="flex flex-col gap-1 py-2 pr-1 pl-4">
-                <div className="flex min-h-12 items-center gap-2">
-                  <label className="sr-only" htmlFor={`activity-${t.id}`}>Activity name</label>
-                  <ActivityName id={`activity-${t.id}`} name={t.name} onSave={(v) => rename(t, v)} />
-                  <button className="btn-ghost shrink-0 px-2" aria-label={`Remove ${t.name}`} title="Remove from the pickers" onClick={() => void removeTimeTask(t.id)}>
-                    <XIcon />
-                  </button>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pr-3 text-sm text-fg-2">
-                  <span className="flex-1 tabular-nums">
-                    {entriesLabel(u.count)}
-                    {u.count > 0 && ` · ${formatDuration(u.seconds)}`}
+              <li key={t.id} className={`flex min-h-14 items-center gap-3 pr-1 pl-3 ${ticked ? 'bg-accent/10' : ''}`}>
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 shrink-0 accent-[var(--accent)]"
+                  aria-label={`Select ${t.name}`}
+                  checked={ticked}
+                  onChange={() => toggle(t.id)}
+                />
+                {editing === t.id ? (
+                  <ActivityName
+                    name={t.name}
+                    onDone={(v) => {
+                      // A refused name (another activity has it) goes back to the old one, with a notice.
+                      if (v !== null) rename(t, v);
+                      setEditing(null);
+                    }}
+                  />
+                ) : (
+                  <span className="min-w-0 flex-1 py-2">
+                    <span className="block truncate text-base font-semibold">{t.name}</span>
+                    <span className="block text-sm text-fg-2 tabular-nums">
+                      {entriesLabel(u.count)}
+                      {u.count > 0 && ` · ${formatDuration(u.seconds)}`}
+                    </span>
                   </span>
-                  {others.length > 0 && (
-                    <label className="flex items-center gap-2">
-                      <span>Merge into</span>
-                      <select
-                        className="input min-h-10 w-auto py-1 text-sm"
-                        value=""
-                        onChange={(e) => {
-                          const into = others.find((o) => o.id === e.target.value);
-                          if (into) setMerging({ from: t, into });
-                        }}
-                      >
-                        <option value="">Choose…</option>
-                        {others.map((o) => (
-                          <option key={o.id} value={o.id}>{o.name}</option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </div>
-                {merging?.from.id === t.id && (
-                  <div role="alert" className="mt-1 mr-3 flex flex-wrap items-center gap-2 rounded-md border border-line-strong bg-surface p-3">
-                    <p className="min-w-48 flex-1 text-base">
-                      Move {entriesLabel(u.count)} from <b>{t.name}</b> to <b>{merging.into.name}</b>, and remove {t.name}?
-                    </p>
-                    <button className="btn-ghost" onClick={() => setMerging(null)}>Cancel</button>
-                    <button
-                      className="btn-primary"
-                      onClick={() => {
-                        const { from, into } = merging;
-                        setMerging(null);
-                        void mergeTimeTasks(from.id, into.id).then((n) =>
-                          setNotice(`Merged ${from.name} into ${into.name}: ${entriesLabel(n)} moved.`),
-                        );
-                      }}
-                    >
-                      Merge
+                )}
+                {editing !== t.id && (
+                  <>
+                    <button className="btn-ghost shrink-0 px-2" aria-label={`Rename ${t.name}`} title="Rename" onClick={() => setEditing(t.id)}>
+                      <PencilIcon />
                     </button>
-                  </div>
+                    <button className="btn-ghost shrink-0 px-2" aria-label={`Delete ${t.name}`} title="Delete" onClick={() => remove(t)}>
+                      <XIcon />
+                    </button>
+                  </>
                 )}
               </li>
             );
           })}
         </ul>
       )}
-      {notice && <p role="status" className="mt-2 text-sm font-semibold text-fg-2">{notice}</p>}
+
+      {picked.length >= 2 && !merging && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="flex-1 text-sm text-fg-2">{picked.length} selected</span>
+          <button className="btn-ghost" onClick={() => setSelected([])}>Clear</button>
+          <button className="btn-primary" onClick={startMerge}>Merge {picked.length}</button>
+        </div>
+      )}
+      {merging && picked.length >= 2 && (
+        <div role="group" aria-label="Merge activities" className="mt-3 flex flex-col gap-3 rounded-md border border-line-strong bg-surface p-4">
+          <p className="text-base font-semibold">Keep which name?</p>
+          <div className="flex flex-col gap-1">
+            {picked.map((t) => (
+              <label key={t.id} className="flex min-h-11 items-center gap-3 text-base">
+                <input type="radio" name="keep-activity" className="h-5 w-5 accent-[var(--accent)]" checked={keep === t.id} onChange={() => setKeep(t.id)} />
+                <span className="min-w-0 flex-1 truncate">{t.name}</span>
+                <span className="shrink-0 text-sm text-fg-2 tabular-nums">{entriesLabel(used(t.id).count)}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-sm text-fg-2">The other entries move to it, and the others are deleted.</p>
+          <div className="flex justify-end gap-2">
+            <button className="btn-ghost" onClick={() => setMerging(false)}>Cancel</button>
+            <button className="btn-primary" onClick={() => void merge()}>Merge</button>
+          </div>
+        </div>
+      )}
+
+      {notice && (
+        <p role="status" className="mt-2 flex items-center gap-2 text-sm font-semibold text-fg-2">
+          <span className="flex-1">{notice.text}</span>
+          {notice.undo && <button className="btn-outline min-h-10 px-3" onClick={notice.undo}>Undo</button>}
+        </p>
+      )}
+
       {removed.length > 0 && (
         <details className="mt-3">
-          <summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold text-fg-2">Removed activities ({removed.length})</summary>
+          <summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold text-fg-2">Deleted activities ({removed.length})</summary>
           <ul className="divide-y divide-line rounded-md border border-line">
             {removed.map((t) => (
               <li key={t.id} className="flex min-h-12 items-center gap-2 pr-1 pl-4">
@@ -128,28 +181,33 @@ export function ActivitiesEditor({ projectId, name }: { projectId: string; name:
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-sm text-fg-2">Removed activities stay on their past entries but aren't offered when tracking time.</p>
+          <p className="mt-2 text-sm text-fg-2">Deleted activities stay on their past entries but aren't offered when tracking time.</p>
         </details>
       )}
     </section>
   );
 }
 
-/** An activity's name, saved when you leave the box; a blank or refused name goes back to the old one. */
-function ActivityName({ id, name, onSave }: { id: string; name: string; onSave: (name: string) => boolean }) {
+/** Renaming an activity: Enter or leaving the box saves, Escape or a blank name cancels (`null`). */
+function ActivityName({ name, onDone }: { name: string; onDone: (name: string | null) => void }) {
   const [draft, setDraft] = useState(name);
-  useEffect(() => setDraft(name), [name]);
+  const finish = () => onDone(draft.trim() || null);
   return (
     <input
-      id={id}
-      className="min-h-12 min-w-0 flex-1 bg-transparent text-base font-semibold outline-none"
+      autoFocus
+      aria-label="Activity name"
+      className="input min-h-11 min-w-0 flex-1"
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => {
-        const v = draft.trim();
-        if (!v || (v !== name && !onSave(v))) setDraft(name);
+      onBlur={finish}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') finish();
+        else if (e.key === 'Escape') {
+          // Don't let the Escape close anything around the page.
+          e.stopPropagation();
+          onDone(null);
+        }
       }}
-      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
     />
   );
 }
