@@ -51,6 +51,8 @@ export const NodesIcon = (p: P) => <Icon {...p}><circle cx="6" cy="5" r="2.5" />
 export const GripIcon = (p: P) => <Icon {...p}><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></Icon>;
 export const CalendarIcon = (p: P) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></Icon>;
 export const ClockIcon = (p: P) => <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Icon>;
+/** A clock with a turn-back arrow: time already spent (Add time). */
+export const HistoryIcon = (p: P) => <Icon {...p}><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8.3" /><path d="M3 3v5.3h5.3" /><path d="M12 7v5l3 2" /></Icon>;
 export const FlagIcon = (p: P) => <Icon {...p}><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 5 2 5H5" /></Icon>;
 export const PaperclipIcon = (p: P) => <Icon {...p}><path d="m21 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9" /></Icon>;
 export const PlayIcon = (p: P) => <Icon {...p}><path d="M7 4v16l13-8z" /></Icon>;

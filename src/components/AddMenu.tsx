@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useMatch } from 'react-router-dom';
 import { useProjects } from '../db/hooks';
 import { tracksTime } from '../lib/paths';
-import { ChevronRightIcon, ClockIcon, PlusIcon } from './icons';
+import { ChevronRightIcon, ClockIcon, HistoryIcon, PlusIcon } from './icons';
 import { Sheet } from './Sheet';
 import { TimeEntrySheet } from './TimeEntrySheet';
 import { TimerPicker } from './Timer';
@@ -30,7 +30,7 @@ export function AddMenu({ onClose, onNewTask }: { onClose: () => void; onNewTask
     <Sheet title="Add" onClose={onClose} side="center">
       <div className="flex flex-col gap-2 p-4">
         <Option icon={<ClockIcon width={24} height={24} />} label="Start timer" hint="Track time from now" onClick={() => setChoice('timer')} />
-        <Option icon={<ClockIcon width={24} height={24} />} label="Add time" hint="Time already spent" onClick={() => setChoice('time')} />
+        <Option icon={<HistoryIcon width={24} height={24} />} label="Add time" hint="Time already spent" onClick={() => setChoice('time')} />
         <Option icon={<PlusIcon width={24} height={24} />} label="New task" hint="Something to do" onClick={onNewTask} />
       </div>
     </Sheet>
