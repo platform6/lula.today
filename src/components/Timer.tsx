@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useProject, useRunningEntry, useTimeEntries, useTimeFields } from '../db/hooks';
-import { continueEntry, startCardTimer, startTimer, stopTimer, updateEntry } from '../db/time';
+import { deleteEntry, runningEntries, startCardTimer, startTimer, stopTimer, updateEntry } from '../db/time';
 import type { Task, TimeEntry } from '../db/types';
 import { tracksTime } from '../lib/paths';
 import { dayKey, sinceLabel } from '../lib/dates';
@@ -165,6 +165,8 @@ function recentEntries(entries: TimeEntry[], limit: number): TimeEntry[] {
   const seen = new Set<string>();
   const out: TimeEntry[] = [];
   for (const e of entries) {
+    // The timer the sheet just started isn't a recent entry.
+    if (!e.ended_at) continue;
     const key = `${e.project_id}|${e.time_task_id}|${e.description ?? ''}|${!!e.commute}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -176,13 +178,30 @@ function recentEntries(entries: TimeEntry[], limit: number): TimeEntry[] {
 
 type StartView = 'form' | 'project' | 'task' | 'tags';
 
+/** How long after the last change the sheet saves it to the running timer. */
+const SAVE_DELAY = 400;
+
 /**
- * Start a timer: project, task and tags with the same pickers as the entry form,
- * then an optional description. Nothing is focused on open, so a phone's keyboard
- * stays down until the description is tapped. Recent entries start again in one tap.
+ * Start a timer: it starts the moment the sheet opens (stopping any other), and
+ * project, task, tags and the optional description are saved to it as they're
+ * picked. Nothing is focused on open, so a phone's keyboard stays down until the
+ * description is tapped. A recent entry fills it in one tap; Discard takes it back,
+ * restarting the timer this one switched from.
  */
 export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup; onClose: () => void; projectId?: string }) {
   const entries = useTimeEntries();
+  // Started once per sheet, on open; the ref outlives React's dev-mode double mount.
+  const started = useRef<Promise<{ entry: TimeEntry; switchedFrom: TimeEntry[] }> | null>(null);
+  const [startedAt, setStartedAt] = useState<string | null>(null);
+  useEffect(() => {
+    started.current ??= (async () => {
+      const switchedFrom = await runningEntries();
+      return { entry: await startTimer({ project_id: projectId ?? null }), switchedFrom };
+    })();
+    void started.current.then(({ entry }) => setStartedAt(entry.started_at));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const now = useNow(true);
   const [view, setView] = useState<StartView>('form');
   const [description, setDescription] = useState('');
   const [project, setProject] = useState(projectId ?? '');
@@ -199,10 +218,57 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
   const task = taskId ? lookup.tasks.get(taskId) : undefined;
   const tagNames = tagIds.map((id) => lookup.tags.get(id)?.name).filter(Boolean).join(', ');
 
-  const start = async () => {
-    await startTimer({ project_id: project || null, time_task_id: taskId, tag_ids: tagIds, description, commute, fields: keptValues(extra, fields) });
+  // What the sheet shows, saved to the running timer a moment after each change and on close.
+  const values = { project_id: project || null, time_task_id: taskId, tag_ids: tagIds, description: description.trim() || null, commute, fields: keptValues(extra, fields) };
+  const latest = useRef(values);
+  latest.current = values;
+  const dirty = useRef(false);
+  const save = async () => {
+    if (!dirty.current) return;
+    dirty.current = false;
+    const { entry } = await started.current!;
+    await updateEntry(entry.id, latest.current);
+  };
+  const changed = useRef(false);
+  useEffect(() => {
+    // The first render is what the timer started with; only later changes need saving.
+    if (!changed.current) {
+      changed.current = true;
+      return;
+    }
+    dirty.current = true;
+    const t = setTimeout(() => void save(), SAVE_DELAY);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, taskId, tagIds, description, commute, extra]);
+
+  const done = async () => {
+    await save();
     onClose();
   };
+  /** Take the timer back: delete it, and restart the one it switched from. */
+  const discard = async () => {
+    dirty.current = false;
+    const { entry, switchedFrom } = await started.current!;
+    await deleteEntry(entry.id);
+    for (const e of switchedFrom) await updateEntry(e.id, { ended_at: null });
+    onClose();
+  };
+  /** A recent entry's project, task, tags and description, on the timer that's already running. */
+  const fillFrom = async (e: TimeEntry) => {
+    dirty.current = false;
+    const { entry } = await started.current!;
+    await updateEntry(entry.id, {
+      project_id: e.project_id,
+      time_task_id: e.time_task_id,
+      tag_ids: e.tag_ids,
+      description: e.description,
+      fields: e.fields,
+      commute: !!e.commute,
+    });
+    onClose();
+  };
+
   const pickProject = (id: string) => {
     setProject(id);
     // A task belongs to one project, so a new project drops it.
@@ -214,7 +280,7 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
     return (
       <Sheet
         side="center"
-        onClose={onClose}
+        onClose={() => void done()}
         title={
           <span className="flex items-center gap-1">
             <button className="btn-ghost -ml-2 px-2" onClick={() => setView('form')} aria-label="Back to the timer">
@@ -251,13 +317,23 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
 
   return (
     <Sheet
-      title="Start timer"
-      onClose={onClose}
+      title={
+        <span className="flex items-baseline gap-3">
+          Timer running
+          <span className="font-mono tabular-nums text-accent">
+            {startedAt ? formatDuration(Math.max(0, Math.floor((now - Date.parse(startedAt)) / 1000))) : formatDuration(0)}
+          </span>
+        </span>
+      }
+      onClose={() => void done()}
       side="center"
       footer={
         <div className="flex w-full justify-end gap-2 pb-2">
-          <button className="btn-primary" onClick={() => void start()}>
-            <PlayIcon width={18} height={18} /> Start
+          <button className="btn-ghost" onClick={() => void discard()}>
+            Discard
+          </button>
+          <button className="btn-primary" onClick={() => void done()}>
+            Done
           </button>
         </div>
       }
@@ -287,7 +363,7 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void start();
+            void done();
           }}
         >
           <Group>
@@ -312,7 +388,7 @@ export function TimerPicker({ lookup, onClose, projectId }: { lookup: TimeLookup
                 <button
                   key={e.id}
                   className="flex min-h-14 w-full items-center gap-3 px-3 text-left hover:bg-surface-2"
-                  onClick={() => void continueEntry(e).then(onClose)}
+                  onClick={() => void fillFrom(e)}
                 >
                   <Dot color={lookup.projectColor(e.project_id)} />
                   <span className="min-w-0 flex-1">

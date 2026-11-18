@@ -12,7 +12,7 @@ import { TimeEntrySheet } from './TimeEntrySheet';
 import { TimeReport } from './TimeReport';
 import { TimerBar } from './Timer';
 import { AddMenu } from './AddMenu';
-import { useState } from 'react';
+import { StrictMode, useState } from 'react';
 
 /** The running timer's bar and the + button's menu, which is where a timer starts. */
 function TimerScreen() {
@@ -62,31 +62,49 @@ async function finished(description: string, hours = 1) {
 }
 
 describe('the timer', () => {
-  it('starts, switches and stops', async () => {
+  it('starts when the sheet opens, switches and stops', async () => {
     const user = userEvent.setup();
     render(<TimerScreen />, { wrapper: MemoryRouter });
 
     expect(screen.queryByRole('timer')).toBeNull();
     await openStartTimer(user);
+    // Running before anything is picked.
+    await waitFor(async () => expect(await runningEntries()).toHaveLength(1));
     await user.type(screen.getByLabelText('Description'), 'Write tests');
-    await user.click(screen.getByRole('button', { name: 'Start' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
 
     expect(await screen.findByText('Write tests')).toBeTruthy();
     expect(screen.getByRole('timer')).toBeTruthy();
     const [first] = await runningEntries();
+    expect(first.description).toBe('Write tests');
 
+    // Switch stops the first timer as the sheet opens.
     await user.click(screen.getByRole('button', { name: 'Switch' }));
+    await waitFor(async () => expect((await db.time_entries.get(first.id))!.ended_at).not.toBeNull());
     await user.type(screen.getByLabelText('Description'), 'Review');
-    await user.click(screen.getByRole('button', { name: 'Start' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
 
     expect(await screen.findByText('Review')).toBeTruthy();
     const running = await runningEntries();
     expect(running.map((e) => e.description)).toEqual(['Review']);
-    expect((await db.time_entries.get(first.id))!.ended_at).not.toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Stop' }));
     await waitFor(() => expect(screen.queryByRole('timer')).toBeNull());
     expect(await runningEntries()).toHaveLength(0);
+  });
+
+  it('starts one timer, even in StrictMode', async () => {
+    const user = userEvent.setup();
+    render(
+      <StrictMode>
+        <TimerScreen />
+      </StrictMode>,
+      { wrapper: MemoryRouter },
+    );
+    await openStartTimer(user);
+    await waitFor(async () => expect(await live()).toHaveLength(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await live()).toHaveLength(1);
   });
 
   it('opens Start timer without focusing a text box, so no keyboard pops up', async () => {
@@ -98,13 +116,46 @@ describe('the timer', () => {
     expect(document.activeElement).not.toBe(description);
     expect(document.activeElement?.tagName).not.toBe('INPUT');
 
-    // Starting without a description is fine.
-    await user.click(screen.getByRole('button', { name: 'Start' }));
+    // Running without a description is fine.
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(async () => expect(await runningEntries()).toHaveLength(1));
     const [entry] = await runningEntries();
     expect(entry.description).toBeFalsy();
   });
 
-  it('starts a recent entry again in one tap', async () => {
+  it('saves what was typed when the sheet is closed another way', async () => {
+    const user = userEvent.setup();
+    render(<TimerScreen />, { wrapper: MemoryRouter });
+
+    await openStartTimer(user);
+    await user.type(screen.getByLabelText('Description'), 'Notes');
+    await user.keyboard('{Escape}');
+
+    await waitFor(async () => expect((await runningEntries()).map((e) => e.description)).toEqual(['Notes']));
+  });
+
+  it('Discard takes the timer back and restarts the one it switched from', async () => {
+    const user = userEvent.setup();
+    render(<TimerScreen />, { wrapper: MemoryRouter });
+
+    await openStartTimer(user);
+    await user.type(screen.getByLabelText('Description'), 'Email');
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    const [first] = await waitFor(async () => {
+      const r = await runningEntries();
+      expect(r.map((e) => e.description)).toEqual(['Email']);
+      return r;
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Switch' }));
+    await waitFor(async () => expect((await db.time_entries.get(first.id))!.ended_at).not.toBeNull());
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+    await waitFor(async () => expect((await runningEntries()).map((e) => e.id)).toEqual([first.id]));
+    expect(await live()).toHaveLength(1);
+  });
+
+  it('fills the running timer from a recent entry in one tap', async () => {
     const user = userEvent.setup();
     await finished('Laps');
     render(<TimerScreen />, { wrapper: MemoryRouter });
