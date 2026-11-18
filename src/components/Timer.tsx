@@ -40,9 +40,12 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
   // Only a running timer shows; the + button starts one.
   if (!running || !lookup.loaded) return null;
 
-  // A running timer is the loudest thing on screen: tinted, with a big live clock.
+  // A running timer sits on grey with a big live clock; its activity takes the realm's colour,
+  // blended a little toward the text colour so every palette colour reads (4.5:1+) in both themes.
+  // One left on far too long turns amber.
   const long = runningLong(running, now);
-  const tint = long ? 'border-warn bg-warn/15' : 'border-accent bg-accent/15';
+  const tint = long ? 'border-warn bg-warn/15' : 'border-line-strong bg-surface-2';
+  const realmColor = lookup.projectColor(running.project_id);
   const runningShell =
     variant === 'dock'
       ? `fixed inset-x-0 bottom-[calc(4rem+var(--tab-safe))] z-20 flex h-[4.5rem] items-center gap-3 border-t-2 px-4 py-2 md:hidden ${tint}`
@@ -59,7 +62,9 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
       : running.description || (phone ? '' : 'Tap to edit');
   const title = (
     <button className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left leading-snug" onClick={() => setEditing(true)}>
-      <span className="w-full truncate text-base font-bold">{lookup.entryTitle(running)}</span>
+      <span className="w-full truncate text-base font-bold" style={realmColor ? { color: `color-mix(in srgb, ${realmColor} 70%, var(--fg))` } : undefined}>
+        {lookup.entryTitle(running)}
+      </span>
       {subtitle && (
         <span className={`w-full truncate font-semibold ${variant === 'dock' ? 'text-sm' : 'text-xs'} ${long ? 'text-warn' : 'text-fg-2'}`}>
           {subtitle}
