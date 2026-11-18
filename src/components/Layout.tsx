@@ -124,10 +124,13 @@ export function Layout() {
         onDragCancel={() => setDragging(null)}
         onDragEnd={onDragEnd}
       >
-        <div className="flex h-full">
+        {/* Only <main> scrolls. It's the positioning box for what's inside, so absolutely
+            placed bits deep in a long page (screen-reader labels) stay clipped to it instead of
+            making the whole window scroll and carry the sidebar up with it. */}
+        <div className="relative flex h-full overflow-hidden">
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
-            <main className="pt-safe min-h-0 flex-1 overflow-y-auto pb-56 md:pb-8">
+            <main className="pt-safe relative min-h-0 flex-1 overflow-y-auto pb-56 md:pb-8">
               <Outlet />
             </main>
             {!onTimePage && <TimerBar variant="dock" />}
