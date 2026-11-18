@@ -15,11 +15,11 @@ import { AddMenu } from './AddMenu';
 import { StrictMode, useState } from 'react';
 
 /** The running timer's bar and the + button's menu, which is where a timer starts. */
-function TimerScreen() {
+function TimerScreen({ variant = 'side' }: { variant?: 'dock' | 'side' | 'inline' }) {
   const [adding, setAdding] = useState(false);
   return (
     <>
-      <TimerBar variant="side" />
+      <TimerBar variant={variant} />
       <button onClick={() => setAdding(true)}>Add</button>
       {adding && <AddMenu onClose={() => setAdding(false)} onNewTask={() => setAdding(false)} />}
     </>
@@ -91,6 +91,23 @@ describe('the timer', () => {
     await user.click(screen.getByRole('button', { name: 'Stop' }));
     await waitFor(() => expect(screen.queryByRole('timer')).toBeNull());
     expect(await runningEntries()).toHaveLength(0);
+  });
+
+  it.each(['dock', 'inline'] as const)('leaves Switch and the tap hint off the %s bar on phones', async (variant) => {
+    const user = userEvent.setup();
+    render(<TimerScreen variant={variant} />, { wrapper: MemoryRouter });
+    await openStartTimer(user);
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+
+    expect(await screen.findByRole('timer')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Switch' })).toBeNull();
+    expect(screen.queryByText('Tap to edit')).toBeNull();
+
+    // Starting another from + still switches.
+    const [first] = await runningEntries();
+    await openStartTimer(user);
+    await waitFor(async () => expect((await db.time_entries.get(first.id))!.ended_at).not.toBeNull());
   });
 
   it('starts one timer, even in StrictMode', async () => {

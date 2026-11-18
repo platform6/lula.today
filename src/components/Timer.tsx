@@ -49,16 +49,22 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
       : `${variant === 'inline' ? 'mx-4 mt-4 md:hidden' : 'mx-2'} flex flex-col gap-2 rounded-md border-2 p-2 ${tint}`;
   const clockSize = variant === 'dock' ? 'text-2xl' : variant === 'inline' ? 'text-4xl' : 'text-2xl';
 
+  // Phones are short on room: no Switch button (+ starts a new timer, which switches)
+  // and no "Tap to edit" hint under the title.
+  const phone = variant !== 'side';
+  const subtitle = long
+    ? `Running since ${sinceLabel(running.started_at)}`
+    : running.time_task_id
+      ? lookup.projectLabel(running.project_id)
+      : running.description || (phone ? '' : 'Tap to edit');
   const title = (
     <button className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left leading-snug" onClick={() => setEditing(true)}>
       <span className="w-full truncate text-base font-bold">{lookup.entryTitle(running)}</span>
-      <span className={`w-full truncate font-semibold ${variant === 'dock' ? 'text-sm' : 'text-xs'} ${long ? 'text-warn' : 'text-fg-2'}`}>
-        {long
-          ? `Running since ${sinceLabel(running.started_at)}`
-          : running.time_task_id
-            ? lookup.projectLabel(running.project_id)
-            : running.description || 'Tap to edit'}
-      </span>
+      {subtitle && (
+        <span className={`w-full truncate font-semibold ${variant === 'dock' ? 'text-sm' : 'text-xs'} ${long ? 'text-warn' : 'text-fg-2'}`}>
+          {subtitle}
+        </span>
+      )}
     </button>
   );
   const clock = (
@@ -66,13 +72,13 @@ export function TimerBar({ variant }: { variant: 'dock' | 'side' | 'inline' }) {
       {formatDuration(entrySeconds(running, now))}
     </span>
   );
-  // A timer left on offers Stop at… (when it really ended); otherwise Switch to something else.
+  // A timer left on offers Stop at… (when it really ended); otherwise, on wide screens, Switch to something else.
   const actions = (
     <>
       {long ? (
         <button className="btn-outline min-h-11 shrink-0 px-3" onClick={() => setStoppingAt(true)}>Stop at…</button>
       ) : (
-        <button className="btn-outline min-h-11 shrink-0 px-3" onClick={() => setPicking(true)}>Switch</button>
+        !phone && <button className="btn-outline min-h-11 shrink-0 px-3" onClick={() => setPicking(true)}>Switch</button>
       )}
       <button className="btn-primary min-h-11 shrink-0 px-3" onClick={() => void stopTimer(running.id)}>
         Stop
